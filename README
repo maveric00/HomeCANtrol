@@ -1,0 +1,24 @@
+HomeCANtrol: 
+
+my own home automatisation system based on CAN nodes (using Atmel microcontrollers and MCP2515 CAN controller). 
+CAN nodes are organized by CAN lines which are interconnected by CAN->Ethernet gateways. 
+
+Currently, four node types exists: 
+
+1) Sensor node: based on ATTiny84, up to 6 inputs or outputs can be connected. Used for sensing e.g. push buttons or presence detectors or for actuation of single LEDs or (by usage of dual MOSFETs) higher power systems like 12V halogen lamps. 
+Supply voltage is 12V.
+
+2) Actor node: Uses 10 relays (5 on/off and 5 change over) to switch high voltage applications (designed for up to 230V/16A). Supply voltage is 5V for logic and 12V for relays
+
+3) LED driver board: Used to control 1 high power RGBW LED (e.g. Cree MC-E) and 6 low power RGB LEDs (20 to 50 mA). Supply voltage: 5V for logic and 5V for LED drivers.
+
+4) A derivative of the LED driver board driving 18 single LEDs and sensing one presence detector.
+
+CAN->Ethernet gateways are currently built on AVR-NetIO boards using OpenMCP as TCP stack and 2 MCP2515 CAN controllers to connect two CAN lines (change/addition to use a Carambola board is ongoing). CAN messages are sent out or received as UDP packets containing the CAN identifier, message length and message data. 
+
+This enables the use of a controller program on a PC connected to the same network.
+
+The system is in productive use since beginning of 2011 without a problem so far.
+
+I will add the sources of the controller software, the configuration tools and PC software as well as board schematics, layout and BOM as time permits.
+
