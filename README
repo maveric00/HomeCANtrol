@@ -1,6 +1,6 @@
 HomeCANtrol: 
 
-my own home automatisation system based on CAN nodes (using Atmel microcontrollers and MCP2515 CAN controller). 
+my own home automation system based on CAN nodes (using Atmel microcontrollers and MCP2515 CAN controller). 
 CAN nodes are organized by CAN lines which are interconnected by CAN->Ethernet gateways. 
 
 Currently, four node types exists: 
