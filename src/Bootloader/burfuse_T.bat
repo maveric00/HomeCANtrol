@@ -1,0 +1,1 @@
+avrdude -v -p t84 -c avrisp2 -P usb -U lfuse:w:0xe2:m -U hfuse:w:0xd2:m -U efuse:w:0xfe:m

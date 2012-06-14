@@ -1,0 +1,1 @@
+avrdude -v -p at90pwm3b -c ponyser -P com1 -U lfuse:r:0xC3:m -U hfuse:r:0xd2:m -U efuse:r:0xf8:m
