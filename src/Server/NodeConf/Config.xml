@@ -167,6 +167,39 @@
      </Zimmer>
      <Makro name="Festbeleuchtung">
          <Adresse linie="0" knoten="100" port="0"/>
+<!--
+         <Solange objekt="Var" vergleich="<" wert="10">
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks1"/>
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks2"/>
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts"/>
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Esszimmer/SteckdoseFenster"/>
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/Deckenlicht"/>
+            <Setze objekt="Var" wert="3"/>
+         </Solange>
+         <Wenn objekt="Var" vergleich="=" wert="2">
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks1"/>
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks2"/>
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts"/>
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Esszimmer/SteckdoseFenster"/>
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/Deckenlicht"/>
+            <Setze objekt="Var" wert="3"/>
+         </Wenn>
+         <Wenn objekt="Var" wert="1">
+            <Aktion kommando="An" objekt="Erdgeschoss/Wohnzimmer/Deckenlicht"/>
+            <Setze objekt="Var" wert="2"/>
+         </Wenn>
+         <Wenn objekt="Var" wert="0">
+            <Aktion kommando="An" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks1"/>
+            <Aktion kommando="An" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks2"/>
+            <Aktion kommando="An" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts"/>
+            <Aktion kommando="An" objekt="Erdgeschoss/Esszimme/SteckdoseFenster"/>
+            <Setze objekt="Var" wert="1"/>
+         </Wenn>
+
+         <Wenn objekt="Var" wert="3">
+            <Setze objekt="Var" wert="0"/>
+         </Wenn>
+-->
          <Aktion kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks1"/>
          <Aktion kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks2"/>
          <Aktion kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts"/>
@@ -305,4 +338,33 @@
      <Gleichzeitig makro="ZeitTest"/>
   </Start>
   <Variable name="Var" wert="0"/>
+  <Web name="Webpage">
+     <Seite name="Keller">
+        <Bild src="Bilder/Wohnen.png"/>
+        <Knopf name="Knopf1">
+           <Position x="10" y="10" h="20" b="30"/>
+           <Aktion kommando="Rufe" objekt="Erdgeschoss/Festbeleuchtung"/>
+           <Bild src="Bilder/An.png"/>
+        </Knopf>
+        <Knopf name="Knopf2">
+           <Position x="50" y="10" h="50" b="50"/>
+           <Aktion kommando="Seite" objekt="Erdgeschoss"/>
+           <Bild src="Bilder/Aus.png"/>
+        </Knopf>
+     </Seite>
+     <Seite name="Erdgeschoss">
+        <Bild src="Bilder/Kueche.png"/>
+        <Knopf name="Knopf1">
+           <Bild src="Bilder/An.png" objekt="Erdgeschoss/Festbeleuchtung" wert="1"/>
+           <Bild src="Bilder/Aus.png" objekt="Erdgeschoss/Festbeleuchtung" wert="0"/>
+           <Aktion kommando="Rufe" objekt="Erdgeschoss/Festbeleuchtung"/>
+           <Position x="10" y="20" h="20" b="30"/>
+        </Knopf>
+        <Knopf name="Knopf2">
+           <Bild src="Bilder/An.png"/>
+           <Position x="50" y="20" h="20" b="30"/>
+           <Aktion kommando="Seite" objekt="Keller"/>
+        </Knopf>
+     </Seite>
+  </Web>
 </Haus>
