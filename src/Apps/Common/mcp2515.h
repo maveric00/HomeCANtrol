@@ -39,28 +39,29 @@ extern uint8_t message_data[4];
 
 typedef enum {
     // Bootloader commands
-	UPDATE_REQ      = 1,
+        UPDATE_REQ              = 1,
 	IDENTIFY		= 2,
 	SET_ADDRESS		= 3,
 	DATA			= 4,
 	START_APP		= 5,
 
 	// Common Commands
-	SEND_STATUS     = 10,
+	SEND_STATUS             = 10,
 	READ_CONFIG		= 11,
-	WRITE_CONFIG	= 12,
+	WRITE_CONFIG     	= 12,
 	READ_VAR		= 13,
 	SET_VAR			= 14,
 	START_BOOT		= 15,
 	TIME			= 16,
 	// Relais commands
 	CHANNEL_ON		= 20,
-	CHANNEL_OFF     = 21,
-	CHANNEL_TOGGLE  = 22,
-	SHADE_UP_FULL   = 23,
-	SHADE_DOWN_FULL = 24,
-	SHADE_UP_SHORT  = 25,
-	SHADE_DOWN_SHORT= 26,
+	CHANNEL_OFF             = 21,
+	CHANNEL_TOGGLE          = 22,
+	SHADE_UP_FULL           = 23,
+	SHADE_DOWN_FULL         = 24,
+	SHADE_UP_SHORT          = 25,
+	SHADE_DOWN_SHORT        = 26,
+	SEND_LEDPORT            = 27,
 	// LED commands
 	LED_OFF			= 30,
 	LED_ON			= 31,
@@ -77,15 +78,15 @@ typedef enum {
 	START_PROG		= 42,
 	STOP_PROG		= 43,
 	// Sensor commands
-	SET_PIN         = 50,
-    LOAD_LED        = 51,
-	OUT_LED         = 52,
-	START_SENSOR    = 53,
-	STOP_SENSOR     = 54,
+	SET_PIN                 = 50,
+	LOAD_LED                = 51,
+	OUT_LED                 = 52,
+	START_SENSOR            = 53,
+	STOP_SENSOR             = 54,
 	// Answer bits
-	REQUEST			        = 0x00,
+	REQUEST		        = 0x00,
 	SUCCESSFULL_RESPONSE	= 0x40,
-	ERROR_RESPONSE		    = 0x80,
+	ERROR_RESPONSE	        = 0x80,
 	WRONG_NUMBER_REPSONSE	= 0xC0,
 	NO_MESSAGE		= 0x3f
 } tCommand;

@@ -58,6 +58,11 @@ uint8_t State[5] ;  // Zustand der Aktionsmaschine "Rollo"
 uint8_t UpDown[5] ; // Befehl für Rollo
 uint8_t Position[5] ; // Aktuelle Rollo-Position
 
+#define MAX_MESSAGES 4
+uint8_t LEDMessage[MAX_MESSAGES][4] ;
+uint8_t ActualMessage ;
+uint8_t SaveMessage ;
+
 // BuildCANId baut aus verschiedenen Elementen (Line & Addresse von Quelle und Ziel 
 // sowie Repeat-Flag und Gruppen-Flag) den CAN Identifier auf
 
@@ -204,8 +209,71 @@ ISR(TIMER1_COMPA_vect)
 {
   static uint8_t RelaisPhase=0;
   static uint8_t CounterTimer=0 ;
+  static uint8_t SendStatus=0 ;
+  static uint8_t SendDelay=0 ;
+  static uint8_t RepeatCount = 0 ;
+  
   uint8_t i ;
- 
+
+  // Kommunikation ueber PC0 mit speziellem 1-Draht-Protokoll fuer LED-Ansteuerung
+  if (SendStatus!=0) {
+    if (SendDelay==0) {
+      if (SendStatus==1) {
+	// Leitung auf Low schalten fuer Startbit (1 ms)
+	SET_OUTPUT(CHAN4) ;
+	RESET(CHAN4);
+	SendDelay = 3 ;
+      } else if (SendStatus==2) {
+	// Leitung auf High schalten
+	SET(CHAN4) ;
+      } else if ((SendStatus<67)&&((SendStatus%2)==1)) {
+	// Byte X heraustakten
+	RESET(CHAN4) ;
+	i = (SendStatus-3)/16 ;
+	if ((LEDMessage[ActualMessage][i]&0x80)!=0) {
+	  SendDelay = 1 ;
+	} else {
+	  SendDelay = 0 ;
+	} ;
+	LEDMessage[ActualMessage][i] = LEDMessage[ActualMessage][i]<<1 ;
+	if (SendDelay==1) LEDMessage[ActualMessage][i]|=1 ;
+      } else if ((SendStatus<67)&&((SendStatus%2)==0)) {
+	SET(CHAN4) ;
+      } else if (SendStatus==67) {
+	// Stop-Bit
+	RESET(CHAN4) ;
+	SendDelay= 2 ;
+      } else if (SendStatus==68) {
+	SET(CHAN4) ;
+	SET_INPUT_WITH_PULLUP(CHAN4) ;
+      } else if (SendStatus<71) {
+	if (!IS_SET(CHAN4)) {
+	  // Acknowledge ist gekommen, Nachricht ist vollstaendig gesendet
+	  ActualMessage ++ ;
+	  if (ActualMessage==MAX_MESSAGES) ActualMessage = 0 ;
+	  SendStatus = 255 ;
+	}
+      } else {
+	// Kein Acknowledge, Nachricht noch einmal senden
+	if (RepeatCount<3) {
+	  SendStatus = 0 ;
+	  SendDelay = 0 ;
+	  RepeatCount++ ;
+	} else {
+	  SendStatus = 255 ;
+	} ;
+      }
+      SendStatus ++ ;
+    } else {
+      SendDelay-- ;
+    }
+  } else {
+    if (ActualMessage!=SaveMessage) {
+      SendStatus = 1 ;
+      SendDelay = 0 ;
+    } ;
+  }
+
   // 1:1-Taktung
   if (RelaisPhase==0) {
     TCNT1 = 500;
@@ -244,15 +312,15 @@ ISR(TIMER1_COMPA_vect)
 
 void BroadcastStatus(  uint8_t BoardLine, uint16_t BoardAdd )
 {
-	int i ;
-	// An den Systembus schicken (Addresse: 0/1) 
-	Message.id = BuildCANId (0,0,BoardLine,BoardAdd,0,1,0) ;
-	Message.data[0] = SEND_STATUS|SUCCESSFULL_RESPONSE ;
-    Message.data[1] = (Channel[4]>>2)+(Channel[3]>>3)+(Channel[2]>>4)+(Channel[1]>>5)+(Channel[0]>>6) ;
-    Message.data[2] = (Channel[9]>>2)+(Channel[8]>>3)+(Channel[7]>>4)+(Channel[6]>>5)+(Channel[5]>>6) ;
-	for (i=0;i<5;i++) Message.data[i+3]=Position[i] ;
-    Message.length = 8 ;
-    mcp2515_send_message(&Message) ;				
+  int i ;
+  // An den Systembus schicken (Addresse: 0/1) 
+  Message.id = BuildCANId (0,0,BoardLine,BoardAdd,0,1,0) ;
+  Message.data[0] = SEND_STATUS|SUCCESSFULL_RESPONSE ;
+  Message.data[1] = (Channel[4]>>2)+(Channel[3]>>3)+(Channel[2]>>4)+(Channel[1]>>5)+(Channel[0]>>6) ;
+  Message.data[2] = (Channel[9]>>2)+(Channel[8]>>3)+(Channel[7]>>4)+(Channel[6]>>5)+(Channel[5]>>6) ;
+  for (i=0;i<5;i++) Message.data[i+3]=Position[i] ;
+  Message.length = 8 ;
+  mcp2515_send_message(&Message) ;				
 } 
 
 
@@ -264,12 +332,14 @@ int main(void)
   uint16_t BoardAdd ;
   uint16_t Addr ;
   uint8_t r ;
-  uint8_t i ;
+  uint8_t i,j ;
   uint8_t Direction ;
   
   // Default-Werte:
   BoardAdd = 16 ;
   BoardLine = 1 ;
+  ActualMessage = 0 ;
+  SaveMessage = 0 ;
 
   // Noch einmal setzen (sollte nach Boot-Loader an sich schon passiert sein)
   SET_OUTPUT(CHAN0);
@@ -542,6 +612,15 @@ int main(void)
 	} ;
       } ;
       break ;
+    case SEND_LEDPORT:
+      j = SaveMessage +1 ;
+      if (j==MAX_MESSAGES) j = 0 ;
+      if (j!=ActualMessage) { // Wenn j == ActualMessage, dann wurden 4 Nachrichten zu schnell
+	                      // hintereinander gesendet, so dass der Ringpuffer ueberlaufen
+                              // wuerde. Dann Nachricht einfach verwerfen...
+	for (i=0;i<4;i++) LEDMessage[j][i] = Message.data[i+1] ;
+	SaveMessage = (SaveMessage==MAX_MESSAGES-1)?0:SaveMessage+1 ; // IRQ-Fest
+      } ;
     } ;
   } ;
 }
