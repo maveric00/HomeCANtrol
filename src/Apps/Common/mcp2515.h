@@ -83,11 +83,12 @@ typedef enum {
 	OUT_LED                 = 52,
 	START_SENSOR            = 53,
 	STOP_SENSOR             = 54,
+	UNDEFINED_COMMAND       = 63,
 	// Answer bits
 	REQUEST		        = 0x00,
 	SUCCESSFULL_RESPONSE	= 0x40,
 	ERROR_RESPONSE	        = 0x80,
-	WRONG_NUMBER_REPSONSE	= 0xC0,
+	WRONG_NUMBER_RESPONSE	= 0xC0,
 	NO_MESSAGE		= 0x3f
 } tCommand;
 
@@ -101,6 +102,8 @@ typedef enum {
 
 #define	COMMAND_MASK			0x3F
 #define	START_OF_MESSAGE_MASK	0x80
+
+#ifndef SERVER_INCLUDE
 
 #define false (0==1)
 #define true (0==0)
@@ -181,6 +184,6 @@ extern __attribute__ ((gnu_inline)) inline void mcp2515_change_operation_mode(ui
 
 // ----------------------------------------------------------------------------
 extern void mcp2515_write_register( uint8_t adress, uint8_t data );
-
+#endif //SERVER_INCLUDE
 
 #endif	// MCP2515_H
