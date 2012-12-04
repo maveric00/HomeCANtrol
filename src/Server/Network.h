@@ -6,11 +6,6 @@
 */
 
 #define CANBUFLEN 20
-#define CAN_PORT "13247"                 // Port-Nummer der CAN-Kommunikation
-#define CAN_PORT_NUM 13247
-#define WS_PORT "13248"                 // Port-Nummer der Websocket-Kommunikation
-#define WS_PORT_NUM 13248
-#define CAN_BROADCAST "192.168.69.255"
 
 typedef unsigned long ULONG ;
 typedef unsigned short USHORT ;
@@ -34,6 +29,16 @@ enum web_protocols {
 };
 
 /* Globale Variablen */
+
+extern char CAN_PORT[20] ;
+extern int CAN_PORT_NUM ;
+extern char WS_PORT[20] ;
+extern int WS_PORT_NUM ;
+extern char COM_PORT[20] ;
+extern int COM_PORT_NUM ;
+extern char HTTP_PORT[20] ;
+extern int HTTP_PORT_NUM ;
+extern char CAN_BROADCAST[NAMELEN] ;
 
 extern int RecSockFD;    // Empfangs-File-Descriptor
 extern int SendSockFD;   // Sende-File-Descriptor
@@ -78,7 +83,7 @@ int ReceiveCANMessage (ULONG *CANID, char *Len, unsigned char *Data);
 int SendCANMessage (ULONG CANID, char Len, unsigned char *Data);
 
 /* Auf Netzwerk warten */
-int CheckNetwork(int sd,int * error,int timeOut) ;
+int CheckNetwork(int * error,int timeOut) ;
 
 /* Aufraeum-Funktion */
 

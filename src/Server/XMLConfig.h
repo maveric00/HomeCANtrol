@@ -2,49 +2,6 @@
 #define NAMELEN 255
 #define MAX_ADD_PER_NODE 10
 
-
-typedef enum {
-	// every bootloader type has this commands
-	SEND_STATUS             = 1,
-	READ_CONFIG		= 2,
-	WRITE_CONFIG	        = 3,
-	READ_VAR		= 4,
-	SET_VAR			= 5,
-	START_BOOT		= 6,
-	TIME			= 7,
-	// LED commands
-	LED_OFF			= 10,
-	LED_ON			= 11,
-	SET_TO			= 12,
-	HSET_TO			= 13,
-	L_AND_S			= 14,
-	SET_TO_G1		= 15,
-	SET_TO_G2		= 16,
-	SET_TO_G3		= 17,
-	LOAD_LOW		= 18,
-	LOAD_MID1		= 19,
-	LOAD_MID2		= 20,
-	LOAD_HIGH		= 21,
-	START_PROG		= 22,
-	STOP_PROG		= 23,
-	// Relais commands
-	CHANNEL_ON		= 30,
-	CHANNEL_OFF             = 31,
-	CHANNEL_TOGGLE          = 32,
-	SHADE_UP_FULL           = 33,
-	SHADE_DOWN_FULL         = 34,
-	SHADE_UP_SHORT          = 35,
-	SHADE_DOWN_SHORT        = 36,
-	// Sensor commands
-	SET_PIN                 = 40,
-        LOAD_LED                = 41,
-	OUT_LED                 = 42,
-	REQUEST			= 0x00,
-	SUCCESSFULL_RESPONSE	= 0x40,
-	ERROR_RESPONSE		= 0x80,
-	NO_MESSAGE		= 0x3f
-} tCommand;
-
 typedef enum {
   WS_UNDEF = 0,
   WS_SEND_STATUS = 1,
@@ -73,12 +30,19 @@ typedef enum {
   N_SET = 17,
   N_REPEAT = 18,
   N_LANGUAGE = 19,
+  N_PORT = 20,
+  N_BROADCAST = 21,
+  N_FIRMWARE = 22,
   S_SIMPLE = 100,
   S_SHORTLONG = 101,
   S_SHADE_SHORTLONG = 102,
   S_SHADE_SIMPLE = 103,
   S_MONO = 104,
   S_RETMONO = 105,
+  S_ANALOG = 106,
+  S_OUTPUT = 107,
+  S_WSDATA = 108,
+  S_WSCLOCK = 109,
   A_ON = 200,
   A_OFF = 201,
   A_TOGGLE = 202,
@@ -88,7 +52,8 @@ typedef enum {
   A_SHADE_DOWN_SHORT = 206,
   A_SHADE_TO = 207,
   A_SEND_VAL = 208,
-  A_HEARTBEAT = 209
+  A_HEARTBEAT = 209,
+  A_CALL = 210
 } NodeType ;
 
 typedef enum {
@@ -112,6 +77,7 @@ struct AdInfo {
 struct Aktion {
   int Type ;
   int StandAlone ;
+  int Short ;
   char UnitName[NAMELEN*4] ;
   struct Node *Unit ;
 } ;
@@ -120,6 +86,20 @@ struct Werte {
   char UnitName[NAMELEN*4] ;
   int Wert ;
   int Vergleich ;
+} ;
+
+struct Sensor {
+  NodeType SensorTyp ;
+  int Lang ;
+  int Ende ;
+  int Reset ;
+  int Intervall ;
+} ;
+
+struct Rollo {
+  int Lang ;
+  int Kurz ;
+  int Swap ;
 } ;
 
 struct Node {
@@ -133,7 +113,8 @@ struct Node {
   char Name[NAMELEN] ;
   int Value ;
   union {
-    NodeType SensorTyp ;
+    struct Sensor Sensor ;
+    struct Rollo Rollo ;
     struct AdInfo Adresse ;
     struct Aktion Aktion ;
     struct Node *MakroStep ;
@@ -141,6 +122,22 @@ struct Node {
     char UnitName[NAMELEN*4] ;
     char PAD[NAMELEN*5] ;
     struct Werte Wert ;
+  } Data ;
+} ;
+
+struct ListItem {
+  struct ListItem *Next ;
+  struct ListItem *Prev ;
+  int Number ;
+  int Counter ;
+  char Linie ;
+  unsigned char Package ;
+  char State ;
+  unsigned short Knoten ;
+  union {
+    unsigned char Command[NAMELEN*4] ;
+    struct EEPROM EEprom ;
+    unsigned char *Code ;
   } Data ;
 } ;
 
@@ -161,8 +158,11 @@ void FreeNode (struct Node *This) ;
 struct Node *NewChild (struct Node *This) ;
 struct Node *FindNode (struct Node *Root,const char *Unit);
 int CollectAdress (struct Node *Root, int Linie, int Knoten, struct Node *Result[], int *ResultNumber ) ;
+int CollectType (struct Node *Root, NodeType Type, struct Node *Result[], int *ResultNumber ) ;
 struct Node *FindNodeAdress (struct Node *Root,int Linie, int Knoten, int Port,struct Node *Except);
 int GetNodeAdress (struct Node *Node, int *Line, int *Knoten, int *Port) ;
+void FreeItem (struct ListItem *This) ;
+struct ListItem *CreateItem (struct ListItem* Head) ;
 
 // ParseXML.c-Definitionen
 int ReadConfig(void) ;
@@ -170,3 +170,4 @@ int ReadConfig(void) ;
 
 // Server.c-Definitionen
 void ExecuteMakro (struct Node *Makro);
+int HandleCommand (char *Command, char *Answer) ;

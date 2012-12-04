@@ -13,6 +13,15 @@
 #include <ctype.h>
 #include "IHex.h"
 
+typedef unsigned long ULONG ;
+typedef unsigned short USHORT ;
+#ifndef TRUE
+#define TRUE (0==0)
+#endif
+#ifndef FALSE
+#define FALSE (0==1)
+#endif
+
 u_char FileBuffer[BUFFERSIZE] ;
 
 /* Einzelne Hex-Zahlen einlesen */
@@ -27,7 +36,7 @@ static int ScanHex(char **sp, int len, USHORT *result)
 	for (j = 0; j < len && **sp; j++)
 	{
 		cifra[j] = *(*sp)++;
-		if ( !isxdigit(cifra[j]) )
+		if ( !isxdigit((int)cifra[j]) )
 			return -1;
 	}
 	cifra[j] = '\0';

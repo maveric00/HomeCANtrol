@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Haus>
   <Sprache ist="deutsch"/>
+  <Broadcast IP="127.0.0.1"/>
+  <Port CAN="13247" WS="13248" COM="13249" HTTP="8080"/>
   <Etage name="Keller">
   </Etage>
   <Etage name="Erdgeschoss">
@@ -83,7 +85,7 @@
          <Schalter name="SteckdoseFernseherRechts">
             <Adresse linie="1" knoten="103" port="1"/>
          </Schalter>
-         <Rollo name="FensterOben">
+         <Rollo name="FensterOben" lang="20" kurz="50" vertauschen="1">
             <Adresse linie="3" knoten="104" port="1"/>
          </Rollo>
          <Rollo name="FensterLinks">
@@ -95,27 +97,39 @@
          <Rollo name="FensterRechts">
             <Adresse linie="3" knoten="104" port="5"/>
          </Rollo>
-         <Sensor name="Taster 1" typ="Einfach">
+         <Sensor name="Taster 1" typ="KurzLang" lang="5" ende="100">
            <Adresse linie="1" knoten="50" port="1"/>
-           <Aktion autonom="1" kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/Deckenlicht"/>
+           <Aktion kurz="0" autonom="1" kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/Deckenlicht"/>
+           <Aktion kurz="0" autonom="0" kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/Deckenlicht"/>
+           <Aktion kurz="1" autonom="1" kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/Deckenlicht"/>
+           <Aktion kurz="1" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Festbeleuchtung"/>
          </Sensor>
          <Sensor name="Taster 2" typ="Einfach">
            <Adresse linie="1" knoten="50" port="2"/>
            <Aktion autonom="1" kommando="Toggle" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+           <Aktion autonom="0" kommando="Toggle" objekt="Erdgeschoss/Flur/Deckenlicht"/>
          </Sensor>
-         <Sensor name="Taster 3" typ="Rollo_KL">
+         <Sensor name="Taster 3" typ="Rollo_KL" lang="5" ende="100">
            <Adresse linie="1" knoten="50" port="3"/>
            <Aktion autonom="1" kommando="Hoch" objekt="Erdgeschoss/Wohnzimmer/FensterOben"/>
            <Aktion autonom="1" kommando="Hoch" objekt="Erdgeschoss/Wohnzimmer/FensterRechts"/>
            <Aktion autonom="1" kommando="Hoch" objekt="Erdgeschoss/Wohnzimmer/FensterMitte"/>
            <Aktion autonom="1" kommando="Hoch" objekt="Erdgeschoss/Wohnzimmer/FensterLinks"/>
+           <Aktion autonom="0" kommando="Hoch" objekt="Erdgeschoss/Wohnzimmer/FensterOben"/>
+           <Aktion autonom="0" kommando="Hoch" objekt="Erdgeschoss/Wohnzimmer/FensterRechts"/>
+           <Aktion autonom="0" kommando="Hoch" objekt="Erdgeschoss/Wohnzimmer/FensterMitte"/>
+           <Aktion autonom="0" kommando="Hoch" objekt="Erdgeschoss/Wohnzimmer/FensterLinks"/>
          </Sensor>
-         <Sensor name="Taster 4" typ="Rollo_KL">
+         <Sensor name="Taster 4" typ="Rollo_KL" lang="5" ende="100">
            <Adresse linie="1" knoten="50" port="4"/>
            <Aktion autonom="1" kommando="Runter" objekt="Erdgeschoss/Wohnzimmer/FensterOben"/>
            <Aktion autonom="1" kommando="Runter" objekt="Erdgeschoss/Wohnzimmer/FensterRechts"/>
            <Aktion autonom="1" kommando="Runter" objekt="Erdgeschoss/Wohnzimmer/FensterMitte"/>
            <Aktion autonom="1" kommando="Runter" objekt="Erdgeschoss/Wohnzimmer/FensterLinks"/>
+           <Aktion autonom="0" kommando="Runter" objekt="Erdgeschoss/Wohnzimmer/FensterOben"/>
+           <Aktion autonom="0" kommando="Runter" objekt="Erdgeschoss/Wohnzimmer/FensterRechts"/>
+           <Aktion autonom="0" kommando="Runter" objekt="Erdgeschoss/Wohnzimmer/FensterMitte"/>
+           <Aktion autonom="0" kommando="Runter" objekt="Erdgeschoss/Wohnzimmer/FensterLinks"/>
          </Sensor>
          <Sensor name="Taster 5" typ="Einfach">
            <Adresse linie="1" knoten="53" port="1"/>
@@ -165,7 +179,7 @@
      </Zimmer>
      <Zimmer name="Hauswirtschaftsraum">
      </Zimmer>
-     <Makro name="Festbeleuchtung">
+     <Makro name="Festbeleuchtung" wert="40">
          <Adresse linie="0" knoten="100" port="0"/>
 <!--
          <Solange objekt="Var" vergleich="<" wert="10">
@@ -331,40 +345,58 @@
      <Timer zeit = "Montag 12:30:00"/>
      <Aktion kommando="Herzschlag" objekt="Linie4"/>
   </Makro>
+  <Firmware name="NodeConf/Bad.hex" id="1"/>
+  <Firmware name="NodeConf/Relais.hex" id="16"/>
+  <Firmware name="NodeConf/Licht.hex" id="18"/>
+  <Firmware name="NodeConf/Sensor.hex" id="32"/>
+<!--
   <Immer>
     <Gleichzeitig makro="Heartbeat"/>
   </Immer>
   <Start>
      <Gleichzeitig makro="ZeitTest"/>
   </Start>
+-->
   <Variable name="Var" wert="0"/>
   <Web name="Webpage">
+     <Bild name="MarkX" src="Pictures/DimX.png"/>
+     <Bild name="MarkY" src="Pictures/DimY.png"/>
+     <Bild name="MarkXY" src="Pictures/DimXY.png"/>
      <Seite name="Keller">
-        <Bild src="Bilder/Wohnen.png"/>
-        <Knopf name="Knopf1">
-           <Position x="10" y="10" h="20" b="30"/>
-           <Aktion kommando="Rufe" objekt="Erdgeschoss/Festbeleuchtung"/>
-           <Bild src="Bilder/An.png"/>
+        <Bild src="Pictures/Bild1.jpg"/>
+        <Knopf name="Knopf7" zindex="101">
+           <Position x="10" y="50" h="40" b="80"/>
+           <Inhalt html="&lt;iframe src=&quot;Test.html&quot; name=&quot;test&quot; style=&quot;border-style:hidden&quot;&gt;&lt;/iframe&gt;" overflow="hidden"/>
         </Knopf>
-        <Knopf name="Knopf2">
-           <Position x="50" y="10" h="50" b="50"/>
+        <Knopf name="Knopf3">
+           <Position x="10" y="10" h="20" b="30"/>
+           <Aktion kommando="Dimme-X" objekt="Erdgeschoss/Festbeleuchtung"/>
+           <Bild src="Pictures/Grau.jpg"/>
+        </Knopf>
+        <Knopf name="Knopf5">
+           <Position x="50" y="10" h="30" b="15"/>
+           <Aktion kommando="Dimme-IY" objekt="Erdgeschoss/Festbeleuchtung"/>
+           <Bild src="Pictures/GrauH.jpg"/>
+        </Knopf>
+        <Knopf name="Knopf4">
+           <Position x="70" y="10" h="20" b="20"/>
            <Aktion kommando="Seite" objekt="Erdgeschoss"/>
-           <Bild src="Bilder/Aus.png"/>
+           <Bild src="Pictures/Aus.png"/>
         </Knopf>
      </Seite>
      <Seite name="Erdgeschoss">
-        <Bild src="Bilder/Kueche.png"/>
+        <Bild src="Pictures/Bild1.jpg"/>
         <Knopf name="Knopf1">
-           <Bild src="Bilder/An.png" objekt="Erdgeschoss/Festbeleuchtung" wert="1"/>
-           <Bild src="Bilder/Aus.png" objekt="Erdgeschoss/Festbeleuchtung" wert="0"/>
-           <Aktion kommando="Rufe" objekt="Erdgeschoss/Festbeleuchtung"/>
+           <Bild src="Pictures/An.png" objekt="Erdgeschoss/Festbeleuchtung"/>
+           <Aktion kommando="Dimme-X" objekt="Erdgeschoss/Festbeleuchtung"/>
            <Position x="10" y="20" h="20" b="30"/>
         </Knopf>
         <Knopf name="Knopf2">
-           <Bild src="Bilder/An.png"/>
+           <Bild src="Pictures/An.png"/>
            <Position x="50" y="20" h="20" b="30"/>
            <Aktion kommando="Seite" objekt="Keller"/>
         </Knopf>
      </Seite>
+     <Startseite objekt="Erdgeschoss"/>
   </Web>
 </Haus>

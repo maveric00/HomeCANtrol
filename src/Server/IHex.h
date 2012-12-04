@@ -84,15 +84,6 @@ typedef struct {
 #define	OUTOFMEMORY	-31
 #define BUFFERUNDERFLOW	-32
 
-typedef unsigned long ULONG ;
-typedef unsigned short USHORT ;
-
-#ifndef TRUE
-#define TRUE (0==0)
-#endif
-#ifndef FALSE
-#define FALSE (0==1)
-#endif
 
 /* Globale Variable */
 
@@ -155,3 +146,4 @@ void Print_IHexRecord(const IHexRecord *ihexRecord);
 */
 uint8_t Checksum_IHexRecord(const IHexRecord *ihexRecord);
 
+int LoadIHexFile (char *FileName, long relocation_offset) ;

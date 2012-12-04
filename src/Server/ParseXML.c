@@ -5,7 +5,10 @@
 #include <expat.h>
 #include <string.h>
 #include <locale.h>
+#include "libwebsocket/libwebsockets.h"
+#include "ConfigNodes.h"
 #include "XMLConfig.h"
+#include "Network.h"
 
 #define BUFF_SIZE 10240
 
@@ -36,8 +39,8 @@ struct TypSel Types[] = {
   {"Warte",N_DELAY},
   {"Wait",N_DELAY},
   {"Timer",N_TIMER},
-  {"Rufe",N_CALL},
-  {"Call",N_CALL},
+  {"Sub",N_CALL},
+  {"Sub",N_CALL},
   {"Gleichzeitig",N_TASK},
   {"Task",N_TASK},
   {"Immer",N_ALWAYS},
@@ -56,6 +59,8 @@ struct TypSel Types[] = {
   {"While",N_REPEAT},
   {"Sprache",N_LANGUAGE},
   {"Language",N_LANGUAGE},
+  {"Port",N_PORT},
+  {"Broadcast",N_BROADCAST},
   {"Einfach",S_SIMPLE},
   {"Simple",S_SIMPLE},
   {"KurzLang",S_SHORTLONG},
@@ -66,6 +71,11 @@ struct TypSel Types[] = {
   {"Shade_Simple",S_SHADE_SIMPLE},
   {"Monoflop",S_MONO},
   {"R_Monoflop",S_RETMONO},
+  {"Analog",S_ANALOG},
+  {"Ausgang",S_OUTPUT},
+  {"Output",S_OUTPUT},
+  {"WSData",S_WSDATA},
+  {"WSClock",S_WSCLOCK},
   {"An",A_ON},
   {"On",A_ON},
   {"Aus",A_OFF},
@@ -83,6 +93,8 @@ struct TypSel Types[] = {
   {"Value",A_SEND_VAL},
   {"Herzschlag",A_HEARTBEAT},
   {"Heartbeat",A_HEARTBEAT},
+  {"Rufe",A_CALL},
+  {"Call",A_CALL},
   {NULL,0} 
 } ;
 
@@ -120,6 +132,9 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       strncpy(Current->Name,attr[i+1],NAMELEN) ;
       continue; 
     } ;
+    if ((strcmp(attr[i],"wert")==0)||(strcmp(attr[i],"value")==0)) {
+      sscanf(attr[i+1],"%d",&(Current->Value)) ;
+    } ;
     switch (Current->Type) {
     case N_ADRESS:
       if ((strcmp(attr[i],"linie")==0)||(strcmp(attr[i],"line")==0)) {
@@ -142,10 +157,36 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       if ((strcmp(attr[i],"autonom")==0)||(strcmp(attr[i],"standalone")==0)) {
 	sscanf(attr[i+1],"%d",&(Current->Data.Aktion.StandAlone)) ;
       } ;
+      if ((strcmp(attr[i],"kurz")==0)||(strcmp(attr[i],"short")==0)) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Aktion.Short)) ;
+      } ;
       break ;
     case N_SENSOR:
       if ((strcmp(attr[i],"typ")==0)||(strcmp(attr[i],"type")==0)) {
-	Current->Data.SensorTyp = FillType(attr[i+1]);
+	Current->Data.Sensor.SensorTyp = FillType(attr[i+1]);
+      } ;
+      if ((strcmp(attr[i],"lang")==0)||(strcmp(attr[i],"long")==0)) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.Lang)) ;
+      } ;
+      if ((strcmp(attr[i],"ende")==0)||(strcmp(attr[i],"end")==0)) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.Ende)) ;
+      } ;
+      if (strcmp(attr[i],"reset")==0) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.Reset)) ;
+      } ;
+      if ((strcmp(attr[i],"intervall")==0)||(strcmp(attr[i],"interval")==0)) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.Ende)) ;
+      } ;
+      break ;
+    case N_SHADE:
+      if ((strcmp(attr[i],"lang")==0)||(strcmp(attr[i],"long")==0)) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Rollo.Lang)) ;
+      } ;
+      if ((strcmp(attr[i],"kurz")==0)||(strcmp(attr[i],"short")==0)) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Rollo.Kurz)) ;
+      } ;
+      if ((strcmp(attr[i],"vertauschen")==0)||(strcmp(attr[i],"swap")==0)) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Rollo.Swap)) ;
       } ;
       break ;
     case N_DELAY:
@@ -204,6 +245,33 @@ void XMLCALL start(void *data, const char *el, const char **attr)
 	default:
 	  break ;
 	} ;
+      } ;
+    case N_PORT:
+      if (strcmp(attr[i],"CAN")==0) {
+	strncpy(CAN_PORT,attr[i+1],19) ;
+	sscanf (CAN_PORT,"%d",&CAN_PORT_NUM) ;
+      } ;
+      if (strcmp(attr[i],"WS")==0) {
+	strncpy(WS_PORT,attr[i+1],19) ;
+	sscanf (WS_PORT,"%d",&WS_PORT_NUM) ;
+      } ;
+      if (strcmp(attr[i],"COM")==0) {
+	strncpy(COM_PORT,attr[i+1],19) ;
+	sscanf (COM_PORT,"%d",&COM_PORT_NUM) ;
+      } ;
+      if (strcmp(attr[i],"HTTP")==0) {
+	strncpy(HTTP_PORT,attr[i+1],19) ;
+	sscanf (HTTP_PORT,"%d",&HTTP_PORT_NUM) ;
+      } ;
+      break ;
+    case N_BROADCAST:
+      if (strcmp(attr[i],"IP")==0) {
+	strncpy(CAN_BROADCAST,attr[i+1],NAMELEN-1) ;
+      } ;
+      break ;
+    case N_FIRMWARE:
+      if (strcmp(attr[i],"id")==0) {
+	sscanf(attr[i+1],"%d",&(Current->Value)) ;
       } ;
       break ;
     default:
@@ -322,6 +390,8 @@ int ReadConfig(void)
   XML_Parser p;
   
   ParseError = 0 ;
+
+  FreeNode (Haus) ;
 
   p = XML_ParserCreate(NULL);
   if (! p) {

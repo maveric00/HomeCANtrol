@@ -1,8 +1,6 @@
 /* Network.c: Definitionen fuer die CAN-Kommunikation ueber Ethernet 
    Es werden jeweils die max. moeglichen 8 Byte als UDP-Paket an die Broadcast-Adresse gesendet, das
    Routing uebernehmen die Ethernet-CAN-Umsetzer
-
-   ToDo: Port und Broadcast-Adresse konfigurierbar (bzw. autokonfigurierend) machen
 */
 
 #include <unistd.h>
@@ -18,15 +16,29 @@
 #include <netdb.h>
 #include <ctype.h>
 #include "libwebsocket/libwebsockets.h"
+#include "ConfigNodes.h"
 #include "XMLConfig.h"
 #include "Network.h"
+#define SERVER_INCLUDE 1
+#include "../Apps/Common/mcp2515.h"
 
-
+char CAN_PORT[20] ;
+int CAN_PORT_NUM ;
+char WS_PORT[20] ;
+int WS_PORT_NUM ;
+char COM_PORT[20] ;
+int COM_PORT_NUM ;
+char HTTP_PORT[20] ;
+int HTTP_PORT_NUM ;
+char CAN_BROADCAST[NAMELEN] ;
 
 int RecSockFD;
+int ComSockFD;
 int SendSockFD;
 int RecAjaxFD ;
 int SendAjaxFD ;
+int MaxSock ;
+fd_set socketReadSet;
 struct addrinfo *servinfo, *SendInfo ;
 
 /* CAN-Funktionen */
@@ -81,58 +93,103 @@ void GetDestinationAddress (ULONG CANId, char *ToLine, USHORT *ToAdd)
 
 int InitNetwork(void)
 {
+  
+  struct addrinfo hints;
+  int rv;
+  struct sockaddr_in RecAddr;
+  int val ;
+  
+  val = (0==0) ;
+  // Reserve Receive-Socket for CAN data
+  if ((RecSockFD = socket(AF_INET, SOCK_DGRAM,0)) == -1) {
+    perror("talker: socket");
+    fprintf(stderr, "Could not get socket\n");
+    return(1);
+  }
+  
+  // Set binding informations
 
-	struct addrinfo hints;
-	int rv;
-	struct sockaddr_in RecAddr;
-	int val ;
+  memset(&RecAddr, 0, sizeof(struct sockaddr_in));
+  RecAddr.sin_family      = AF_INET;
+  RecAddr.sin_addr.s_addr = INADDR_ANY;   // zero means "accept data from any IP address"
+  RecAddr.sin_port        = htons(CAN_PORT_NUM);
+  
+  if (bind(RecSockFD, (struct sockaddr *) &RecAddr, sizeof(RecAddr)) == -1) {
+    close(RecSockFD);
+    perror("listener: bind");
+  }
+  
+  // Mark it as Broadcast
 
-	val = (0==0) ;
-	// Reserve Receive-Socket
-	if ((RecSockFD = socket(AF_INET, SOCK_DGRAM,0)) == -1) {
-	  perror("talker: socket");
-	  fprintf(stderr, "Could not get socket\n");
-	  return(1);
-	}
+  setsockopt(RecSockFD, SOL_SOCKET, SO_BROADCAST, (char *) &val, sizeof(val)) ;
+  
+  // Reserve Receive-Socket for Commands
 
-	memset(&RecAddr, 0, sizeof(struct sockaddr_in));
-	RecAddr.sin_family      = AF_INET;
-	RecAddr.sin_addr.s_addr = INADDR_ANY;   // zero means "accept data from any IP address"
-	RecAddr.sin_port        = htons(CAN_PORT_NUM);
+  if ((ComSockFD = socket(AF_INET, SOCK_STREAM,0)) == -1) {
+    perror("talker: command socket");
+    fprintf(stderr, "Could not get socket\n");
+    return(1);
+  }
+  
+  // Set binding informations
 
-	if (bind(RecSockFD, (struct sockaddr *) &RecAddr, sizeof(RecAddr)) == -1) {
-	  close(RecSockFD);
-	  perror("listener: bind");
-	}
+  memset(&RecAddr, 0, sizeof(struct sockaddr_in));
+  RecAddr.sin_family      = AF_INET;
+  RecAddr.sin_addr.s_addr = INADDR_ANY;   // zero means "accept data from any IP address"
+  RecAddr.sin_port        = htons(COM_PORT_NUM);
+  
+  if (bind(ComSockFD, (struct sockaddr *) &RecAddr, sizeof(RecAddr)) == -1) {
+    close(ComSockFD);
+    perror("listener: bind");
+  }
+  
+  // Set up send-Socket for CAN data
+  memset(&hints, 0, sizeof hints);
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_DGRAM;
+  
+  if ((rv = getaddrinfo(CAN_BROADCAST, CAN_PORT, &hints, &servinfo)) != 0) {
+    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+    return 1;
+  }
+  
+  // loop through all the results and make a socket
+  for(SendInfo = servinfo; SendInfo != NULL; SendInfo = SendInfo->ai_next) {
+    if ((SendSockFD = socket(SendInfo->ai_family, SendInfo->ai_socktype,
+			     SendInfo->ai_protocol)) == -1) {
+      perror("talker: socket");
+      continue;
+    }
+    
+    break;
+  }
+  
+  if (SendInfo == NULL) {
+    fprintf(stderr, "talker: failed to get Send-socket\n");
+    return 2;
+  }
 
-	setsockopt(RecSockFD, SOL_SOCKET, SO_BROADCAST, (char *) &val, sizeof(val)) ;
 
-	// Set up send-Socket
-	memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_DGRAM;
+  // Listen on Command Socket
 
-	if ((rv = getaddrinfo(CAN_BROADCAST, CAN_PORT, &hints, &servinfo)) != 0) {
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-		return 1;
-	}
+  if (listen(ComSockFD,10)==-1) {
+    fprintf (stderr,"listener: failed to listen on command port\n") ;
+    return 2 ;
+  }
+  
+  // Init select set
+  
+  FD_ZERO(&socketReadSet);
+  FD_SET(RecSockFD,&socketReadSet);
+  FD_SET(ComSockFD,&socketReadSet);
 
-	// loop through all the results and make a socket
-	for(SendInfo = servinfo; SendInfo != NULL; SendInfo = SendInfo->ai_next) {
-		if ((SendSockFD = socket(SendInfo->ai_family, SendInfo->ai_socktype,
-				SendInfo->ai_protocol)) == -1) {
-			perror("talker: socket");
-			continue;
-		}
+  // set maximum socket of select-set
 
-		break;
-	}
+  MaxSock = RecSockFD>ComSockFD?RecSockFD:ComSockFD ;
 
-	if (SendInfo == NULL) {
-		fprintf(stderr, "talker: failed to get Send-socket\n");
-		return 2;
-	}
-	return (0) ;
+  return (0) ;
+
+
 } ;
 
 
@@ -193,30 +250,101 @@ int SendCANMessage (ULONG CANID, char Len, unsigned char *Data)
   return (0);
 }
 
-// Wartet auf Empfang
+// Wartet auf Empfang und oeffne ggf. neue Command-Channels
 
-int CheckNetwork(int sd,int * error,int timeOut) 
-{ // milliseconds
-  fd_set socketReadSet;
+struct ListItem *Connections=NULL ;
+
+int CheckNetwork(int * error,int timeOut) // milliseconds
+{
+  fd_set localReadSet;
+  struct sockaddr_storage remoteaddr ;
+  socklen_t addrlen ;
+  int newfd ;
   int NumSockets;
+  int MaxSockOld ;
   struct timeval tv;
+  int i ;
+  char buf[NAMELEN*5] ;
+  int nbytes ;
+  struct ListItem *Connect ;
+  char Answer[NAMELEN*4] ;
   
-  FD_ZERO(&socketReadSet);
-  FD_SET(sd,&socketReadSet);
-
+  localReadSet = socketReadSet ;
+  
   if (timeOut) {
     tv.tv_sec  = timeOut / 1000;
     tv.tv_usec = (timeOut % 1000) * 1000;
   } else {
     tv.tv_sec  = 0;
     tv.tv_usec = 0;
-  } // if
-  if ((NumSockets=select(sd+1,&socketReadSet,NULL,NULL,&tv)) == -1) {
+  } ;
+  
+  if ((NumSockets=select(MaxSock+1,&localReadSet,NULL,NULL,&tv)) == -1) {
     *error = 1;
     return 0;
-  } // if
+  } ;
+
+  if (NumSockets==0) return (FALSE) ;
+
   *error = 0;
-  return FD_ISSET(sd,&socketReadSet) != 0;
+  
+  MaxSockOld = MaxSock ;
+
+  for (i=0;i<=MaxSockOld;i++) {
+    if FD_ISSET(i,&localReadSet) {
+      if (i==RecSockFD) continue ; // CAN data will be handled at caller
+      if (i==ComSockFD) {
+	// New connection request
+	addrlen = sizeof(remoteaddr) ;
+	newfd = accept (ComSockFD,(struct sockaddr*)&remoteaddr,&addrlen) ;
+	if (newfd==-1) {
+	  fprintf (stderr,"CheckNetwork: accept denied\n") ;
+	} else {
+	  // add to listening socket set
+	  FD_SET (newfd,&socketReadSet) ;
+	  MaxSock=newfd>MaxSock?newfd:MaxSock ;
+	  Connect = CreateItem(Connections) ;
+	  if (Connections==NULL) Connections = Connect ;
+	  Connect->Number = newfd ;
+	}
+      } else {
+	// Command was sent, read it
+	if ((nbytes=recv(i,buf,sizeof(buf)-1,0))<=0) {
+	  // error or connection closed 
+	  if (nbytes!=0) {
+	    fprintf (stderr,"CheckNetwork: error receiving\n") ;
+	  } ;
+	  close (i) ;
+	  FD_CLR(i,&socketReadSet) ;
+	  fprintf (stderr,"CheckNetwork: Connection closed\n") ;
+	  if (i==MaxSock) {
+	    // reduce maximum socket number ;
+	    for (MaxSock--;!FD_ISSET(MaxSock,&socketReadSet);MaxSock--) ;
+	  } ;
+	  for (Connect=Connections;Connect!=NULL;Connect=Connect->Next) if (Connect->Number==i) break ;
+	  if (Connect==Connections) Connections = Connect->Next ;
+	  FreeItem(Connect) ;
+	}  else {
+	  for (Connect=Connections;Connect!=NULL;Connect=Connect->Next) if (Connect->Number==i) break ;
+	  if (Connect==NULL) {
+	    // received on unknown connection ???
+	    fprintf (stderr,"Unknown Connection %d\n",i) ;
+	  } else {
+	    buf[nbytes] = 0 ;
+	    strcat ((char*)Connect->Data.Command,buf) ; // Concatenate Command
+	    if (strstr((char*)Connect->Data.Command,"\n")!=NULL) {
+	      // Execute Command
+	      if (HandleCommand ((char*)Connect->Data.Command,Answer)) {
+		send (i,Answer,strlen(Answer),0);
+	      }; 
+	      Connect->Data.Command[0] = '\0' ;
+	    } ;
+	  } ;
+	} ;
+      } ;
+    } ;
+  } ;
+  return FD_ISSET(RecSockFD,&localReadSet) != 0;
 }
 
 
@@ -227,6 +355,7 @@ void CloseNetwork (void)
   freeaddrinfo(servinfo);
 
   close(RecSockFD);
+  close(ComSockFD);
   close(SendSockFD);
 }
 
@@ -262,6 +391,24 @@ void SendAction (struct Node *Action)
     Data[0] = Command ;
     Data[1] = (char)Port ;
     Len=2 ;
+    break ;
+  case N_SENSOR:
+    if (Action->Data.Aktion.Type==A_ON) { Command = SET_PIN ; Data[2] = 0xFF ; Action->Data.Aktion.Unit->Value=1 ; } ;
+    if (Action->Data.Aktion.Type==A_OFF) { Command = SET_PIN ; Data[2] = 0x00 ; Action->Data.Aktion.Unit->Value=0 ; } ;
+    if (Action->Data.Aktion.Type==A_TOGGLE) { 
+      Command = SET_PIN ; 
+      Data[2] = Action->Data.Aktion.Unit->Value==0?0xFF:0x00 ; 
+      Action->Data.Aktion.Unit->Value=1-Action->Data.Aktion.Unit->Value ; 
+    } ;
+    if (Action->Data.Aktion.Type==A_SEND_VAL) {
+      Data[2] = Action->Data.Aktion.Unit->Value ;
+    } ;
+    if (Action->Data.Aktion.Type==A_HEARTBEAT) Command = TIME ;
+    if (GetNodeAdress(Action->Data.Aktion.Unit,&Linie,&Knoten,&Port)!=0) break ;
+    CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
+    Data[0] = Command ;
+    Data[1] = (char)Port ;
+    Len=(Action->Data.Aktion.Type==A_HEARTBEAT)?2:3 ;
     break ;
   case N_SHADE:
     if (Action->Data.Aktion.Type==A_SHADE_UP_FULL) { Command = SHADE_UP_FULL ; Action->Data.Aktion.Unit->Value=0 ; } ;    

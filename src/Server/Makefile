@@ -21,7 +21,7 @@ TARGET = CANControl
 OBJDIR = build
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC  = ParseXML.c Node.c Network.c IHex.c Server.c
+SRC  = ParseXML.c Node.c Network.c IHex.c Server.c ConfigNodes.c Mongoose/mongoose.c
 SRC += 
 SRC += 
 
@@ -55,7 +55,7 @@ EXTRALIBS = -lexpat -lwebsockets -lz
 CSTANDARD = -std=gnu99
 
 # Place -D or -U options here for C sources
-CDEFS  = 
+CDEFS  = -DNDEBUG -DNO_SSL
 
 # Place -D or -U options here for ASM sources
 ADEFS  = 
@@ -76,7 +76,7 @@ CFLAGS = -g$(DEBUG)
 CFLAGS += $(CDEFS)
 CFLAGS += -O$(OPT)
 CFLAGS += -Wall
-CFLAGS += -Wstrict-prototypes
+CFLAGS += -Wstrict-prototypes -mthreads 
 CFLAGS += $(CSTANDARD)
 
 #---------------- Compiler Options C++ ----------------
@@ -290,6 +290,7 @@ clean_list :
 
 # Create object files directory
 $(shell mkdir $(OBJDIR) 2>/dev/null)
+$(shell mkdir $(OBJDIR)/Mongoose 2>/dev/null)
 
 -include $(shell mkdir .dep 2>/dev/null) $(wildcard .dep/*)
 

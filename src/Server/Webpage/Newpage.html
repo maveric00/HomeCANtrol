@@ -1,0 +1,42 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <title>Testseite</title>
+    <script src="Scripts/marknote.js" type="text/javascript"></script>
+    <script src="Scripts/Config.js" type="text/javascript"></script>
+  </head>
+  
+  <body id="WebCanvas" style="border:0px;margin:0px;padding:0px;overflow:hidden">
+
+ <script>
+   function Display() {
+      var Startpage ;
+      if (Sprache==0) {
+        Startpage = Root.getChildElements("Web")[0].getChildElements("Startseite")[0] ;
+      } else {
+        Startpage = Root.getChildElements("Web")[0].getChildElements("Startpage")[0] ;
+      } ;
+      if (!Startpage) {
+         if (Sprache==0) {
+           Startpage = Root.getChildElements("Web")[0].getChildElements("Seite")[0] ;
+         } else {
+           Startpage = Root.getChildElements("Web")[0].getChildElements("Page")[0] ;
+         } ;
+         var Attr = Startpage.getAttribute("name") ;
+      } else {
+         var Attr = Startpage.getAttribute("objekt") ;
+      } ;
+      CreatePages(Root) ;
+
+      if (!Attr) {
+         alert ("Webpage ohne Namen:\n"+Startpage.toString()) ;
+         return ;
+      } ;
+
+      DisplayPage(Attr.getValue()) ;
+   } 
+   window.setTimeout("Display()",500);
+   window.onresize = ResizePage ;
+ </script>
+  </body>
+</html>

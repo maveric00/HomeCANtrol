@@ -6,8 +6,12 @@
 #include <string.h>
 #include <unistd.h>
 #include "libwebsocket/libwebsockets.h"
+#include "ConfigNodes.h"
 #include "XMLConfig.h"
 #include "Network.h"
+#define SERVER_INCLUDE 1
+#include "../Apps/Common/mcp2515.h"
+#include "Mongoose/mongoose.h"
 
 
 
@@ -213,6 +217,8 @@ void InitAlways(void)
     } ;
 }
 
+
+
 void HandleCANRequest(void)
 {
   ULONG CANID ;
@@ -221,9 +227,12 @@ void HandleCANRequest(void)
   struct Node *This ;
   char ToLine ;
   USHORT ToAdd ;
+  char FromLine ;
+  USHORT FromAdd ;
   int Port ;
   
   ReceiveCANMessage(&CANID,&Len,Data) ;
+  GetSourceAddress(CANID,&FromLine,&FromAdd) ;
   GetDestinationAddress(CANID,&ToLine,&ToAdd) ;
   if (ToLine!=0) {
     // Server ist nicht Ziel
@@ -250,10 +259,71 @@ void HandleCANRequest(void)
       This = FindNodeAdress(Haus,ToLine,ToAdd,Port,NULL) ;
       ExecuteMakro (This) ;
     } ;
+
+    // EEprom write handshake; send out next byte
+
+    if (Data[0]==(SET_VAR|SUCCESSFULL_RESPONSE)) {
+      SendConfigByte (FromLine,FromAdd) ;
+    } ;
+
+    // Firmware-Update; send out next data
+
+    if ((Data[0]==UPDATE_REQ)||(Data[0]==WRONG_NUMBER_RESPONSE)||
+	(Data[0]==(SUCCESSFULL_RESPONSE|IDENTIFY))||
+	(Data[0]==(ERROR_RESPONSE|IDENTIFY))||
+	(Data[0]==IDENTIFY)||
+	(Data[0]==(SUCCESSFULL_RESPONSE|SET_ADDRESS))||
+	(Data[0]==(ERROR_RESPONSE|SET_ADDRESS))||
+	(Data[0]==SET_ADDRESS)||
+	(Data[0]==(SUCCESSFULL_RESPONSE|DATA))||
+	(Data[0]==(ERROR_RESPONSE|DATA))||
+	(Data[0]==DATA)||
+	(Data[0]==(SUCCESSFULL_RESPONSE|START_APP))||
+	(Data[0]==(ERROR_RESPONSE|START_APP))||
+	(Data[0]==START_APP)) {
+      SendFirmwareByte(FromLine,FromAdd,Data,Len) ;
+    } ;
+    
   } ;
 }
 
+int HandleCommand (char *Command, char *Answer)
+{
+  int Line,Add ;
+  struct EEPROM EEprom ;
 
+  
+  if (strstr(Command,"Config")) {
+    sscanf (Command,"Config %d %d",&Line,&Add) ;
+    if ((Line!=0)&&(Add!=0)) {
+      MakeConfig (Line,Add,&EEprom) ;
+      WriteConfig (&EEprom) ;
+    } ;
+  } ;
+
+  if (strstr(Command,"Update")) {
+    sscanf (Command,"Update %d %d",&Line,&Add) ;
+    if ((Line!=0)&&(Add!=0)) {
+      SendFirmware(Line,Add) ;
+    }
+  } ;
+
+  if (strstr(Command,"Reload")) {
+    if (ReadConfig()!=0) {
+      sprintf (Answer,"Error in Configuration\n") ;
+      return(TRUE) ;
+    } ;
+  } ;
+  return (TRUE) ;
+}
+
+static void *Handle_Webserver(enum mg_event event, struct mg_connection *conn) 
+{
+  // const struct mg_request_info *request_info = mg_get_request_info(conn); 
+
+  // Everything handled in mongoose
+  return NULL ;
+}
 
 
 
@@ -266,31 +336,67 @@ int main(int argc, char **argv)
   int Error ;
   unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 1024 +
 		    LWS_SEND_BUFFER_POST_PADDING];
+  struct mg_context *ctx ;
+
+  char *web_options[] = {
+    "listening_ports", "8080",
+    "document_root", "./Webpage",
+    "url_rewrite_patterns","/NodeConf=./NodeConf",
+    NULL
+  };
+
+  strcpy (CAN_PORT,"13247") ;
+  CAN_PORT_NUM = 13247 ;
+  strcpy (WS_PORT,"13248") ;  
+  WS_PORT_NUM = 13248 ;
+  strcpy (COM_PORT,"13249") ;
+  COM_PORT_NUM = 13249 ;
+  strcpy (HTTP_PORT,"8080") ;
+  HTTP_PORT_NUM = 8080 ;
+  strcpy (CAN_BROADCAST,"127.0.0.1") ;
+
+  // XML-Konfiguration lesen
 
   if (ReadConfig()!=0) {
     fprintf (stderr,"Fehler in der Konfiguration\n") ;
     exit(-1) ;
   } ;
 
+  web_options[1] = HTTP_PORT ;
+
+  // Netzwerk staren
+
   if (InitNetwork()!=0) {
     fprintf (stderr,"Fehler im Netzwerk\n") ;
     exit(-1) ;
   } ;
 
+  // Makros starten
+
   InitAlways() ;
+
+  // Websockets starten
 
   if (InitWebsocket()!=0) {
     fprintf (stderr,"Fehler in Websocket\n") ;
     exit(-1) ;
   } ;
 
-  
+  // Webserver starten
+
+  if ((ctx=mg_start(&Handle_Webserver,NULL,(const char**) web_options))==NULL) {
+    fprintf (stderr,"Fehler im Webserver\n") ;
+    exit(-1) ;
+  } ;
+
   fprintf (stderr,"Starte Server\n") ;
 
   buf[LWS_SEND_BUFFER_PRE_PADDING] = 'x';
+
+  // Endlosschleife : Netzwerkverkehr abarbeiten und Makros ausfuehren
   
   while(1) {
-    if (CheckNetwork(RecSockFD,&Error,10)) {
+    if (CheckNetwork(&Error,10)) {
       // Netzwerk empfangen
       HandleCANRequest() ;
     }

@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
+#include "ConfigNodes.h"
 #include "XMLConfig.h"
 
 extern struct Node *Haus ;
@@ -32,10 +32,14 @@ struct Node *CreateNode (void)
 
 void FreeNode (struct Node *This) 
 {
-  
+  // Wenn Null uebergeben, dann ist nichts zu tun...
+  if (This==NULL) return ;  
+
   // Aus der Parent-Liste loeschen
 
-  if (This->Parent->Child == This) This->Parent->Child = This->Next; 
+  if (This->Parent!=NULL) { // Top-Level hat keinen Parent
+    if (This->Parent->Child == This) This->Parent->Child = This->Next; 
+  }  ;
 
   // Nun rekursiv alle Kinder loeschen
   for (;This->Child!=NULL;) FreeNode(This->Child) ;
@@ -131,7 +135,7 @@ int CollectAdress (struct Node *Root, int Linie, int Knoten, struct Node *Result
 
   if ((Root->Type==N_ADRESS)&&(Root->Data.Adresse.Linie ==Linie)&&(Root->Data.Adresse.Knoten==Knoten)) { 
     // Passende Adresse gefunden, zu den Ergebnissen hinzufuegen
-    if (*ResultNumber>=MAX_ADD_PER_NODE) return (1) ;
+    if ((*ResultNumber)>=MAX_ADD_PER_NODE*4) return (0) ; // Zu viele Ergebnisse
     Result[(*ResultNumber)] = Root->Parent ;
     (*ResultNumber) ++ ;
     return (0) ;
@@ -144,4 +148,66 @@ int CollectAdress (struct Node *Root, int Linie, int Knoten, struct Node *Result
   return (i) ;
 }
 
+int CollectType (struct Node *Root, NodeType Type, struct Node *Result[], int *ResultNumber )
+{
+  int i ;
+  struct Node *This ;
+  
+  if (Root==NULL) return (0) ;
+
+  if (Root->Type==Type) { 
+    // Passende Adresse gefunden, zu den Ergebnissen hinzufuegen
+    if ((*ResultNumber)>=MAX_ADD_PER_NODE*4) return (0) ; // Zu viele Ergebnisse
+    Result[(*ResultNumber)] = Root ;
+    (*ResultNumber) ++ ;
+    return (0) ;
+  }  ;
+
+  // Kein Adressen-Knoten, also rekursiv weitersuchen
+
+  i = 0;
+  for (This = Root;This!=NULL;This=This->Next) i+=CollectType(This->Child,Type,Result,ResultNumber) ;
+  return (i) ;
+}
+
+struct ListItem *CreateItem (struct ListItem* Head)
+{
+  struct ListItem *Here ;
+  
+  if (Head==NULL) {
+    Here = malloc (sizeof (struct ListItem)) ;
+    if (!Here) {
+      fprintf (stderr, "Out of Memory \n") ;
+      exit(-1) ;
+    } ;
+    Here->Next = NULL ;
+    Here->Prev = NULL; 
+    Here->Number = 0 ;
+    Here->Data.Command[0]='\0' ;
+    return (Here) ;
+  } else {
+    for (Here = Head;Here->Next!=NULL;Here=Here->Next) ;
+    Here->Next = malloc(sizeof (struct ListItem)) ;
+    if (!Here->Next) {
+      fprintf (stderr, "Out of Memory \n") ;
+      exit(-1) ;
+    } ;
+    Here->Next->Prev = Here ;
+    Here=Here->Next ;
+    Here->Next = NULL ;
+    Here->Number = 0 ;
+    Here->Data.Command[0] = '\0' ;
+    return (Here) ; 
+  } ;
+}
     
+void FreeItem (struct ListItem *This)
+{
+  if (This==NULL) return ;
+  if (This->Prev!=NULL) This->Prev->Next = This->Next ;
+  if (This->Next!=NULL) This->Next->Prev = This->Prev ;
+  
+  // Nun noch den Speicherplatz freigeben
+  
+  free (This) ;
+}
