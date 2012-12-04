@@ -1,4 +1,4 @@
- // Lies die Konfiguration ein
+// Lies die Konfiguration ein
 
 var Sprache = 0 ;
 var Bilder = new Array () ;
@@ -729,6 +729,7 @@ function get_appropriate_ws_url()
    * https:// url itself, otherwise unencrypted
    */
   
+
   if (u.substring(0, 5) == "https") {
     pcol = "wss://";
     u = u.substr(8);
@@ -737,20 +738,25 @@ function get_appropriate_ws_url()
     if (u.substring(0, 4) == "http")
       u = u.substr(7);
   }
-  
-  u = u.split('/');
 
+
+  v = u ;
+  u = u.split('/');
+  v = v.split(':'); 
+
+  if (v[0].length<u[0].length) u[0]=v[0] ;
+  
   FindAllElements(Root,"Port",PortObjekt) ;
-  if (PortObject[0]) {
-    Attr = PortObject[0].getAttribute("WS") ;
+
+  if (PortObjekt[0]) {
+    Attr = PortObjekt[0].getAttribute("WS") ;
   } ;
+
 
   if (Attr) {
     return pcol + u[0] + ":"+Attr.getValue();
-    alert (pcol+u[0]+":"+Attr.getValue()) ;
   } else {
     return pcol + u[0] + ":13248";
-    alert (pcol+u[0]+":13248") ;
   } ;
 
 }

@@ -549,6 +549,8 @@ callback_config(struct libwebsocket_context *context,
   struct per_session_data_config *pss = user;
   char Command[NAMELEN] ;
   char Objekt[NAMELEN*4] ;
+  char Objekt2[NAMELEN] ;
+  char Objekt3[NAMELEN] ;
   struct Node *This ;
   
   switch (reason) {
@@ -580,8 +582,8 @@ callback_config(struct libwebsocket_context *context,
     
   case LWS_CALLBACK_RECEIVE:
     // Es wurde etwas empfangen
-    sscanf (in,"%s %s",Command,Objekt) ;
-    fprintf (stderr,"%s %s\n",Command,Objekt) ;
+    sscanf (in,"%s %s %s %s",Command,Objekt,Objekt2,Objekt3) ;
+    fprintf (stderr,"%s %s %s %s\n",Command,Objekt,Objekt2,Objekt3) ;
     if ((strcmp(Command,"Aktion")==0)||(strcmp(Command,"Action")==0)) {
       This = FindNode(Haus->Child,Objekt) ;
       ExecuteMakro (This) ;
