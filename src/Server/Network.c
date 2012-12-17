@@ -446,7 +446,7 @@ static int callback_http(struct libwebsocket_context *context,
 		/* send the script... when it runs it'll start websockets */
 
 		if (libwebsockets_serve_http_file(wsi,
-				  "./test.html", "text/html"))
+				  "Webpage/index.html", "text/html"))
 			fprintf(stderr, "Failed to send HTTP file\n");
 		break;
 
@@ -536,11 +536,10 @@ struct per_session_data_config {
   char Unit[NAMELEN*4] ;
 };
 
-static int
-callback_config(struct libwebsocket_context *context,
-		struct libwebsocket *wsi,
-		enum libwebsocket_callback_reasons reason,
-		void *user, void *in, size_t len)
+static int callback_config(struct libwebsocket_context *context,
+			   struct libwebsocket *wsi,
+			   enum libwebsocket_callback_reasons reason,
+			   void *user, void *in, size_t len)
 {
   int n;
   unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 512 +
@@ -569,14 +568,11 @@ callback_config(struct libwebsocket_context *context,
   case LWS_CALLBACK_BROADCAST:
     if (pss->DataToSend!=WS_UNDEF) {
       // in dieser Session stehen Daten an, die gesendet werden sollen
-      /*
-	n = sprintf((char *)p, "%d", pss->number++);
-	n = libwebsocket_write(wsi, p, n, LWS_WRITE_TEXT);
-	if (n < 0) {
+      n= libwebsocket_write(wsi,in,len,LWS_WRITE_TEXT) ;
+      if (n < 0) {
 	fprintf(stderr, "ERROR writing to socket");
 	return 1;
-	}
-      */
+      }
     } ;
     break;
     
@@ -590,26 +586,13 @@ callback_config(struct libwebsocket_context *context,
     } ;
     if (strcmp(Command,"Status")==0) {
       This = FindNode(Haus->Child,Objekt) ;
-      n = sprintf((char *)p, "Status %s=%d", Objekt,This->Value);
+      n = sprintf((char *)p, "Set %s %d", Objekt,This->Value);
       n = libwebsocket_write(wsi, p, n, LWS_WRITE_TEXT);
       if (n < 0) {
 	fprintf(stderr, "ERROR writing to socket");
 	return 1;
-      }
+      } ;
     } ;      
-    /*    if (len < 6)
-	  break;
-	  if (strcmp(in, "reset\n") == 0)
-	  pss->number = 0;
-	  break;
-    */
-
-
-    /*
-     * this just demonstrates how to use the protocol filter. If you won't
-     * study and reject connections based on header content, you don't need
-     * to handle this callback
-     */
     
   case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION:
     dump_handshake_info((struct lws_tokens *)(long)user);

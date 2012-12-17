@@ -620,7 +620,7 @@ int PrintMainMenu (void)
 {
   int i ;
   
-  for (i=-1;(i<0)||(i>7);) {
+  for (i=-1;(i<0)||(i>8);) {
     printf ("\n\nKnotenlinie: %d; Adresse: %d, Konfiguration: %s\n\n",NodeLine,NodeAdd,FileSize==512?"geladen":"nicht geladen") ;
     printf ("1. Knoten spezifizieren \n") ;
     printf ("2. Knoten vom Bus lesen \n") ;
@@ -628,7 +628,8 @@ int PrintMainMenu (void)
     printf ("4. Knoten konfigurieren \n") ;
     printf ("5. Konfiguration sichern\n") ;
     printf ("6. Knoten konfigurieren \n") ;
-    printf ("7. Beenden\n\n") ;
+    printf ("7. Konfiguration anzeigen \n") ;
+    printf ("8. Beenden\n\n") ;
     scanf ("%d",&i) ;
   } ;
   return (i) ;
@@ -695,6 +696,17 @@ void ConfigRelais (void)
   } ;
 }
 
+void PrintRelais(void)
+{
+  int i ;
+  printf ("Relais-Konfiguration\n\n") ;
+  printf ("Rolladen-Laufzeiten:\n") ;
+  for (i=0;i<5;i++) {
+    printf ("Port %d: Lang: %d s, Kurz: %d*10ms, Vertauschen: %d\n",i+1,
+	    EE->Data.Relais.RTFull[i],EE->Data.Relais.RTShort[i],EE->Data.Relais.UpDown[i]) ;
+  } ;
+}
+
 void InputCommand(struct EEPromSensFunc *SF)
 {
   int i,j ;
@@ -745,6 +757,28 @@ void InputCommand(struct EEPromSensFunc *SF)
   } ;
 }
 
+void PrintCommand(struct EEPromSensFunc *SF)
+{
+  int i ;
+  if ((SF->TargetLine==0xff)&&(SF->TargetAdd[0]==0xFF)) return ;
+  printf ("Ziel Knoten: %d, Linie %d \n",SF->TargetLine,SF->TargetAdd[0]) ;
+  i = SF->Command ;
+  
+  if ((i==30)||(i==31)||(i==32)) {
+    /* Relais-Kommando, also noch den Port lesen */
+    if (i==30) printf ("Switch on Port %d\n",SF->Data[0]) ;
+    if (i==31) printf ("Switch off Port %d\n",SF->Data[0]) ;
+    if (i==32) printf ("Toggle Port %d\n",SF->Data[0]) ;
+  } else {
+    for (i=0;i<6;i++) {
+      printf ("Data[%d] = %d",i,SF->Data[i]) ;
+    } ;
+    printf ("\n") ;
+  } ;  
+} 
+
+
+
 void InputRolladen(struct EEPromSensFunc *SF)
 {
   int i,j ;
@@ -783,6 +817,22 @@ void InputRolladen(struct EEPromSensFunc *SF)
     Data2[j*2+1]=i; 
   } ;
 }
+
+void PrintRolladen (struct EEPromSensFunc *SF)
+{
+  int j ;
+  
+  if (SF->Command==34) {
+    printf ("Rollo abwaerts \n") ;
+  } else {
+    printf ("Rollo aufwaerts \n") ;
+  } ;
+  
+  for (j=0;j<6;j++) {
+    if ((SF->Data[j*2+1]>0)&&(SF->Data[j*2+1]<6)) 
+      printf("Linie %d, Knoten %d, Port %d\n",SF->TargetLine,SF->Data[j*2],SF->Data[j*2+1]) ;
+  } ;
+} 
 
 char *SensType[] = {
   "unbekannt",
@@ -908,6 +958,52 @@ void ConfigSensor(void)
   } ;
 }
   
+void PrintSensor(void)
+{
+  int i ;
+  int Rolladen ;
+
+  EE = (struct EEPROM*)FileBuffer ;
+  
+  for (i=0;i<6;i++) {
+    if (EE->Data.Sensor.Config[i].Config>40) EE->Data.Sensor.Config[i].Config = 0 ;
+    Rolladen = 0 ;
+    if ((EE->Data.Sensor.Config[i].Config==2)&&
+	((EE->Data.Sensor.Pin[i].ShortMaster.Command==33)||(EE->Data.Sensor.Pin[i].ShortMaster.Command==34))) Rolladen = 1 ;
+    if (Rolladen) {
+      printf ("Port %d konfiguriert als Rolladen\n",i+1) ;
+    } else {
+      printf ("Port %d konfiguriert als %s\n",i+1,SensType[EE->Data.Sensor.Config[i].Config]) ;
+    } ;
+    if ((EE->Data.Sensor.Config[i].Config>2)&&(EE->Data.Sensor.Config[i].Config<6)) {
+      /* Monoflop oder Analog -> Zeitwerte setzen */
+      printf ("Port %d Timer = %d s\n): ",i+1,SensType[EE->Data.Sensor.Config[i].Data]) ;
+    } ;
+    if ((EE->Data.Sensor.Config[i].Config==2)) {
+      printf ("Port %d Repeat_start: %d*1/10 s\n",i+1,EE->Data.Sensor.REPEAT_START) ;
+      printf ("Port %d Repeat_end: %d*1/10 s\n ",i+1,EE->Data.Sensor.REPEAT_END) ;
+    } ;
+    if (Rolladen) {
+      printf ("Konfiguration mit Server:\n") ;
+      PrintRolladen(&EE->Data.Sensor.Pin[i].ShortMaster) ;
+      printf ("Konfiguration ohne Server:\n") ;
+      PrintRolladen(&EE->Data.Sensor.Pin[i].ShortAuto) ;
+    } else {
+      if (EE->Data.Sensor.Config[i].Config==0) continue ;
+      printf ("Konfiguration mit Server:\n") ;
+      PrintCommand(&EE->Data.Sensor.Pin[i].ShortMaster) ;
+      printf ("Konfiguration ohne Server:\n") ;
+      PrintCommand(&EE->Data.Sensor.Pin[i].ShortAuto) ;
+      if ((EE->Data.Sensor.Config[i].Config!=1)&&(EE->Data.Sensor.Config[i].Config!=5)){
+	printf ("Konfiguration lang gedrueckt mit Server:\n") ;
+	PrintCommand(&EE->Data.Sensor.Pin[i].LongMaster) ;
+	printf ("Konfiguration lang gedrueckt ohne Server:\n") ;
+	PrintCommand(&EE->Data.Sensor.Pin[i].LongAuto) ;
+      } ;
+    }; 
+  } ;
+}
+
 
 void ConfigNode(void)
 {
@@ -1000,6 +1096,21 @@ int main (void)
       SendEEProm (NodeLine,NodeAdd) ;
       break ;
     case 7:
+      if (FileSize!=512) {
+	printf ("\nKnoten noch nicht konfiguriert\n") ;
+	break ;
+      } ;
+      if (NodeLine>15) {
+	ReadNodeAdd();
+      }
+      EE = (struct EEPROM*)FileBuffer ;
+      if (EE->BoardType==16) {
+	PrintRelais() ;
+      } else {
+	PrintSensor() ;
+      } ;
+      break ;
+    case 8:
       CloseNetwork () ;
       exit(0) ;
     } ;

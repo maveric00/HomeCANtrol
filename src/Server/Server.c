@@ -230,6 +230,12 @@ void HandleCANRequest(void)
   char FromLine ;
   USHORT FromAdd ;
   int Port ;
+  int Mask,MaskIndex ;
+  unsigned char websocket_buf[LWS_SEND_BUFFER_PRE_PADDING + NAMELEN*4 + LWS_SEND_BUFFER_POST_PADDING];
+  char Temp[NAMELEN]; 
+  char* p ;
+
+  p = (char*)&(websocket_buf[LWS_SEND_BUFFER_PRE_PADDING]) ;
   
   ReceiveCANMessage(&CANID,&Len,Data) ;
   GetSourceAddress(CANID,&FromLine,&FromAdd) ;
@@ -254,19 +260,57 @@ void HandleCANRequest(void)
       } ;
     } ;
   } else {
+
     if (Data[0]==START_PROG) {
+      // Starte Makro auf dem Server
+
       Port = Data[1] ;
       This = FindNodeAdress(Haus,ToLine,ToAdd,Port,NULL) ;
       ExecuteMakro (This) ;
     } ;
 
-    // EEprom write handshake; send out next byte
+    if (Data[0]==(SEND_STATUS|SUCCESSFULL_RESPONSE)) {
+      // Status-Informationen empfangen, hier auswerten
+
+      This=FindNodeAdress(Haus,FromLine,FromAdd,255,NULL) ;
+      if ((This->Type==N_ONOFF)||(This->Type==N_SHADE)) {
+	// Es ist ein Relais-Knoten, also die Informationen eintragen...
+	Mask = 1 ;
+	MaskIndex = 1 ;
+	for (Port=1;Port<=10;Port++) {
+	  This=FindNodeAdress(Haus,FromLine,FromAdd,Port,NULL) ;
+	  if (This!=NULL) {
+	    if ((This->Type==N_SHADE)&&(Port<6)) {
+	      This->Value = Data[Port+2] ;
+	    } else {
+	      This->Value = ((Data[MaskIndex]&Mask)!=0)? 100:0 ;
+	    } ;
+	    Mask <<=1 ;
+	    if (Port==6) {
+	      MaskIndex = 2 ;
+	      Mask = 1 ;
+	    } ;
+	    strcpy (p,"Set ") ;
+	    // Hier wird ein Nebeneffekt von FullObjectName ausgenutzt: der Objektname wird an den 
+	    // vorhandenen String angehaengt.
+	    FullObjectName(This,p) ;
+	    sprintf (Temp," %d",This->Value) ;
+	    strcat (p,Temp) ;
+	    libwebsockets_broadcast(&web_protocols[PROTOCOL_CONTROL],(unsigned char*)p,strlen(p)) ;
+	  } ;
+	} ;
+      } ;
+    } ;
+    
+
 
     if (Data[0]==(SET_VAR|SUCCESSFULL_RESPONSE)) {
+      // EEprom write handshake; send out next byte
+
       SendConfigByte (FromLine,FromAdd) ;
     } ;
 
-    // Firmware-Update; send out next data
+
 
     if ((Data[0]==UPDATE_REQ)||(Data[0]==WRONG_NUMBER_RESPONSE)||
 	(Data[0]==(SUCCESSFULL_RESPONSE|IDENTIFY))||
@@ -281,6 +325,8 @@ void HandleCANRequest(void)
 	(Data[0]==(SUCCESSFULL_RESPONSE|START_APP))||
 	(Data[0]==(ERROR_RESPONSE|START_APP))||
 	(Data[0]==START_APP)) {
+      // Firmware-Update; send out next data
+
       SendFirmwareByte(FromLine,FromAdd,Data,Len) ;
     } ;
     
@@ -334,8 +380,7 @@ struct Node *Ergebnis[MAX_ADD_PER_NODE] ;
 int main(int argc, char **argv) 
 {
   int Error ;
-  unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 1024 +
-		    LWS_SEND_BUFFER_POST_PADDING];
+
   struct mg_context *ctx ;
 
   char *web_options[] = {
@@ -391,8 +436,6 @@ int main(int argc, char **argv)
 
   fprintf (stderr,"Starte Server\n") ;
 
-  buf[LWS_SEND_BUFFER_PRE_PADDING] = 'x';
-
   // Endlosschleife : Netzwerkverkehr abarbeiten und Makros ausfuehren
   
   while(1) {
@@ -400,9 +443,7 @@ int main(int argc, char **argv)
       // Netzwerk empfangen
       HandleCANRequest() ;
     }
-    //    libwebsockets_broadcast(
-    //			    &web_protocols[PROTOCOL_CONTROL],
-    //                      &buf[LWS_SEND_BUFFER_PRE_PADDING], 1);
+
     
     libwebsocket_service(web_context,0);    
     // Alle regelmaessigen Tasks abarbeiten

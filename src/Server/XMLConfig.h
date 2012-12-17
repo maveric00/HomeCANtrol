@@ -157,6 +157,7 @@ struct Node *CreateNode (void);
 void FreeNode (struct Node *This) ;
 struct Node *NewChild (struct Node *This) ;
 struct Node *FindNode (struct Node *Root,const char *Unit);
+void FullObjectName(struct Node *Node, char *Name) ;
 int CollectAdress (struct Node *Root, int Linie, int Knoten, struct Node *Result[], int *ResultNumber ) ;
 int CollectType (struct Node *Root, NodeType Type, struct Node *Result[], int *ResultNumber ) ;
 struct Node *FindNodeAdress (struct Node *Root,int Linie, int Knoten, int Port,struct Node *Except);

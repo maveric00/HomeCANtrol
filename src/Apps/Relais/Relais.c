@@ -56,7 +56,7 @@ uint16_t Timer[5] ; // Timer im 1/100 Sekunden Takt (bis max. 600 Sekunden) für 
                     // automatisch abwärtszählend bis 0 ;
 uint8_t State[5] ;  // Zustand der Aktionsmaschine "Rollo"
 uint8_t UpDown[5] ; // Befehl für Rollo
-uint8_t Position[5] ; // Aktuelle Rollo-Position
+uint8_t Position[5] ; // Aktueller Port-Status
 
 #define MAX_MESSAGES 4
 uint8_t LEDMessage[MAX_MESSAGES][4] ;
@@ -312,12 +312,16 @@ ISR(TIMER1_COMPA_vect)
 
 void BroadcastStatus(  uint8_t BoardLine, uint16_t BoardAdd )
 {
-  int i ;
+  uint8_t i ;
+  uint8_t ChanStat[10] ;
   // An den Systembus schicken (Addresse: 0/1) 
   Message.id = BuildCANId (0,0,BoardLine,BoardAdd,0,1,0) ;
+
+  for (i=0;i<10;i++) ChanStat[i]=(Channel[i]>63)?1:0 ;
+  
   Message.data[0] = SEND_STATUS|SUCCESSFULL_RESPONSE ;
-  Message.data[1] = (Channel[4]>>2)+(Channel[3]>>3)+(Channel[2]>>4)+(Channel[1]>>5)+(Channel[0]>>6) ;
-  Message.data[2] = (Channel[9]>>2)+(Channel[8]>>3)+(Channel[7]>>4)+(Channel[6]>>5)+(Channel[5]>>6) ;
+  Message.data[1] = (ChanStat[0])+(ChanStat[1]<<1)+(ChanStat[2]<<2)+(ChanStat[3]<<3)+(ChanStat[4]<<4) ;
+  Message.data[2] = (ChanStat[5])+(ChanStat[6]>>1)+(ChanStat[7]<<2)+(ChanStat[8]<<3)+(ChanStat[9]<<4) ;
   for (i=0;i<5;i++) Message.data[i+3]=Position[i] ;
   Message.length = 8 ;
   mcp2515_send_message(&Message) ;				
@@ -334,6 +338,7 @@ int main(void)
   uint8_t r ;
   uint8_t i,j ;
   uint8_t Direction ;
+  uint8_t ChanStat[10] ;
   
   // Default-Werte:
   BoardAdd = 16 ;
@@ -471,9 +476,10 @@ int main(void)
     switch (r) {
 
     case SEND_STATUS:
-      Message.data[1] = (Channel[4]>>2)+(Channel[3]>>3)+(Channel[2]>>4)+(Channel[1]>>5)+(Channel[0]>>6) ;
-      Message.data[2] = (Channel[9]>>2)+(Channel[8]>>3)+(Channel[7]>>4)+(Channel[6]>>5)+(Channel[5]>>6) ;
-	  for (i=0;i<5;i++) Message.data[i+3]=Position[i] ;
+      for (i=0;i<10;i++) ChanStat[i]=(Channel[i]>63)?1:0 ;
+      Message.data[1] = (ChanStat[0])+(ChanStat[1]<<1)+(ChanStat[2]<<2)+(ChanStat[3]<<3)+(ChanStat[4]<<4) ;
+      Message.data[2] = (ChanStat[5])+(ChanStat[6]>>1)+(ChanStat[7]<<2)+(ChanStat[8]<<3)+(ChanStat[9]<<4) ;
+      for (i=0;i<5;i++) Message.data[i+3]=Position[i] ;
       Message.length = 8 ;
       mcp2515_send_message(&Message) ;				
       break ;

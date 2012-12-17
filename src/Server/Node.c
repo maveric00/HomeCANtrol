@@ -113,10 +113,11 @@ struct Node *FindNodeAdress (struct Node *Root,int Linie, int Knoten, int Port,s
   
   if (Root==NULL) return (NULL) ;
 
-  // Knoten mit dem ersten Bezeichner finden
+  // Knoten mit dem ersten Bezeichner finden; wenn nach Port 255 gesucht wird den ersten Knoten mit 
+  // dieser Addresse zurueckgeben
   for(This = Root ;This!=NULL;This=This->Next) {
     if ((This->Type==N_ADRESS)&&(This->Data.Adresse.Linie ==Linie)&&
-	(This->Data.Adresse.Knoten==Knoten)&&(This->Data.Adresse.Port==Port)&&
+	(This->Data.Adresse.Knoten==Knoten)&&((This->Data.Adresse.Port==Port)||(Port=255))&&
 	(This!=Except)) { 
       return (This->Parent) ;
     } ;
@@ -125,6 +126,18 @@ struct Node *FindNodeAdress (struct Node *Root,int Linie, int Knoten, int Port,s
   } 
   return (NULL) ;
 }
+
+// FullObjectName erzeugt den kompletten Pfadnamen des Knotens; Name muss ein Null-String sein) ;
+
+void FullObjectName(struct Node *Node, char *Name)
+{
+  // rekursiv nach oben gehen ;
+  if (Node->Parent!=NULL) {
+    FullObjectName (Node->Parent,Name) ;
+    strcat (Name,"/") ;
+  } ;
+  strcat (Name,Node->Name) ;
+} 
 
 int CollectAdress (struct Node *Root, int Linie, int Knoten, struct Node *Result[], int *ResultNumber )
 {
