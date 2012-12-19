@@ -1,0 +1,1 @@
+make CC=mipsel-openwrt-linux-uclibc-gcc LD=mipsel-openwrt-linux-uclib-ld -f Makefile.mipsel

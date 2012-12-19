@@ -117,7 +117,7 @@ struct Node *FindNodeAdress (struct Node *Root,int Linie, int Knoten, int Port,s
   // dieser Addresse zurueckgeben
   for(This = Root ;This!=NULL;This=This->Next) {
     if ((This->Type==N_ADRESS)&&(This->Data.Adresse.Linie ==Linie)&&
-	(This->Data.Adresse.Knoten==Knoten)&&((This->Data.Adresse.Port==Port)||(Port=255))&&
+	(This->Data.Adresse.Knoten==Knoten)&&((This->Data.Adresse.Port==Port)||(Port==255))&&
 	(This!=Except)) { 
       return (This->Parent) ;
     } ;

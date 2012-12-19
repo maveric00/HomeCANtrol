@@ -168,7 +168,7 @@ int InitNetwork(void)
     fprintf(stderr, "talker: failed to get Send-socket\n");
     return 2;
   }
-
+  setsockopt(SendSockFD, SOL_SOCKET, SO_BROADCAST, (char *) &val, sizeof(val)) ;
 
   // Listen on Command Socket
 
