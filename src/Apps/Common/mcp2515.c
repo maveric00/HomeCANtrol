@@ -332,7 +332,7 @@ void mcp2515_init(void)
 	SET(MCP2515_CS);
 	
 	// ein bisschen warten bis der MCP2515 sich neu gestartet hat
-	_delay_us(100);
+	_delay_ms(0.1);
 	
 	// Filter usw. setzen
 	RESET(MCP2515_CS);

@@ -5,9 +5,7 @@
 // CAN Settings
 
 
-#ifndef	MCP2515_BITRATE
-	#define	MCP2515_BITRATE		250
-#endif
+#define	MCP2515_BITRATE		250
 
 #ifndef	MCP2515_INTERRUPTS
 	#define	MCP2515_INTERRUPTS	(1<<RX1IE)|(1<<RX0IE)

@@ -570,6 +570,13 @@ int main(void)
  
   sei();                  // Interrupts gloabl einschalten
 
+  // Say Hello, world...
+  
+  Message.id = BuildCANId (0,0,BoardLine,BoardAdd,0,1,0) ;
+  Message.data[0] = IDENTIFY ;
+  Message.length = 1 ;
+  mcp2515_send_message(&Message) ;
+
   // Endlosschleife zur Abarbeitung der Kommandos
 
   while(1) {

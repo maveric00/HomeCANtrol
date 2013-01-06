@@ -155,6 +155,7 @@ uint8_t GetProgram(uint8_t Channel, uint8_t PStep)
 {
   uint8_t *Da ;
   
+  if (Channel>22) return(0) ;
   if (PStep>=20) return (0) ;
   Da = (uint8_t*) 10 ;
   Da += Channel*20;
