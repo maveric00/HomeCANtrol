@@ -19,6 +19,95 @@
 #include <linux/can.h>
 #include <linux/can/raw.h>
 
+char *CommandName[]={
+  "Update request",
+  "Identify",
+  "Set Address",
+  "Firmware data",
+  "Start application",
+  "Undefined (6)",
+  "Undefined (7)",
+  "Undefined (8)",
+  "Undefined (9)",
+  "Send Status",
+  "Read Config",
+  "WriteConfig",
+  "Read Variable",
+  "Set Variable",
+  "Start Bootloader",
+  "Time",
+  "Undefined (17)",
+  "Undefined (18)",
+  "Undefined (19)",
+  "Channel on",
+  "Channel off",
+  "Channel toggle",
+  "Shade up (full)",
+  "Shade down (full)",
+  "Shade up (short)",
+  "Shade down (short)",
+  "Send LEDPort",
+  "Undefined (28)",
+  "Undefined (29)",
+  "LED off",
+  "LED on",
+  "Set to",
+  "HSet to",
+  "Load and store",
+  "Set to G1",
+  "Set to G2",
+  "Set To G3",
+  "Load Low",
+  "Load Mid1",
+  "Load Mid2",
+  "Load High",
+  "Start program",
+  "Stop program",
+  "Undefined (44)",
+  "Undefined (45)",
+  "Undefined (46)",
+  "Undefined (47)",
+  "Undefined (48)",
+  "Undefined (49)",
+  "Set Pin",
+  "Load LED",
+  "Out LED",
+  "Start Sensor",
+  "Stop Sensor"
+} ;
+
+char CommandNum[40]; 
+
+char *ToCommand(int Command)
+{
+  int Type ;
+  Type = 0 ;
+  if ((Command&0x40)!=0) {
+    Command = Command & ~0x40 ;
+    Type = 1 ;
+  }
+  if ((Command&0x80)!=0) {
+    Command = Command & ~0x80 ;
+    Type +=2 ;
+  } ;
+  if ((Command<1)||(Command>54)) {
+    sprintf (CommandNum,"Out of Range: %d(0x%02x)",Command,Command) ;
+    return (CommandNum) ;
+  } ;
+  if (Type==0) {
+    return (CommandName[Command-1]) ;
+  } else if (Type==1) {
+    sprintf (CommandNum,"Success: %s",CommandName[Command-1]) ;
+    return (CommandNum) ;
+  } else if (Type==2) {
+    sprintf (CommandNum,"Error: %s",CommandName[Command-1]) ;
+    return (CommandNum) ;
+  } else {
+    sprintf (CommandNum,"WrongNum: %s",CommandName[Command-1]) ;
+    return (CommandNum) ;
+  }
+}
+
 #define CANBUFLEN 20
 #define MAXLINE 520
 
@@ -29,6 +118,9 @@
 char CAN_PORT[MAXLINE] ;
 int CAN_PORT_NUM ;
 char CAN_BROADCAST[MAXLINE] ;
+int Verbose=0 ;
+int NoTime=0 ;
+int NoRoute=0 ;
 
 typedef unsigned long ULONG ;
 typedef unsigned short USHORT ;
@@ -75,6 +167,7 @@ void ReadCommandBlock(FILE *Conf,struct CANCommand *Command)
 {
   char Line[255] ;
   char *Str ;
+  int i ;
   
   // Clear fields not defined in configuration
   Command->Next = NULL ;
@@ -84,36 +177,36 @@ void ReadCommandBlock(FILE *Conf,struct CANCommand *Command)
     Command->ToAddMask = Command->LenMask = Command->PrioMask = Command->RepeatMask = Command->GroupMask = 0 ;
   for (i=0;i<8;i++) Command->DataMask[i] = 0 ;
   
-  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!="#") break; 
+  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!='#') break; 
   if (Str==NULL) return ;
-  sscanf(Line,"From: %d %x %d %x\n",&(Command->FromLine),&(Command->FromLineMask),
+  sscanf(Line,"From: %hhu %hhx %hu %hx\n",&(Command->FromLine),&(Command->FromLineMask),
 	 &(Command->FromAdd),&(Command->FromAddMask)) ;
 
-  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!="#") break; 
+  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!='#') break; 
   if (Str==NULL) return ;
-  sscanf(Line,"To: %d %x %d %x\n",&(Command->ToLine),&(Command->ToLineMask),
+  sscanf(Line,"To: %hhu %hhx %hu %hx\n",&(Command->ToLine),&(Command->ToLineMask),
 	 &(Command->ToAdd),&(Command->ToAddMask)) ;
 
-  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!="#") break; 
+  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!='#') break; 
   if (Str==NULL) return ;
-  sscanf(Line,"Prio: %d %x\n",&(Command->Prio),&(Command->PrioMask)) ;
+  sscanf(Line,"Prio: %hhd %hhx\n",&(Command->Prio),&(Command->PrioMask)) ;
 
-  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!="#") break; 
+  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!='#') break; 
   if (Str==NULL) return ;
-  sscanf(Line,"Repeat: %d %x\n",&(Command->Repeat),&(Command->RepeatMask)) ;
+  sscanf(Line,"Repeat: %hhd %hhx\n",&(Command->Repeat),&(Command->RepeatMask)) ;
 
-  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!="#") break; 
+  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!='#') break; 
   if (Str==NULL) return ;
-  sscanf(Line,"Group: %d %x\n",&(Command->Group),&(Command->GroupMask)) ;
+  sscanf(Line,"Group: %hhd %hhx\n",&(Command->Group),&(Command->GroupMask)) ;
 
 
-  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!="#") break; 
+  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!='#') break; 
   if (Str==NULL) return ;
-  sscanf(Line,"Len: %d %x\n",&(Command->Len),&(Command->LenMask)) ;
+  sscanf(Line,"Len: %hhd %hhx\n",&(Command->Len),&(Command->LenMask)) ;
 
-  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!="#") break; 
+  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!='#') break; 
   if (Str==NULL) return ;
-  sscanf(Line,"Data: %d %x %d %x %d %x %d %x %d %x %d %x %d %x %d %x\n",
+  sscanf(Line,"Data: %hhu %hhx %hhu %hhx %hhu %hhx %hhu %hhx %hhu %hhx %hhu %hhx %hhu %hhx %hhu %hhx\n",
 	 &(Command->Data[0]),&(Command->DataMask[0]),
 	 &(Command->Data[1]),&(Command->DataMask[1]),
 	 &(Command->Data[2]),&(Command->DataMask[2]),
@@ -129,16 +222,17 @@ void ReadCommandBlock(FILE *Conf,struct CANCommand *Command)
 
 void ReadFilter(FILE *Conf)
 {
-  int i ;
   struct CANCommand *Filter ;
   struct CANCommand *Exchange ;
+  char *Str ;
+  char Line[255] ;
 
   //Allocate new filter
 
   if (FilterList==NULL) {
     FilterList = malloc(sizeof(struct CANCommand)) ;
     if (FilterList==NULL) {
-      sprintf (stderr,"Out of mem\n") ;
+      fprintf (stderr,"Out of mem\n") ;
       exit(-1) ;
     } ;
     Filter = FilterList ;
@@ -146,7 +240,7 @@ void ReadFilter(FILE *Conf)
     for (Filter=FilterList;Filter->Next==NULL;Filter=Filter->Next) ;
     Filter->Next = malloc(sizeof(struct CANCommand)) ;
     if (Filter->Next==NULL) {
-      sprintf (stderr,"Out of mem\n") ;
+      fprintf (stderr,"Out of mem\n") ;
       exit(-1) ;
     } ;
     Filter = Filter->Next ;
@@ -154,12 +248,12 @@ void ReadFilter(FILE *Conf)
 
   // Read infromations of to be filtered message
   
-  ReadCommandBlock (Filter) ;
+  ReadCommandBlock (Conf,Filter) ;
   
 
   // Read all modification rules from config file
   for (;;) {
-    while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!="#") break; 
+    while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!='#') break; 
     // If end of file (or not "With"), return to caller
     if (Str==NULL) return ;
     if (strstr(Line,"With")==NULL) return ; // No additional with
@@ -169,14 +263,14 @@ void ReadFilter(FILE *Conf)
     if (Filter->Exchange==NULL) {
       Filter->Exchange = malloc(sizeof(struct CANCommand)) ;
       if (Filter->Exchange==NULL) {
-	sprintf (stderr,"Out of mem\n") ;
+	fprintf (stderr,"Out of mem\n") ;
 	exit(-1) ;
       } ;
       Exchange = Filter->Exchange ;
     } else {
       Exchange->Next = malloc(sizeof(struct CANCommand)) ;
       if (Exchange->Next==NULL) {
-	sprintf (stderr,"Out of mem\n") ;
+	fprintf (stderr,"Out of mem\n") ;
 	exit(-1) ;
       } ;
       Exchange = Filter->Next ;
@@ -184,7 +278,7 @@ void ReadFilter(FILE *Conf)
     
     // Read in modification rule
 
-    ReadCommandBlock (Exchange) ;
+    ReadCommandBlock (Conf,Exchange) ;
   } ;
 }
 
@@ -282,7 +376,7 @@ struct addrinfo *servinfo, *SendInfo ;
 
 // Build the 32bit CANID from address information
 
-inline ULONG BuildCANId (char Prio, char Repeat, char FromLine, USHORT FromAdd, char ToLine, USHORT ToAdd, char Group)
+ULONG BuildCANId (char Prio, char Repeat, char FromLine, USHORT FromAdd, char ToLine, USHORT ToAdd, char Group)
 {
   return ((Group&0x1)<<1|ToAdd<<2|(ToLine&0xf)<<10|FromAdd<<14|(FromLine&0xf)<<22|(Repeat&0x1)<<26|(Prio&0x3)<<27) ;
 }
@@ -306,8 +400,8 @@ void GetSourceAddress (ULONG CANId, char *FromLine, USHORT *FromAdd)
 
 void GetDestAddress (ULONG CANId, char *ToLine, USHORT *ToAdd)
 {
-  *FromLine = (char)((CANId>>10)&0xf) ;
-  *FromAdd = (USHORT) ((CANId>>2)&0xff) ;
+  *ToLine = (char)((CANId>>10)&0xf) ;
+  *ToAdd = (USHORT) ((CANId>>2)&0xff) ;
 }
 
 // Initialise the networks (LAN and CAN 0 and CAN 1)
@@ -337,9 +431,24 @@ int InitNetwork(void)
   // Bind the socket to the Address
   
   if (bind(RecSockFD, (struct sockaddr *) &RecAddr, sizeof(RecAddr)) == -1) {
-    close(RecSockFD);
-    perror("listener: bind");
-  }
+    // If address in use then try one lower - CANControl might be running
+    fprintf (stderr,"Socket in use, trying one lower (CANControl is running)\n") ;
+    close (RecSockFD) ;
+
+    if ((RecSockFD = socket(AF_INET, SOCK_DGRAM,0)) == -1) {
+      perror("CANGateway: Receive socket");
+      exit(0);
+    }
+
+    memset(&RecAddr, 0, sizeof(struct sockaddr_in));
+    RecAddr.sin_family      = AF_INET;
+    RecAddr.sin_addr.s_addr = INADDR_ANY;   // zero means "accept data from any IP address"
+    RecAddr.sin_port        = htons(CAN_PORT_NUM-1);
+    if (bind(RecSockFD, (struct sockaddr *) &RecAddr, sizeof(RecAddr)) == -1) {
+      close(RecSockFD);
+      perror("listener: bind");
+    }
+  } ;
   
   // Receive broadcast, also
 
@@ -441,17 +550,19 @@ int ReceiveFromUDP (struct CANCommand *Command)
   size_t addr_len;
   int numbytes ;
   struct sockaddr_storage their_addr;
+  struct sockaddr_in *tap ;
   
+  tap = (struct sockaddr_in*)&their_addr ;
+
   addr_len = sizeof their_addr;
   if ((numbytes = recvfrom(RecSockFD, buf, CANBUFLEN-1 , 0,
-			   (struct sockaddr *)&their_addr, &addr_len)) == -1) {
-    perror("recvfrom");
-    exit(1);
+			   (struct sockaddr *)tap, &addr_len)) == -1) {
+    perror("Lost UDP network (no recvfrom)");
   }
 
   // Decode UDP packet and fill CANCommand struct
 
-  CANIDP = (char*)CANID ;
+  CANIDP = (char*)&CANID ;
   for (i=0;i<4;i++) CANIDP[i]=buf[i] ;
 
   GetSourceAddress(CANID,&(Command->FromLine),&(Command->FromAdd)) ;
@@ -460,7 +571,15 @@ int ReceiveFromUDP (struct CANCommand *Command)
 
   Command->Len = buf[4];
 
-  for (i=0;i<*Len;i++) Command->Data[i] = buf[i+5] ;
+  for (i=0;i<Command->Len;i++) Command->Data[i] = buf[i+5] ;
+
+  if ((Verbose==1)&&((NoTime==0)||((Command->Data[0]!=7)&&(Command->Data[0]!=16)))) {
+    fprintf (stderr,"IP:%s:%d, From: %d %d To: %d %d, Len: %d , Command: %s ",inet_ntoa(tap->sin_addr),tap->sin_port,
+	     Command->FromLine, Command->FromAdd,
+	     Command->ToLine, Command->ToAdd, Command->Len, ToCommand(Command->Data[0])) ;
+    for (i=1;i<Command->Len;i++) fprintf (stderr,"%02x ",Command->Data[i]) ;
+    fprintf (stderr,"\n") ;
+  } ;
     
   return 0;
 }
@@ -473,21 +592,26 @@ int ReceiveFromCAN (int socket, struct CANCommand *Command)
   struct can_frame frame ;
   int numbytes ;
   
-
   if ((numbytes = read(socket, &frame, sizeof(struct can_frame))) < 0) {
     perror("CANGateway: CAN raw socket read");
-    exit(1);
   } ;
 
   // Fill CANCommand struct
 
   GetSourceAddress(frame.can_id,&(Command->FromLine),&(Command->FromAdd)) ;
   GetDestAddress(frame.can_id,&(Command->ToLine),&(Command->ToAdd)) ;
-  GetExtendedAddress (CANID,&(Command->Prio),&(Command->Repeat),&(Command->Group)) ;
+  GetExtendedAddress (frame.can_id,&(Command->Prio),&(Command->Repeat),&(Command->Group)) ;
 
   for (i=0;i<frame.can_dlc;i++) Command->Data[i]=frame.data[i] ;
   Command->Len = frame.can_dlc;
     
+  if (Verbose==1) {
+    fprintf (stderr,"CAN%d: %d %d, To: %d %d, Len: %d , Command: %s %d %d %d\n",socket==Can0SockFD?0:1,
+	     Command->FromLine, Command->FromAdd,
+	     Command->ToLine, Command->ToAdd, Command->Len, ToCommand(Command->Data[0]),
+	     Command->Data[1],Command->Data[2],Command->Data[3]) ;
+  } ;
+
   return 0;
 }
 
@@ -504,11 +628,10 @@ int SendToCAN (int socket, struct CANCommand *Command)
 		     Command->ToLine,Command->ToAdd,Command->Group) ;
   frame.can_id = CANID|CAN_EFF_FLAG ;
   frame.can_dlc = Command->Len ;
-  for (i=0;i<Len;i++) frame.data[i] = Command->Data[i] ;
+  for (i=0;i<Command->Len;i++) frame.data[i] = Command->Data[i] ;
   
   if ((numbytes = write(socket, &frame, sizeof(struct can_frame))) < 0) {
-    perror("CANGateway: CAN raw socket read");
-    exit(1);
+    perror("CANGateway: CAN raw socket write");
   } ;
   
   return 0;
@@ -532,13 +655,12 @@ int SendToUDP (struct CANCommand *Command)
 
   Message[4] = Command->Len ;
 
-  for (i=0;i<Len;i++) Message[i+5] = Command->Data[i] ;
+  for (i=0;i<Command->Len;i++) Message[i+5] = Command->Data[i] ;
   for (;i<8;i++) Message[i+5] = 0 ;
   
   if ((numbytes = sendto(SendSockFD, Message, 13, 0,
 			 SendInfo->ai_addr, SendInfo->ai_addrlen)) != 13) {
-    perror("SendCANMessage nicht erfolgreich");
-    return(1);
+    perror("SendCANMessage to UDP");
   }
 
   return (0);
@@ -565,22 +687,22 @@ struct CANCommand *CommandMatch(struct CANCommand *Command)
   // Only the bits set in the mask are compared with each other
 
   for (Filter=FilterList;Filter!=NULL;Filter=Filter->Next) {
-    if ((Command->FromLine&Filter->FromLineMask)!=(Filter->FromLine&Fiter->FromLineMask)) continue ;
-    if ((Command->FromAdd&Filter->FromAddMask)!=(Filter->FromAdd&Fiter->FromAddMask)) continue ;
-    if ((Command->ToLine&Filter->ToLineMask)!=(Filter->ToLine&Fiter->ToLineMask)) continue ;
-    if ((Command->ToAdd&Filter->ToAddMask)!=(Filter->ToAdd&Fiter->ToAddMask)) continue ;
-    if ((Command->Prio&Filter->PrioMask)!=(Filter->Prio&Fiter->PrioMask)) continue ;
-    if ((Command->Repeat&Filter->RepeatMask)!=(Filter->Repeat&Fiter->RepeatMask)) continue ;
-    if ((Command->Group&Filter->GroupMask)!=(Filter->Group&Fiter->GroupMask)) continue ;
-    if ((Command->Len&Filter->LenMask)!=(Filter->Len&Fiter->LenMask)) continue ;
-    if ((Command->Data[0]&Filter->DataMask[0])!=(Filter->Data[0]&Fiter->DataMask[0])) continue ;
-    if ((Command->Data[0]&Filter->DataMask[1])!=(Filter->Data[0]&Fiter->DataMask[1])) continue ;
-    if ((Command->Data[0]&Filter->DataMask[2])!=(Filter->Data[0]&Fiter->DataMask[2])) continue ;
-    if ((Command->Data[0]&Filter->DataMask[3])!=(Filter->Data[0]&Fiter->DataMask[3])) continue ;
-    if ((Command->Data[0]&Filter->DataMask[4])!=(Filter->Data[0]&Fiter->DataMask[4])) continue ;
-    if ((Command->Data[0]&Filter->DataMask[5])!=(Filter->Data[0]&Fiter->DataMask[5])) continue ;
-    if ((Command->Data[0]&Filter->DataMask[6])!=(Filter->Data[0]&Fiter->DataMask[6])) continue ;
-    if ((Command->Data[0]&Filter->DataMask[7])!=(Filter->Data[0]&Fiter->DataMask[7])) continue ;
+    if ((Command->FromLine&Filter->FromLineMask)!=(Filter->FromLine&Filter->FromLineMask)) continue ;
+    if ((Command->FromAdd&Filter->FromAddMask)!=(Filter->FromAdd&Filter->FromAddMask)) continue ;
+    if ((Command->ToLine&Filter->ToLineMask)!=(Filter->ToLine&Filter->ToLineMask)) continue ;
+    if ((Command->ToAdd&Filter->ToAddMask)!=(Filter->ToAdd&Filter->ToAddMask)) continue ;
+    if ((Command->Prio&Filter->PrioMask)!=(Filter->Prio&Filter->PrioMask)) continue ;
+    if ((Command->Repeat&Filter->RepeatMask)!=(Filter->Repeat&Filter->RepeatMask)) continue ;
+    if ((Command->Group&Filter->GroupMask)!=(Filter->Group&Filter->GroupMask)) continue ;
+    if ((Command->Len&Filter->LenMask)!=(Filter->Len&Filter->LenMask)) continue ;
+    if ((Command->Data[0]&Filter->DataMask[0])!=(Filter->Data[0]&Filter->DataMask[0])) continue ;
+    if ((Command->Data[0]&Filter->DataMask[1])!=(Filter->Data[0]&Filter->DataMask[1])) continue ;
+    if ((Command->Data[0]&Filter->DataMask[2])!=(Filter->Data[0]&Filter->DataMask[2])) continue ;
+    if ((Command->Data[0]&Filter->DataMask[3])!=(Filter->Data[0]&Filter->DataMask[3])) continue ;
+    if ((Command->Data[0]&Filter->DataMask[4])!=(Filter->Data[0]&Filter->DataMask[4])) continue ;
+    if ((Command->Data[0]&Filter->DataMask[5])!=(Filter->Data[0]&Filter->DataMask[5])) continue ;
+    if ((Command->Data[0]&Filter->DataMask[6])!=(Filter->Data[0]&Filter->DataMask[6])) continue ;
+    if ((Command->Data[0]&Filter->DataMask[7])!=(Filter->Data[0]&Filter->DataMask[7])) continue ;
   }
   return (Filter) ;
 }
@@ -589,20 +711,34 @@ struct CANCommand *CommandMatch(struct CANCommand *Command)
     
 void RouteCommand (struct CANCommand *Command)
 {
+  if (NoRoute==1) return ;
   if (Command->Interface!=CIF_NET) {
     // Received by CAN, Send out to network
     SendToUDP(Command) ;
+    if ((Verbose==1)&&((NoTime==0)||((Command->Data[0]!=7)&&(Command->Data[0]!=16)))) {
+      fprintf (stderr,"Routed to UDP\n") ;
+    } ;
   } ;
   if (Command->Interface!=CIF_CAN0) {
     // Received by CAN1 or network, send to CAN0 if included in routing table
-    if (RouteIF0[Command->ToLine]!=0) {
-      SendToCAN(CAN0SockFD,Command) ;
+    if (RouteIF0[(int)Command->ToLine]!=0) {
+      if (RouteIF0[(int)Command->FromLine]==0) {
+	SendToCAN(Can0SockFD,Command) ;
+	if ((Verbose==1)&&((NoTime==0)||((Command->Data[0]!=7)&&(Command->Data[0]!=16)))) {
+	  fprintf (stderr,"Routed to CAN0\n") ;
+	} ;
+      } ;
     } ;
   } ;  
   if (Command->Interface!=CIF_CAN1) {
     // Received by CAN0 or network, send to CAN1 if included in routing table
-    if (RouteIF1[Command->ToLine]!=0) {
-      SendToCAN(CAN1SockFD,Command) ;
+    if (RouteIF1[(int)Command->ToLine]!=0) {
+      if (RouteIF1[(int)Command->FromLine]==0) {
+	SendToCAN(Can1SockFD,Command) ;
+	if ((Verbose==1)&&((NoTime==0)||((Command->Data[0]!=7)&&(Command->Data[0]!=16)))) {
+	  fprintf (stderr,"Routed to CAN1\n") ;
+	} ;
+      } ;
     } ;
   } ;  
 
@@ -611,7 +747,7 @@ void RouteCommand (struct CANCommand *Command)
 // RewriteCommand exchanges the information in the Command at the location where the bits are set in the modifier mask
 // with the information given in the modifier CANCommand.
 
-void RewriteCommand (struct CANCommand *Command, struct CANCommand *Exchange, struct CANComman *NewCommand)
+void RewriteCommand (struct CANCommand *Command, struct CANCommand *Exchange, struct CANCommand *NewCommand)
 {
   int i ;
   // Exchange all the bits that are set in the Exchange-Mask
@@ -632,18 +768,25 @@ void RewriteCommand (struct CANCommand *Command, struct CANCommand *Exchange, st
 
 int main (int argc, char*argv[])
 {
-  int i,j ;
-  ULONG TestID ;
-  USHORT FromAdd ;
-  char FromLine ;
-  unsigned char Len ;
-  unsigned char Data[8] ;
+  int i ;
   fd_set rdfs ;
   struct CANCommand Command ;
   struct CANCommand NewCommand ;
   struct CANCommand *Exchange ;
 
-
+  for (i=1;i<argc;i++) {
+    if (strstr("-v",argv[i])!=NULL) Verbose = 1 ;
+    if (strstr("-t",argv[i])!=NULL) NoTime = 1 ;
+    if (strstr("-noroute",argv[i])!=NULL) NoRoute = 1 ;
+    if ((strstr("-?",argv[i])!=NULL)||
+	(strstr("--help",argv[i])!=NULL)) {
+      printf ("Usage: %s [-v] [-noroute] [--help] [-?]\n\n",argv[0]) ;
+      printf ("       -v: Verbose\n") ;
+      printf ("       -noroute: Do not route messages\n") ;
+      printf ("       -?, --help: display this message\n") ;
+      exit(0) ;
+    } ;
+  } ;
 
   ReadConfig() ;
 
@@ -688,7 +831,7 @@ int main (int argc, char*argv[])
     if (Exchange!=NULL) {
       for (Exchange=Exchange->Exchange;Exchange!=NULL;Exchange=Exchange->Next) {
 	RewriteCommand(&Command,Exchange,&NewCommand) ;
-	RouteCommand(NewCommand) ;
+	RouteCommand(&NewCommand) ;
       } ;
     } else {
       // no exchange element

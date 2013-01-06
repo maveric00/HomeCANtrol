@@ -8,4 +8,5 @@ echo $PATH
 make CC=mipsel-openwrt-linux-uclibc-gcc LD=mipsel-openwrt-linux-uclib-ld -f Makefile.mipsel
 make CC=mipsel-openwrt-linux-uclibc-gcc LD=mipsel-openwrt-linux-uclib-ld -f Makefile.CANGateway
 
-tar -cf pack.tar CANControl CANGateway NodeConf Webpage 
+rm pack.tar
+tar -cf pack.tar CANControl CANGateway CANGateway.conf StartCan NodeConf Webpage 

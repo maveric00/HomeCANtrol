@@ -32,6 +32,8 @@ struct TypSel Types[] = {
   {"Adresse",N_ADRESS},
   {"Adress",N_ADRESS},
   {"Sensor",N_SENSOR},
+  {"Bad",N_BAD},
+  {"Bath",N_BAD},
   {"Aktion",N_ACTION},
   {"Action",N_ACTION},
   {"Makro",N_MACRO},
@@ -61,6 +63,9 @@ struct TypSel Types[] = {
   {"Language",N_LANGUAGE},
   {"Port",N_PORT},
   {"Broadcast",N_BROADCAST},
+  {"Firmware",N_FIRMWARE},
+  {"Program",N_PROGRAM},
+  {"Programm",N_PROGRAM},
   {"Einfach",S_SIMPLE},
   {"Simple",S_SIMPLE},
   {"KurzLang",S_SHORTLONG},
@@ -111,7 +116,8 @@ int ParseError ;
 
 void XMLCALL start(void *data, const char *el, const char **attr) 
 {
-  int i,Time;
+  int i,j,Time;
+  char Val[5] ;
   struct Node *This ;
 
 
@@ -176,6 +182,11 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       } ;
       if ((strcmp(attr[i],"intervall")==0)||(strcmp(attr[i],"interval")==0)) {
 	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.Ende)) ;
+      } ;
+      break ;
+    case N_BAD:
+      if ((strcmp(attr[i],"dauer")==0)||(strcmp(attr[i],"duration")==0)) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.Lang)) ;
       } ;
       break ;
     case N_SHADE:
@@ -273,6 +284,22 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       if (strcmp(attr[i],"id")==0) {
 	sscanf(attr[i+1],"%d",&(Current->Value)) ;
       } ;
+      break ;
+    case N_PROGRAM:
+      if (strcmp(attr[i],"port")==0) {
+	sscanf(attr[i+1],"%hhd",&(Current->Data.Program.Port)) ;
+      } ;
+      if (strcmp(attr[i],"data")==0) {
+	Val[0] = '0' ;
+	Val[1] = 'x' ;
+	Val[4] = '\0' ;
+	for (j=0;j<50;j++) Current->Data.Program.Data[j]=0 ;
+	for (j=0;attr[i+1][j]!='\0';j+=2) {
+	  Val[2] = attr[i+1][j] ;
+	  Val[3] = attr[i+1][j+1] ;
+	  sscanf (Val,"%hhx",&(Current->Data.Program.Data[j/2])) ;
+	} ;
+      }; 
       break ;
     default:
       break ;

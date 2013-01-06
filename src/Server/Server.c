@@ -4,7 +4,8 @@
 #include <unistd.h>
 #include <expat.h>
 #include <string.h>
-#include <unistd.h>
+#define _XOPEN_SOURCE
+#include <time.h>
 #include "libwebsocket/libwebsockets.h"
 #include "ConfigNodes.h"
 #include "XMLConfig.h"
@@ -13,7 +14,7 @@
 #include "../Apps/Common/mcp2515.h"
 #include "Mongoose/mongoose.h"
 
-
+char *strptime(const char *s, const char *format, struct tm *tm);
 
 /* Makro-Funktionen */
 #define MAX_ACTIVEMACROS 255
@@ -236,8 +237,9 @@ void HandleCANRequest(void)
   char* p ;
 
   p = (char*)&(websocket_buf[LWS_SEND_BUFFER_PRE_PADDING]) ;
-  
+
   ReceiveCANMessage(&CANID,&Len,Data) ;
+
   GetSourceAddress(CANID,&FromLine,&FromAdd) ;
   GetDestinationAddress(CANID,&ToLine,&ToAdd) ;
   if (ToLine!=0) {
@@ -344,6 +346,8 @@ int HandleCommand (char *Command, char *Answer)
     if ((Line!=0)&&(Add!=0)) {
       MakeConfig (Line,Add,&EEprom) ;
       WriteConfig (&EEprom) ;
+      SendConfig(&EEprom) ;
+      sprintf (Answer,"Update Config\n") ;
     } ;
   } ;
 
@@ -351,6 +355,7 @@ int HandleCommand (char *Command, char *Answer)
     sscanf (Command,"Update %d %d",&Line,&Add) ;
     if ((Line!=0)&&(Add!=0)) {
       SendFirmware(Line,Add) ;
+      sprintf (Answer,"Update Firmware\n") ;
     }
   } ;
 
@@ -359,6 +364,7 @@ int HandleCommand (char *Command, char *Answer)
       sprintf (Answer,"Error in Configuration\n") ;
       return(TRUE) ;
     } ;
+    sprintf (Answer,"Updated Configuration\n") ;
   } ;
   return (TRUE) ;
 }

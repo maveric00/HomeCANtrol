@@ -33,6 +33,8 @@ typedef enum {
   N_PORT = 20,
   N_BROADCAST = 21,
   N_FIRMWARE = 22,
+  N_BAD = 23,
+  N_PROGRAM = 24,
   S_SIMPLE = 100,
   S_SHORTLONG = 101,
   S_SHADE_SHORTLONG = 102,
@@ -88,6 +90,11 @@ struct Werte {
   int Vergleich ;
 } ;
 
+struct Program {
+  unsigned char Port ;
+  unsigned char Data[50] ;
+} ;
+
 struct Sensor {
   NodeType SensorTyp ;
   int Lang ;
@@ -119,6 +126,7 @@ struct Node {
     struct Aktion Aktion ;
     struct Node *MakroStep ;
     struct timeval Time ;
+    struct Program Program ;
     char UnitName[NAMELEN*4] ;
     char PAD[NAMELEN*5] ;
     struct Werte Wert ;

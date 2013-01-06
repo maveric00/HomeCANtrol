@@ -2,7 +2,7 @@
 
 <Haus>
   <Sprache ist="deutsch"/>
-  <Broadcast IP="127.0.0.1"/>
+  <Broadcast IP="192.168.69.255"/>
   <Port CAN="13247" WS="13248" COM="13249" HTTP="8080"/>
   <Etage name="Keller">
      <Zimmer name="Flur">
@@ -55,7 +55,7 @@
            <Adresse linie="1" knoten="51" port="6"/>
            <Aktion kurz="1" autonom="0" kommando="Toggle" objekt="Erdgeschoss/Kueche/Tresenlicht"/>
            <Aktion kurz="1" autonom="1" kommando="Toggle" objekt="Erdgeschoss/Kueche/Tresenlicht"/>
-           <Aktion kurz="0" autonom="0" kommando="Rufe" objekt="Aussen/Vorgarten/Brunnen"/>
+           <Aktion kurz="0" autonom="0" kommando="Rufe" objekt="Aussen/Brunnen"/>
            <Aktion kurz="0" autonom="1" kommando="Toggle" objekt="Erdgeschoss/Kueche/Tresenlicht"/>
          </Sensor>
          <Sensor name="Tuer3" typ="Rollo_KL" lang="5" ende="100">
@@ -96,7 +96,7 @@
          </Sensor>
      </Zimmer>
      <Zimmer name="Wohnzimmer">
-         <Schalter name="DeckenlichtVor">
+         <Schalter name="DeckenVorlicht">
             <Adresse linie="1" knoten="100" port="4"/>
          </Schalter>
          <Schalter name="Deckenlicht">
@@ -211,6 +211,36 @@
          <Schalter name="Deckenlicht">
             <Adresse linie="1" knoten="102" port="8"/>
          </Schalter>
+	 <Bad name="BadSensor" dauer="64">
+	    <Adresse linie="1" knoten="60" port="0"/>
+	    <Programm port="1" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="2" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="3" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="4" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="5" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="6" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="7" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="8" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="9" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="10" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="11" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="12" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="13" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="14" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="15" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="16" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="17" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="18" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="19" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="20" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="21" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="22" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	    <Programm port="23" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
+            <Aktion kurz="1" autonom="0" kommando="An"  objekt="Erdgeschoss/Bad/Deckenlicht"/>
+            <Aktion kurz="0" autonom="0" kommando="Aus" objekt="Erdgeschoss/Bad/Deckenlicht"/>
+            <Aktion kurz="1" autonom="1" kommando="An"  objekt="Erdgeschoss/Bad/Deckenlicht"/>
+            <Aktion kurz="0" autonom="1" kommando="Aus" objekt="Erdgeschoss/Bad/Deckenlicht"/>
+	 </Bad>
      </Zimmer>
      <Zimmer name="Gaderobe">
          <Schalter name="Deckenlicht">
@@ -236,7 +266,7 @@
   <Etage name="Obergeschoss">
      <Zimmer name="Bad">
          <Schalter name="Deckenlicht">
-            <Adresse linie="1" knoten="102" port="3"/>
+            <Adresse linie="3" knoten="102" port="3"/>
          </Schalter>
          <Rollo name="Fenster" kurz="60" lang="60" vertauschen="0">
             <Adresse linie="3" knoten="105" port="5"/>
@@ -258,8 +288,8 @@
          </Sensor>
          <Sensor name="Tuer4" typ="Rollo_KL" lang="5" ende="100">
            <Adresse linie="3" knoten="52" port="6"/>
-           <Aktion autonom="0" kommando="Runter" objekt="Obergeschoss/Bad/Fenster"/>
-           <Aktion autonom="1" kommando="Runter" objekt="Obergeschoss/Bad/Fenster"/>
+           <Aktion autonom="0" kommando="Hoch" objekt="Obergeschoss/Bad/Fenster"/>
+           <Aktion autonom="1" kommando="Hoch" objekt="Obergeschoss/Bad/Fenster"/>
          </Sensor>
      </Zimmer>
      <Zimmer name="Becki">
@@ -449,6 +479,7 @@
     <Aktion kommando="An" objekt="Aussen/Vorgarten/LichtTuer"/>
     <Aktion kommando="An" objekt="Erdgeschoss/Kueche/SteckdoseSpueler"/>
     <Aktion kommando="An" objekt="Erdgeschoss/Kueche/SteckdoseMikrowelle"/>
+    <Aktion kommando="An" objekt="Erdgeschoss/Wohnzimmer/DeckenVorlicht"/>
   </Makro>
   <Firmware name="NodeConf/Bad.hex" id="1"/>
   <Firmware name="NodeConf/Relais.hex" id="16"/>

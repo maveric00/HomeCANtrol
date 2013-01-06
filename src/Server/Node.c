@@ -168,6 +168,10 @@ int CollectType (struct Node *Root, NodeType Type, struct Node *Result[], int *R
   
   if (Root==NULL) return (0) ;
 
+  i = 0;
+
+  i+=CollectType(Root->Next,Type,Result,ResultNumber) ; // Search recursively at same level
+
   if (Root->Type==Type) { 
     // Passende Adresse gefunden, zu den Ergebnissen hinzufuegen
     if ((*ResultNumber)>=MAX_ADD_PER_NODE*4) return (0) ; // Zu viele Ergebnisse
@@ -176,9 +180,8 @@ int CollectType (struct Node *Root, NodeType Type, struct Node *Result[], int *R
     return (0) ;
   }  ;
 
-  // Kein Adressen-Knoten, also rekursiv weitersuchen
+  // Kein Typ-Knoten, also rekursiv weitersuchen
 
-  i = 0;
   for (This = Root;This!=NULL;This=This->Next) i+=CollectType(This->Child,Type,Result,ResultNumber) ;
   return (i) ;
 }

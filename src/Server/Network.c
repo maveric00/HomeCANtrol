@@ -33,13 +33,14 @@ int HTTP_PORT_NUM ;
 char CAN_BROADCAST[NAMELEN] ;
 
 int RecSockFD;
+int GateSockFD;
 int ComSockFD;
 int SendSockFD;
 int RecAjaxFD ;
 int SendAjaxFD ;
 int MaxSock ;
 fd_set socketReadSet;
-struct addrinfo *servinfo, *SendInfo ;
+struct addrinfo *servinfo, *SendInfo,*gateinfo,*GaInfo ;
 
 /* CAN-Funktionen */
 
@@ -95,6 +96,7 @@ int InitNetwork(void)
 {
   
   struct addrinfo hints;
+  char CAN_LOOP_PORT[20] ;
   int rv;
   struct sockaddr_in RecAddr;
   int val ;
@@ -170,6 +172,34 @@ int InitNetwork(void)
   }
   setsockopt(SendSockFD, SOL_SOCKET, SO_BROADCAST, (char *) &val, sizeof(val)) ;
 
+  // Set up send-Socket for CAN-Gateway data
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_DGRAM;
+
+  sprintf (CAN_LOOP_PORT,"%d",CAN_PORT_NUM-1) ;
+  
+  if ((rv = getaddrinfo("127.0.0.1", CAN_LOOP_PORT, &hints, &gateinfo)) != 0) {
+    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+    return 1;
+  }
+  
+  // loop through all the results and make a socket
+  for(GaInfo = gateinfo; GaInfo != NULL; GaInfo = GaInfo->ai_next) {
+    if ((GateSockFD = socket(GaInfo->ai_family, GaInfo->ai_socktype,
+			     GaInfo->ai_protocol)) == -1) {
+      perror("Gate: socket");
+      continue;
+    }
+    
+    break;
+  }
+  
+  if (GaInfo == NULL) {
+    fprintf(stderr, "talker: failed to get Gate-socket\n");
+    return 2;
+  }
+
   // Listen on Command Socket
 
   if (listen(ComSockFD,10)==-1) {
@@ -203,15 +233,19 @@ int ReceiveCANMessage (ULONG *CANID, char *Len, unsigned char *Data)
   socklen_t addr_len;
   int numbytes ;
   struct sockaddr_storage their_addr;
-  
+  struct sockaddr_in *tap ;
+
+  tap = (struct sockaddr_in*)&their_addr ;  
   
   addr_len = sizeof their_addr;
+
   if ((numbytes = recvfrom(RecSockFD, buf, CANBUFLEN-1 , 0,
-			   (struct sockaddr *)&their_addr, &addr_len)) == -1) {
+			   (struct sockaddr *)tap, &addr_len)) == -1) {
     fprintf(stderr,"Could not read from socket?\n");
     return(1);
   }
-
+  
+  sendto(GateSockFD, buf, numbytes, 0,GaInfo->ai_addr, GaInfo->ai_addrlen) ;
 
   CANIDP = (unsigned char*)CANID ;
   for (i=0;i<4;i++) CANIDP[i]=buf[i] ;
@@ -344,7 +378,7 @@ int CheckNetwork(int * error,int timeOut) // milliseconds
       } ;
     } ;
   } ;
-  return FD_ISSET(RecSockFD,&localReadSet) != 0;
+  return (FD_ISSET(RecSockFD,&localReadSet) != 0);
 }
 
 
@@ -353,6 +387,7 @@ int CheckNetwork(int * error,int timeOut) // milliseconds
 void CloseNetwork (void) 
 {
   freeaddrinfo(servinfo);
+  freeaddrinfo(gateinfo);
 
   close(RecSockFD);
   close(ComSockFD);

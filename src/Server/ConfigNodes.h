@@ -35,6 +35,12 @@ struct EEPromRelais {
   unsigned char UpDown[5] ;
 } ;
 
+struct EEPromBad {
+  unsigned char Program[23][20] ;
+  struct EEPromSensPin Pin ;
+  unsigned char DelayTimer ;
+} ;
+
 struct EEPROM {
   unsigned char Magic[2];
   unsigned char BoardAdd[2] ;
@@ -46,6 +52,7 @@ struct EEPROM {
   union {
     struct EEPromSens Sensor ;
     struct EEPromRelais Relais ;
+    struct EEPromBad Bad ;
     unsigned char PAD[502]; 
   } Data ;
 } ;

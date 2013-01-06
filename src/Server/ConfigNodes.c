@@ -22,6 +22,7 @@
 #define SERVER_INCLUDE 1
 #include "../Apps/Common/mcp2515.h"
 
+#define DEBUG 1
 
 
 void ConfigShade(struct Node *Node, struct Node *Action, struct EEPromSensFunc *SF)
@@ -53,7 +54,7 @@ void ConfigShade(struct Node *Node, struct Node *Action, struct EEPromSensFunc *
   Data2 = SF->Data ;
 
   // Naechsten freien Platz in der Rolladenliste suchen...
-  for (i=0;i<6;i++) if (Data2[i*2]==0) break ;
+  for (i=0;i<6;i++) if (Data2[i*2]==0X00) break ;
   Data2[i*2] = K1 ;
   Data2[i*2+1] = P1 ; // Achtung: Hier wird das naechste SensFunc ueberschrieben, dies ist jedoch fuer Rollaeden moeglich...
 }
@@ -64,6 +65,8 @@ void ConfigCommand (struct Node *Node, struct Node *Action, struct EEPromSensFun
   int Command ;
 
   // Adresse setzen
+
+  if (SF==NULL) return ;
 
   if (GetNodeAdress(Action->Data.Aktion.Unit,&L1,&K1,&P1)!=0) {
     fprintf (stderr,"Unit %s has no Adress in Sensor %s\n",Action->Data.Aktion.UnitName,Node->Name) ;
@@ -184,13 +187,14 @@ void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom)
 
   for (Action=Node->Child;Action!=NULL;Action=Action->Next) {
     if (Action->Type!=N_ACTION) continue ; // Nur Aktionen abarbeiten
+    Func=NULL ;
     // Bestimmen, welche Funktion konfiguriert werden soll
     if ((Node->Data.Sensor.SensorTyp==S_SIMPLE)||(Node->Data.Sensor.SensorTyp==S_SHADE_SHORTLONG)
 	||(Node->Data.Sensor.SensorTyp==S_ANALOG)) Action->Data.Aktion.Short = 1 ; // Fuer die gibt es nur "Kurze" Konfigurationen
     if ((Action->Data.Aktion.StandAlone==1)&&(Action->Data.Aktion.Short==1)) Func=&(EEprom->Data.Sensor.Pin[P1-1].ShortAuto) ;
     if ((Action->Data.Aktion.StandAlone==1)&&(Action->Data.Aktion.Short==0)) Func=&(EEprom->Data.Sensor.Pin[P1-1].LongAuto) ;
     if ((Action->Data.Aktion.StandAlone==0)&&(Action->Data.Aktion.Short==1)) Func=&(EEprom->Data.Sensor.Pin[P1-1].ShortMaster) ;
-    if ((Action->Data.Aktion.StandAlone==0)&&(Action->Data.Aktion.Short==0)) Func=&(EEprom->Data.Sensor.Pin[P1-1].LongAuto) ;
+    if ((Action->Data.Aktion.StandAlone==0)&&(Action->Data.Aktion.Short==0)) Func=&(EEprom->Data.Sensor.Pin[P1-1].LongMaster) ;
     if (Node->Data.Sensor.SensorTyp==S_SHADE_SHORTLONG) {
       ConfigShade(Node,Action,Func) ;
     } else if ((Node->Data.Sensor.SensorTyp==S_SIMPLE)||(Node->Data.Sensor.SensorTyp==S_SHORTLONG)||
@@ -198,6 +202,37 @@ void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom)
       ConfigCommand(Node,Action,Func) ;
     } else {
       // Analog-Konfiguration einfuegen
+    } ;
+  }
+}
+
+void MakeBadConfig (struct Node *Node, struct EEPROM *EEprom)
+{
+  int i,j ;
+  int L1,K1,P1 ;
+  struct Node *Action ;
+  struct EEPromSensFunc *Func ;
+
+  GetNodeAdress(Node,&L1,&K1,&P1) ;
+
+  // Konfiguration uebersetzen
+  EEprom->Data.Bad.DelayTimer = Node->Data.Sensor.Lang ;
+  for (Action=Node->Child;Action!=NULL;Action=Action->Next) {
+    if (Action->Type==N_ACTION) {
+      Func=NULL ;
+      // Bestimmen, welche Funktion konfiguriert werden soll
+      if ((Action->Data.Aktion.StandAlone==1)&&(Action->Data.Aktion.Short==1)) Func=&(EEprom->Data.Bad.Pin.ShortAuto) ;
+      if ((Action->Data.Aktion.StandAlone==1)&&(Action->Data.Aktion.Short==0)) Func=&(EEprom->Data.Bad.Pin.LongAuto) ;
+      if ((Action->Data.Aktion.StandAlone==0)&&(Action->Data.Aktion.Short==1)) Func=&(EEprom->Data.Bad.Pin.ShortMaster) ;
+      if ((Action->Data.Aktion.StandAlone==0)&&(Action->Data.Aktion.Short==0)) Func=&(EEprom->Data.Bad.Pin.LongMaster) ;
+      ConfigCommand(Node,Action,Func) ;
+    } else if (Action->Type==N_PROGRAM){
+      j = Action->Data.Program.Port-1 ;
+      if ((j<0)||(j>22)) continue ;
+      for (i=0;i<20;i++) {
+	EEprom->Data.Bad.Program[j][i]=Action->Data.Program.Data[i] ;
+      } ;
+    } else {
     } ;
   }
 }
@@ -267,6 +302,17 @@ int MakeConfig (int Linie, int Knoten, struct EEPROM *EEprom)
       } ;
       MakeSensorConfig(ANodes[i],EEprom) ;
       break ;
+    case N_BAD:
+      if (EEprom->BoardType==0xFF) {
+	EEprom->BoardType = 1 ;
+      } else {
+	if (EEprom->BoardType!=1) {
+	  fprintf (stderr,"Inconsistent board L:%d, K:%d definition for sensor %s\n",Linie,Knoten,ANodes[i]->Name) ;
+	  return (0) ;
+	};
+      } ;
+      MakeBadConfig(ANodes[i],EEprom) ;
+      break ;
     case N_SHADE:
       if (EEprom->BoardType==0xFF) {
 	EEprom->BoardType = 16 ;
@@ -298,7 +344,15 @@ int WriteConfig(struct EEPROM *EEprom)
   Add = (EEprom->BoardAdd[1]<<8)+EEprom->BoardAdd[0] ;
   FileBuffer = (unsigned char*) EEprom ;
 
+#ifdef WINDOWS
   sprintf (FileName,"NodeConf\\Config_%d_%d.eep",(int)Line,(int)Add) ;
+#else
+  sprintf (FileName,"NodeConf/Config_%d_%d.eep",(int)Line,(int)Add) ;
+#endif
+
+ #ifdef DEBUG
+  fprintf (stderr,"Writing file %s\n",FileName) ;
+#endif
   
   OutFile = fopen(FileName,"w") ;
 
@@ -328,6 +382,9 @@ void SendConfigByte (char Linie, USHORT Knoten)
   ULONG CANID ;
   unsigned char Data[8]; 
   char Len ;
+#ifdef DEBUG
+  int Count = 0 ;
+#endif
 
   // Configuration suchen
   for (Config = ConfigList;Config!=NULL;Config=Config->Next) {
@@ -362,6 +419,13 @@ void SendConfigByte (char Linie, USHORT Knoten)
   Data[3] = Config->Data.Command[Config->Counter] ;
   Len=4 ;
   SendCANMessage(CANID,Len,Data) ;
+ #ifdef DEBUG
+  if ((Count++)>10) {
+    Count = 0 ;
+    fprintf (stderr,".") ;
+    fflush (stderr) ;
+  } ;
+#endif
   
   // Auf naechstes Byte setzen
   Config->Counter++ ;
@@ -382,6 +446,10 @@ void SendConfig(struct EEPROM *EEprom)
   // Die ersten zehn Bytes sind die Adress-Informationen, diese nicht aendern...
   Config->Counter = 10 ;
   Config->Data.EEprom = *EEprom ;
+
+#ifdef DEBUG
+  fprintf (stderr,"Sending Config: ") ;
+#endif
 
   // Das erste Byte senden, dieses triggert dann alle weiteren
   SendConfigByte(L1,K1) ;
@@ -411,6 +479,11 @@ void SendFirmware(char Linie, USHORT Knoten)
   CollectAdress(Haus,Linie,Knoten,ANodes,&ANumber) ;
   
   TypCode = 0 ;
+
+#ifdef DEBUG
+  fprintf (stderr,"Type of Firmware %d\n",ANodes[0]->Type) ;
+#endif
+
   switch (ANodes[0]->Type) {
   case N_ONOFF:
   case N_SHADE:
@@ -418,6 +491,9 @@ void SendFirmware(char Linie, USHORT Knoten)
     break ;
   case N_SENSOR:
     TypCode = 32 ;
+    break ;
+  case N_BAD:
+    TypCode = 1 ;
     break ;
   default:
     TypCode = 255 ;
@@ -427,14 +503,26 @@ void SendFirmware(char Linie, USHORT Knoten)
   // Alle Firmwaren suchen
   CollectType (Haus,N_FIRMWARE,FNodes,&FNumber) ;
 
+#ifdef DEBUG
+  fprintf (stderr,"Found %d firmwares\n",FNumber) ;
+#endif
+
   for (i=0;i<FNumber;i++) if (FNodes[i]->Value==TypCode) break ;
   
+
   if (i==FNumber) {
+#ifdef DEBUG
+  fprintf (stderr,"No matching firmware\n") ;
+#endif
     // Fuer den Typ gibt es keine Firmware
     return ;
   } ;
 
   // Firmware laden
+#ifdef DEBUG
+  fprintf (stderr,"Sending Firmware %s\n",FNodes[i]->Name) ;
+#endif
+
   FileSize = LoadIHexFile(FNodes[i]->Name,0) ;
   if (FileSize<=0) {
     // Fuer den Typ gibt es keine Firmware
@@ -461,9 +549,18 @@ void SendFirmware(char Linie, USHORT Knoten)
   Firmware->Package = 0 ;
 
   // Reset des Knotens loest Anfrage nach Firmwareupdate aus...
+#ifdef DEBUG
+  fprintf (stderr,"Resetting Node %d %d\n",Linie,Knoten) ;
+#endif
 
   CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
   Data[0] = START_BOOT ;
+  Data[1] = 0 ;
+  Len = 1 ;
+  SendCANMessage(CANID,Len,Data) ;
+
+  CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
+  Data[0] = 6 ; //Old Node Reboot
   Data[1] = 0 ;
   Len = 1 ;
   SendCANMessage(CANID,Len,Data) ;
@@ -476,11 +573,17 @@ void SendFirmwareByte (char Linie, USHORT Knoten,unsigned char *Response, char R
   unsigned char Data[8]; 
   int PageSize ;
   char Len ;
+#ifdef DEBUG
+  int Count = 0 ;
+#endif
   
   // Den entsprechenden Update-Buffer suchen
   for (Firmware=FirmwareList;Firmware!=NULL;Firmware=Firmware->Next) if ((Firmware->Linie==Linie)&&(Firmware->Knoten==Knoten)) break ;  
  
-  if (Firmware==NULL) return ; // Es steht kein Update an...
+  if (Firmware==NULL) {
+    fprintf (stderr,"Received Firmware communication without request\n") ;
+    return ; // Es steht kein Update an...
+  } ;
 
   CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
   
@@ -495,6 +598,9 @@ void SendFirmwareByte (char Linie, USHORT Knoten,unsigned char *Response, char R
     Data[1] = Firmware->Package++;
     Len = 2 ;
     SendCANMessage(CANID,Len,Data) ;
+#ifdef DEBUG
+    fprintf (stderr,"Init Firmware\n") ;
+#endif
     return ;
   } ;
 
@@ -517,6 +623,9 @@ void SendFirmwareByte (char Linie, USHORT Knoten,unsigned char *Response, char R
     Data[5] = 0 ;
     Len = 6 ;
     SendCANMessage(CANID,Len,Data) ;
+#ifdef DEBUG
+    fprintf (stderr,"Set start adress and transfer:\n") ;
+#endif
     return ;
   } ;
   
@@ -533,6 +642,13 @@ void SendFirmwareByte (char Linie, USHORT Knoten,unsigned char *Response, char R
     SendCANMessage(CANID,Len,Data) ;
     Firmware->Counter+=4 ;
     if (Firmware->Counter>=Firmware->Number) Firmware->State=3 ;
+#ifdef DEBUG
+    if ((Count++)>10) {
+      Count = 0 ;
+      fprintf (stderr,".") ;
+      fflush (stderr) ;
+    } ;
+#endif
     return ;
   } ;
 
@@ -543,6 +659,9 @@ void SendFirmwareByte (char Linie, USHORT Knoten,unsigned char *Response, char R
     Data[1] = Firmware->Package++ ;
     Len = 2 ;
     SendCANMessage(CANID,Len,Data) ;
+#ifdef DEBUG
+    fprintf (stderr,"\nFirmware %d bytes transferred, reboot node\n",Firmware->Counter) ;
+#endif
     Firmware->State=4 ;
     return ;
   } ;
