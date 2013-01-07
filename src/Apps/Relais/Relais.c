@@ -50,18 +50,16 @@ EEProm-Belegung vom Relais:
 // globale Variablen
 
 can_t Message ;
-uint8_t LastCommand ;
-uint8_t Channel[10] ; // Zustand des Relais-Kanals
-uint16_t Timer[5] ; // Timer im 1/100 Sekunden Takt (bis max. 600 Sekunden) für Rollo, 
+
+volatile uint8_t Channel[10] ; // Zustand des Relais-Kanals
+volatile uint16_t Timer[5] ; // Timer im 1/100 Sekunden Takt (bis max. 600 Sekunden) für Rollo, 
                     // automatisch abwärtszählend bis 0 ;
-uint8_t State[5] ;  // Zustand der Aktionsmaschine "Rollo"
-uint8_t UpDown[5] ; // Befehl für Rollo
 uint8_t Position[5] ; // Aktueller Port-Status
 
 #define MAX_MESSAGES 4
-uint8_t LEDMessage[MAX_MESSAGES][4] ;
-uint8_t ActualMessage ;
-uint8_t SaveMessage ;
+volatile uint8_t LEDMessage[MAX_MESSAGES][4] ;
+volatile uint8_t ActualMessage ;
+volatile uint8_t SaveMessage ;
 
 // BuildCANId baut aus verschiedenen Elementen (Line & Addresse von Quelle und Ziel 
 // sowie Repeat-Flag und Gruppen-Flag) den CAN Identifier auf
@@ -317,11 +315,11 @@ void BroadcastStatus(  uint8_t BoardLine, uint16_t BoardAdd )
   // An den Systembus schicken (Addresse: 0/1) 
   Message.id = BuildCANId (0,0,BoardLine,BoardAdd,0,1,0) ;
 
-  for (i=0;i<10;i++) ChanStat[i]=(Channel[i]>63)?1:0 ;
+  for (i=0;i<10;i++) ChanStat[i]=(Channel[i]>0)?1:0 ;
   
   Message.data[0] = SEND_STATUS|SUCCESSFULL_RESPONSE ;
   Message.data[1] = (ChanStat[0])+(ChanStat[1]<<1)+(ChanStat[2]<<2)+(ChanStat[3]<<3)+(ChanStat[4]<<4) ;
-  Message.data[2] = (ChanStat[5])+(ChanStat[6]>>1)+(ChanStat[7]<<2)+(ChanStat[8]<<3)+(ChanStat[9]<<4) ;
+  Message.data[2] = (ChanStat[5])+(ChanStat[6]<<1)+(ChanStat[7]<<2)+(ChanStat[8]<<3)+(ChanStat[9]<<4) ;
   for (i=0;i<5;i++) Message.data[i+3]=Position[i] ;
   Message.length = 8 ;
   mcp2515_send_message(&Message) ;				
@@ -339,6 +337,12 @@ int main(void)
   uint8_t i,j ;
   uint8_t Direction ;
   uint8_t ChanStat[10] ;
+  uint8_t State[5]={0,0,0,0,0} ;  // Zustand der Aktionsmaschine "Rollo"
+  uint8_t UpDown[5]={0,0,0,0,0} ; // Verfahr-Richtung
+  uint8_t LastCommand ;
+
+
+
   
   // Default-Werte:
   BoardAdd = 16 ;
@@ -450,16 +454,19 @@ int main(void)
 	  case 8:
 	  default:
 	    // Alles aus
-		if (eeprom_read_byte((uint8_t*)(uint16_t)i+30)==0) {
-			Position[i] = ((UpDown[i]==1)||(UpDown[i]==3))?0:100;
-		} else {
-			Position[i] = ((UpDown[i]==1)||(UpDown[i]==3))?100:0;
-		} ;
+	    Position[i]=0 ;
+	    if (eeprom_read_byte((uint8_t*)(uint16_t)i+30)==0) {
+	      if (UpDown[i]==2) Position[i]=100 ;
+	      if (UpDown[i]==4) Position[i]=50 ;
+	    } else {
+	      if (UpDown[i]==1) Position[i]=100 ;
+	      if (UpDown[i]==3) Position[i]=50 ;
+	    } ;
 	    Channel[i] = 0 ;
 	    Channel[i+5] = 0 ;
 	    UpDown[i] = 0 ;
 	    State[i] = 0 ;
-		BroadcastStatus(BoardLine,BoardAdd) ;
+	    BroadcastStatus(BoardLine,BoardAdd) ;
 	  } ;
 	} ;
       } ;
@@ -476,9 +483,9 @@ int main(void)
     switch (r) {
 
     case SEND_STATUS:
-      for (i=0;i<10;i++) ChanStat[i]=(Channel[i]>63)?1:0 ;
+      for (i=0;i<10;i++) ChanStat[i]=(Channel[i]>0)?1:0 ;
       Message.data[1] = (ChanStat[0])+(ChanStat[1]<<1)+(ChanStat[2]<<2)+(ChanStat[3]<<3)+(ChanStat[4]<<4) ;
-      Message.data[2] = (ChanStat[5])+(ChanStat[6]>>1)+(ChanStat[7]<<2)+(ChanStat[8]<<3)+(ChanStat[9]<<4) ;
+      Message.data[2] = (ChanStat[5])+(ChanStat[6]<<1)+(ChanStat[7]<<2)+(ChanStat[8]<<3)+(ChanStat[9]<<4) ;
       for (i=0;i<5;i++) Message.data[i+3]=Position[i] ;
       Message.length = 8 ;
       mcp2515_send_message(&Message) ;				

@@ -117,20 +117,20 @@ uint8_t  BoardLine ;
 uint16_t BoardAdd ;
 
 uint8_t  LastCommand ;
-uint8_t  Heartbeat ;
-uint16_t Timers[6] ;
+volatile uint8_t  Heartbeat ;
+volatile uint16_t Timers[6] ;
 uint8_t  TimerStatus ;
 uint8_t  Type[6] ;
 uint8_t  Config[6];
-uint8_t  PWM[6] ;
-uint8_t  PWMTime[6] ;
-uint8_t  PWMPort[6] ;
-uint8_t  PWMStep ;
+volatile uint8_t  PWM[6] ;
+volatile uint8_t  PWMTime[6] ;
+volatile uint8_t  PWMPort[6] ;
+volatile uint8_t  PWMStep ;
 
 uint8_t  SOLL_WS[MAX_LEDS*3] ;
-uint8_t  START_WS[MAX_LEDS*3] ;
-uint16_t TimerLED ;
-uint16_t DurationLED ;
+volatile uint8_t  START_WS[MAX_LEDS*3] ;
+volatile uint16_t TimerLED ;
+volatile uint16_t DurationLED ;
 uint8_t  NumLED ;
 
 volatile uint8_t* PIX_Clock ;
@@ -203,14 +203,16 @@ void SetOutMessage (uint8_t BoardLine,uint16_t BoardAdd)
   Message.length = 1 ;
 }
 
-void SendPinMessage (uint8_t Pin, uint8_t Long, uint8_t Timer,uint8_t SendData)
+void SendPinMessage (uint8_t Pin, uint8_t Long,uint8_t SendData)
 {
   uint8_t *Data ;
   uint16_t SendAdd ;
   uint8_t SendLine ;
   uint8_t Command ;
   uint8_t i ;
+  uint8_t Timer ;
   
+  Timer = (Heartbeat>200)?1:0 ;
   Data = (uint8_t*)10 ;
   Data += Pin*40 ;
   if (Timer == 1) Data +=20 ;
@@ -263,14 +265,14 @@ void ws2801_writeByte(uint8_t Send)
 {
   register uint8_t BitCount = 8; // store variable BitCount in a cpu register
   do {
-    PIX_Clock[0] &= ~(1<<PIX_CL);	// set clock LOW
+    PIX_Clock[0] &= ~(PIX_CL);	// set clock LOW
     // send bit to ws2801. we do MSB first
     if (Send & 0x80) {
-      PIX_Data[0] |= (1<<PIX_DA); // set output HIGH
+      PIX_Data[0] |= (PIX_DA); // set output HIGH
     } else {
-      PIX_Data[0] &= ~(1<<PIX_DA); // set output LOW
+      PIX_Data[0] &= ~(PIX_DA); // set output LOW
     } ;
-    PIX_Clock[0] |= (1<<PIX_CL); // set clock HIGH
+    PIX_Clock[0] |= (PIX_CL); // set clock HIGH
     // next bit
     Send <<= 1;
   } while (--BitCount);
@@ -292,7 +294,7 @@ ISR( TIM0_OVF_vect )
  
   TCNT0 = (uint8_t)TIMER_PRESET;  // preload for 10ms
 
-  if (Heartbeat<200) Heartbeat++ ;
+  if (Heartbeat<250) Heartbeat++ ;
   for (i=0;i<6;i++) if (Timers[i]>0) Timers[i]-- ;
 
   WSCounter++ ;
@@ -305,7 +307,7 @@ ISR( TIM0_OVF_vect )
 	WSByte = (uint8_t)(((uint16_t)START_WS[i])+(((uint16_t)(SOLL_WS[i]-START_WS[i]))*(DurationLED-TimerLED)/DurationLED)) ;
 	ws2801_writeByte(WSByte) ;
       } ;
-      PIX_Clock[0] &= ~(1<<PIX_CL) ; //Clock Low zum Latchen
+      PIX_Clock[0] &= ~(PIX_CL) ; //Clock Low zum Latchen
       if (TimerLED==0) {
 	DurationLED = 1 ;
 	for (i=0;i<NumLED*3;i++) START_WS[i] = SOLL_WS[i] ;
@@ -318,7 +320,7 @@ ISR( TIM0_OVF_vect )
 	for (i=0;i<NumLED*3;i++) {
 	  ws2801_writeByte(START_WS[i]) ;
 	} ;
-	PIX_Clock[0] &= ~(1<<PIX_CL) ; //Clock Low zum Latchen
+	PIX_Clock[0] &= ~(PIX_CL) ; //Clock Low zum Latchen
       } ;
     } ;
   } ;
@@ -494,19 +496,19 @@ void InitMC (void)
       if (Type[i]==O_WSCLOCK) { // WS Clock: Pointer auf den richtigen Port-Pin setzen
 	if (i<3) { 
 	  PIX_Clock = &PORTA ;
-	  PIX_CL = i ;
+	  PIX_CL = 1<<i ;
 	} else {
 	  PIX_Clock = &PORTB ;
-	  PIX_CL = i-3 ;
+	  PIX_CL = 1<<(i-3) ;
 	} ;
       } ;
       if (Type[i]==O_WSDATA) { // WS Data: Pointer auf den richtigen Port-Pin setzen
 	if (i<3) { 
 	  PIX_Data = &PORTA ;
-	  PIX_DA = i ;
+	  PIX_DA = 1<<i ;
 	} else {
 	  PIX_Data = &PORTB ;
-	  PIX_DA = i-3 ;
+	  PIX_DA = 1<<(i-3) ;
 	} ;
       } ;
       if (i<3) {
@@ -588,25 +590,25 @@ int main(void)
 	switch (Type[i]) {
 	case I_SIMPLE: // Einfacher Eingang
 	  if (get_key_press(1<<i)) {
-	    SendPinMessage(i,0,(Heartbeat>100)?1:0,0) ;
+	    SendPinMessage(i,0,0) ;
 	  } ;
 	  break ;
 	case I_SHORTLONG: // Kurz oder lang gedrueckt
 	  if (get_key_short(1<<i)) {
-	    SendPinMessage(i,0,(Heartbeat>100)?1:0,0) ;
+	    SendPinMessage(i,0,0) ;
 	  } else if (get_key_long(1<<i)) {
-	    SendPinMessage(i,1,(Heartbeat>100)?1:0,0) ;
+	    SendPinMessage(i,1,0) ;
 	  } ;
 	  break ;
 	case I_MONO: // Nicht-Nachstellbares Monoflop
 	  if (Timers[i]==0) {
 	    if (get_key_press(1<<i)) {
-	      SendPinMessage(i,0,(Heartbeat>100)?1:0,0) ;
+	      SendPinMessage(i,0,0) ;
 	      Timers[i] = ((uint16_t)Config[i])*100 ;
 	      TimerStatus |= 1<<i ;
 	    } else {
 	      if ((TimerStatus&(1<<i))>0) {
-		SendPinMessage(i,1,(Heartbeat>100)?1:0,0) ;
+		SendPinMessage(i,1,0) ;
 		TimerStatus &= ~(1<<i) ;
 	      } ;
 	    } ;
@@ -615,14 +617,14 @@ int main(void)
 	case I_RETRIG: // Nachstellbares Monoflop
 	  if (get_key_press(1<<i)) {
 	    if (Timers[i]==0) {
-	      SendPinMessage(i,0,(Heartbeat>100)?1:0,0) ;
+	      SendPinMessage(i,0,0) ;
 	    } ;
 	    Timers[i] = ((uint16_t)Config[i])*100 ;
 	    TimerStatus |= 1<<i ;
 	  } ;
 	  if (Timers[i]==0) {
 	    if ((TimerStatus&(1<<i))>0) {
-	      SendPinMessage(i,1,(Heartbeat>100)?1:0,0) ;
+	      SendPinMessage(i,1,0) ;
 	      TimerStatus &= ~(1<<i) ;
 	    } ;
 	  } ;
@@ -630,7 +632,7 @@ int main(void)
 	case I_ANALOG: // Analog-Input, wird alle ConfigByte-Sekunden auf dem Bus ausgegeben.
 	  if (Timers[i]==0) {
 	    r = ADCH ;
-	    SendPinMessage(i,0,(Heartbeat>100)?1:0,r) ;
+	    SendPinMessage(i,0,r) ;
 	    Timers[i] = ((uint16_t)Config[i])*100 ;
 	  } ;
 	} ;
@@ -648,6 +650,7 @@ int main(void)
     switch (r) {
 
     case SEND_STATUS:
+      // Wartet auf einen Tastendruck und sendet dann die Port-Nummer des Tasters
       do {
 		for (i=0;i<6;i++) {
 		  if (get_key_press(1<<i)) break ;
@@ -724,6 +727,7 @@ int main(void)
     case SHADE_UP_SHORT:
     case SHADE_DOWN_SHORT:
       break ;
+      // Nun die Sensor-Befehle
     case SET_PIN:
       if (Message.data[1]>5) break; // Illegaler PIN
       if ((Type[Message.data[1]]!=O_ONOFF)&&(Type[Message.data[1]]!=O_PWM)) break ; // Illegaler PIN
@@ -731,7 +735,7 @@ int main(void)
       break ;
     case LOAD_LED:
       r = Message.data[1] ;
-      if (r>MAX_LEDS) break; // Illegaler PIN
+      if (r>MAX_LEDS) break; // Zu hohe LED-Nummer
       NumLED = r>NumLED?r:NumLED ; // Set Max used LED
       SOLL_WS[r*3] = Message.data[2] ;
       SOLL_WS[r*3+1] = Message.data[3] ;

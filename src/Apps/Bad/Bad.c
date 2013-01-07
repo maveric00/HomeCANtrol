@@ -74,13 +74,13 @@ EEProm-Belegung vom LED-Board:
 #define TIMER_PRESET 99
 
 
-volatile extern uint8_t LEDVal[PWM_CHANNELS] ;
-extern uint8_t LEDPWM[56] ;
-extern uint8_t MasterVal ;
-uint16_t LEDV2[PWM_CHANNELS] ;
-int16_t Delta[PWM_CHANNELS] ;
-uint8_t Counter[PWM_CHANNELS] ;
-uint8_t Step[PWM_CHANNELS] ;
+extern volatile uint8_t LEDVal[PWM_CHANNELS] ;
+extern volatile uint8_t LEDPWM[56] ;
+extern volatile uint8_t MasterVal ;
+volatile uint16_t LEDV2[PWM_CHANNELS] ;
+volatile int16_t Delta[PWM_CHANNELS] ;
+volatile uint8_t Counter[PWM_CHANNELS] ;
+volatile uint8_t Step[PWM_CHANNELS] ;
 
 uint8_t Inhibit[6] ;
 
@@ -89,8 +89,8 @@ uint8_t  BoardLine ;
 uint16_t BoardAdd ;
 
 uint8_t  LastCommand ;
-uint8_t  Heartbeat ;
-uint16_t Timers ;
+volatile uint8_t  Heartbeat ;
+volatile uint16_t Timers ;
 uint8_t  TimerStatus ;
 
 
@@ -301,7 +301,7 @@ ISR( TIMER0_OVF_vect )
 	CC = 0 ;
   }
 
-  if (Heartbeat<200) Heartbeat++ ;
+  if (Heartbeat<250) Heartbeat++ ;
 }
 
 
@@ -385,7 +385,7 @@ int main(void)
 	 // Hier wird der Bewegungsmelder abgefragt
 	  if (!IS_SET(INPORT)) {
 	    if (Timers==0) {
-	      SendPinMessage(0,(Heartbeat>100)?1:0) ;
+	      SendPinMessage(0,(Heartbeat>200)?1:0) ;
 		  //Programm starten
   			for (r=0;r<PWM_CHANNELS;r++) {
 				Step[r] = 0 ;
@@ -400,7 +400,7 @@ int main(void)
 	  } ;
 	  if (Timers==0) {
 	    if (TimerStatus>0) {
-	      SendPinMessage(1,(Heartbeat>100)?1:0) ;
+	      SendPinMessage(1,(Heartbeat>200)?1:0) ;
 	      TimerStatus = 0 ;
 		  // Programm stoppen
 			for (r=0;r<PWM_CHANNELS;r++) {
@@ -552,12 +552,12 @@ int main(void)
     case LOAD_LED:
     case OUT_LED:
       break ;
-	case STOP_SENSOR:
-	   if ((Message.data[1]<7)&&(Message.data[1]>0)) Inhibit[Message.data[1]-1] = 1;
-	   break ;
-	case START_SENSOR:
-	   if ((Message.data[1]<7)&&(Message.data[1]>0)) Inhibit[Message.data[1]-1] = 0;
-	   break ;
+    case STOP_SENSOR:
+      if ((Message.data[1]<7)&&(Message.data[1]>0)) Inhibit[Message.data[1]-1] = 1;
+      break ;
+    case START_SENSOR:
+      if ((Message.data[1]<7)&&(Message.data[1]>0)) Inhibit[Message.data[1]-1] = 0;
+      break ;
       // Relais-Befehle
     case CHANNEL_ON:
     case CHANNEL_OFF:
