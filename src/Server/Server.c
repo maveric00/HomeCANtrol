@@ -11,9 +11,9 @@
 #include "libwebsocket/libwebsockets.h"
 #include "ConfigNodes.h"
 #include "XMLConfig.h"
-#include "Network.h"
 #define SERVER_INCLUDE 1
 #include "../Apps/Common/mcp2515.h"
+#include "Network.h"
 #include "Mongoose/mongoose.h"
 
 char *strptime(const char *s, const char *format, struct tm *tm);
@@ -338,9 +338,11 @@ if ((Data[0]==UPDATE_REQ)||(Data[0]==WRONG_NUMBER_RESPONSE)||
 
 int HandleCommand (char *Command, char *Answer,int Socket)
 {
-  int Line,Add ;
+  int Line,Add,Port ;
   int i ;
   char Makro[NAMELEN*4] ;
+  char Com[NAMELEN*4] ;
+  char Obj[NAMELEN*4] ;
   struct Node *This ;
   struct EEPROM EEprom ;
 
@@ -394,6 +396,54 @@ int HandleCommand (char *Command, char *Answer,int Socket)
     } ;
     Answer[0]='\0' ;
   } ;
+
+  Answer[0]='\0' ;
+
+  sscanf (Command,"%s %s",Com,Obj) ;
+
+  if ((strcmp(Com,"An")==0)||(strcmp(Com,"On")==0)) {
+    This = FindNode(Haus->Child,Obj) ;
+    if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
+      SendCommand(CHANNEL_ON,Line,Add,Port) ;
+    } ;
+  } ;
+  if ((strcmp(Com,"Aus")==0)||(strcmp(Com,"Off")==0)) {
+    This = FindNode(Haus->Child,Obj) ;
+    if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
+      SendCommand(CHANNEL_OFF,Line,Add,Port) ;
+    } ;
+  } ;
+  if (strcmp(Com,"Toggle")==0) {
+    This = FindNode(Haus->Child,Obj) ;
+    if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
+      SendCommand(CHANNEL_TOGGLE,Line,Add,Port) ;
+    } ;
+  } ;
+  if ((strcmp(Com,"Hoch")==0)||(strcmp(Com,"Up")==0)) {
+    This = FindNode(Haus->Child,Obj) ;
+    if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
+      SendCommand(SHADE_UP_FULL,Line,Add,Port) ;
+    } ;
+  } ;
+  if ((strcmp(Com,"Runter")==0)||(strcmp(Com,"Down")==0)) {
+    This = FindNode(Haus->Child,Obj) ;
+    if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
+      SendCommand(SHADE_DOWN_FULL,Line,Add,Port) ;
+    } ;
+  } ;
+  if ((strcmp(Com,"KurzHoch")==0)||(strcmp(Com,"ShortUp")==0)) {
+    This = FindNode(Haus->Child,Obj) ;
+    if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
+      SendCommand(SHADE_UP_SHORT,Line,Add,Port) ;
+    } ;
+  } ;
+  if ((strcmp(Com,"KurzRunter")==0)||(strcmp(Com,"ShortDown")==0)) {
+    This = FindNode(Haus->Child,Obj) ;
+    if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
+      SendCommand(SHADE_DOWN_SHORT,Line,Add,Port) ;
+    } ;
+  } ;
+  
   
   return (TRUE) ;
 }

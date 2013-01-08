@@ -3,7 +3,7 @@
 <Haus>
   <Sprache ist="deutsch"/>
   <Broadcast IP="192.168.69.255"/>
-  <Port CAN="13247" WS="13248" COM="13249" HTTP="8080"/>
+  <Port CAN="13247" WS="13248" COM="13249" HTTP="80"/>
   <Etage name="Keller">
      <Zimmer name="Flur">
      </Zimmer>
@@ -277,7 +277,6 @@
      <Zimmer name="Hauswirtschaftsraum">
      </Zimmer>
      <Makro name="Festbeleuchtung">
-         <Adresse linie="0" knoten="100" port="0"/>
          <Aktion kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks1"/>
          <Aktion kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks2"/>
          <Aktion kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts"/>
@@ -285,7 +284,6 @@
          <Aktion kommando="Toggle" objekt="Obergeschoss/Arbeit/SteckdoseRechts"/>
      </Makro>
      <Makro name="Gaderobenbeleuchtung">
-         <Adresse linie="0" knoten="102" port="0"/>
          <Aktion kommando="Toggle" objekt="Erdgeschoss/Gaderobe/Deckenlicht"/>
          <Aktion kommando="Toggle" objekt="Erdgeschoss/Flur/Deckenlicht"/>
      </Makro>
@@ -503,7 +501,6 @@
          </Makro>
      </Zimmer>        
      <Makro name="Brunnen">
-         <Adresse linie="0" knoten="101" port="0"/>
          <Aktion kommando="Toggle" objekt="Aussen/Vorgarten/BrunnenMotor"/>
          <Aktion kommando="Toggle" objekt="Aussen/Vorgarten/BrunnenLicht"/>
          <Aktion kommando="Toggle" objekt="Aussen/Vorgarten/SeiteLicht"/>
@@ -530,7 +527,7 @@
     <Aktion kommando="Herzschlag" objekt="Linie2"/>
     <Aktion kommando="Herzschlag" objekt="Linie3"/>
     <Aktion kommando="Herzschlag" objekt="Linie4"/>
-    <Warte zeit="2000"/>
+    <Warte zeit="1000"/>
   </Makro>
   <Makro name="AbendSimulation">
      <Timer zeit = "19:25:00"/>

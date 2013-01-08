@@ -606,10 +606,11 @@ int ReceiveFromCAN (int socket, struct CANCommand *Command)
   Command->Len = frame.can_dlc;
     
   if (Verbose==1) {
-    fprintf (stderr,"CAN%d: %d %d, To: %d %d, Len: %d , Command: %s %d %d %d\n",socket==Can0SockFD?0:1,
+    fprintf (stderr,"CAN%d: %d %d, To: %d %d, Len: %d , Command: %s",socket==Can0SockFD?0:1,
 	     Command->FromLine, Command->FromAdd,
-	     Command->ToLine, Command->ToAdd, Command->Len, ToCommand(Command->Data[0]),
-	     Command->Data[1],Command->Data[2],Command->Data[3]) ;
+	     Command->ToLine, Command->ToAdd, Command->Len, ToCommand(Command->Data[0])) ;
+    for (i=1;i<Command->Len;i++) fprintf (stderr,"%02x ",Command->Data[i]) ;
+    fprintf (stderr,"\n") ;
   } ;
 
   return 0;

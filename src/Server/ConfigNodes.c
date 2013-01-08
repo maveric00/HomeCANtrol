@@ -17,10 +17,10 @@
 #include "libwebsocket/libwebsockets.h"
 #include "ConfigNodes.h"
 #include "XMLConfig.h"
-#include "Network.h"
 #include "IHex.h"
 #define SERVER_INCLUDE 1
 #include "../Apps/Common/mcp2515.h"
+#include "Network.h"
 
 #define DEBUG 1
 

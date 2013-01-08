@@ -70,6 +70,10 @@ void GetDestinationAddress (ULONG CANId, char *ToLine, USHORT *ToAdd) ;
 
 /* Netzwerk-Funktionen */
 
+/* Sendet das Kommando an die Adresse */
+
+void SendCommand(tCommand Command, unsigned char Linie, unsigned short Knoten, unsigned char Port) ;
+
 /* Netzwerk-Interface initialisieren */
 
 int InitNetwork(void) ;
@@ -77,6 +81,7 @@ int InitNetwork(void) ;
 /* CAN Message empfangen (wartet so lange, bis eine kommt) */
 
 int ReceiveCANMessage (ULONG *CANID, char *Len, unsigned char *Data);
+
 
 /* CAN-Nachricht senden */
 
