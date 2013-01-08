@@ -77,8 +77,10 @@ struct Node *FindNode (struct Node *Root,const char *Unit)
   for (i=0;(Unit[i]!='/')&&(Unit[i]!='\0');i++) ;
 
   // Knoten mit dem ersten Bezeichner finden
-  for(This = Root ;This!=NULL;This=This->Next)
+  for(This = Root ;This!=NULL;This=This->Next) {
+    if (strlen(This->Name)>i) continue ; // "Licht" soll nicht in "Lichtschalter" gefunden werden
     if (strncmp(Unit,This->Name,i)==0) break ;
+  }; 
 
   if (This==NULL) return (NULL) ;
 

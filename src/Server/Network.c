@@ -368,7 +368,7 @@ int CheckNetwork(int * error,int timeOut) // milliseconds
 	    strcat ((char*)Connect->Data.Command,buf) ; // Concatenate Command
 	    if (strstr((char*)Connect->Data.Command,"\n")!=NULL) {
 	      // Execute Command
-	      if (HandleCommand ((char*)Connect->Data.Command,Answer)) {
+	      if (HandleCommand ((char*)Connect->Data.Command,Answer,i)) {
 		send (i,Answer,strlen(Answer),0);
 	      }; 
 	      Connect->Data.Command[0] = '\0' ;
@@ -394,6 +394,18 @@ void CloseNetwork (void)
   close(SendSockFD);
 }
 
+void SendCommand(tCommand Command, unsigned char Linie, unsigned short Knoten, unsigned char Port)
+{
+  ULONG CANID ;
+  unsigned char Data[8]; 
+  char Len ;
+  
+  CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
+  Data[0] = Command ;
+  Data[1] = (char)Port ;
+  Len=2 ;
+  SendCANMessage(CANID,Len,Data) ;
+}
 
 void SendAction (struct Node *Action)
 {
@@ -586,6 +598,7 @@ static int callback_config(struct libwebsocket_context *context,
   char Objekt2[NAMELEN] ;
   char Objekt3[NAMELEN] ;
   struct Node *This ;
+  int Linie,Knoten,Port ; 
   
   switch (reason) {
     
@@ -618,6 +631,48 @@ static int callback_config(struct libwebsocket_context *context,
     if ((strcmp(Command,"Aktion")==0)||(strcmp(Command,"Action")==0)) {
       This = FindNode(Haus->Child,Objekt) ;
       ExecuteMakro (This) ;
+    } ;
+    if ((strcmp(Command,"An")==0)||(strcmp(Command,"On")==0)) {
+      This = FindNode(Haus->Child,Objekt) ;
+      if (GetNodeAdress(This,&Linie,&Knoten,&Port)==0) {
+	SendCommand(CHANNEL_ON,Linie,Knoten,Port) ;
+      } ;
+    } ;
+    if ((strcmp(Command,"Aus")==0)||(strcmp(Command,"Off")==0)) {
+      This = FindNode(Haus->Child,Objekt) ;
+      if (GetNodeAdress(This,&Linie,&Knoten,&Port)==0) {
+	SendCommand(CHANNEL_OFF,Linie,Knoten,Port) ;
+      } ;
+    } ;
+    if (strcmp(Command,"Toggle")==0) {
+      This = FindNode(Haus->Child,Objekt) ;
+      if (GetNodeAdress(This,&Linie,&Knoten,&Port)==0) {
+	SendCommand(CHANNEL_TOGGLE,Linie,Knoten,Port) ;
+      } ;
+    } ;
+    if ((strcmp(Command,"Hoch")==0)||(strcmp(Command,"Up")==0)) {
+      This = FindNode(Haus->Child,Objekt) ;
+      if (GetNodeAdress(This,&Linie,&Knoten,&Port)==0) {
+	SendCommand(SHADE_UP_FULL,Linie,Knoten,Port) ;
+      } ;
+    } ;
+    if ((strcmp(Command,"Runter")==0)||(strcmp(Command,"Down")==0)) {
+      This = FindNode(Haus->Child,Objekt) ;
+      if (GetNodeAdress(This,&Linie,&Knoten,&Port)==0) {
+	SendCommand(SHADE_DOWN_FULL,Linie,Knoten,Port) ;
+      } ;
+    } ;
+    if ((strcmp(Command,"KurzHoch")==0)||(strcmp(Command,"ShortUp")==0)) {
+      This = FindNode(Haus->Child,Objekt) ;
+      if (GetNodeAdress(This,&Linie,&Knoten,&Port)==0) {
+	SendCommand(SHADE_UP_SHORT,Linie,Knoten,Port) ;
+      } ;
+    } ;
+    if ((strcmp(Command,"KurzRunter")==0)||(strcmp(Command,"ShortDown")==0)) {
+      This = FindNode(Haus->Child,Objekt) ;
+      if (GetNodeAdress(This,&Linie,&Knoten,&Port)==0) {
+	SendCommand(SHADE_DOWN_SHORT,Linie,Knoten,Port) ;
+      } ;
     } ;
     if (strcmp(Command,"Status")==0) {
       This = FindNode(Haus->Child,Objekt) ;

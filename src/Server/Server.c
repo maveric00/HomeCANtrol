@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <expat.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #define _XOPEN_SOURCE
 #include <time.h>
 #include "libwebsocket/libwebsockets.h"
@@ -313,8 +315,7 @@ void HandleCANRequest(void)
     } ;
 
 
-
-    if ((Data[0]==UPDATE_REQ)||(Data[0]==WRONG_NUMBER_RESPONSE)||
+if ((Data[0]==UPDATE_REQ)||(Data[0]==WRONG_NUMBER_RESPONSE)||
 	(Data[0]==(SUCCESSFULL_RESPONSE|IDENTIFY))||
 	(Data[0]==(ERROR_RESPONSE|IDENTIFY))||
 	(Data[0]==IDENTIFY)||
@@ -335,9 +336,12 @@ void HandleCANRequest(void)
   } ;
 }
 
-int HandleCommand (char *Command, char *Answer)
+int HandleCommand (char *Command, char *Answer,int Socket)
 {
   int Line,Add ;
+  int i ;
+  char Makro[NAMELEN*4] ;
+  struct Node *This ;
   struct EEPROM EEprom ;
 
   
@@ -366,6 +370,31 @@ int HandleCommand (char *Command, char *Answer)
     } ;
     sprintf (Answer,"Updated Configuration\n") ;
   } ;
+
+  if (strstr(Command,"Call")) {
+    sscanf (Command,"Call %s",Makro) ;
+    This = FindNode(Haus->Child,Makro) ;
+    if (This!=NULL) {
+      ExecuteMakro (This) ;
+      sprintf (Answer,"Macro executed\n") ;
+    } else {
+      sprintf (Answer,"Macro %s not found\n",Makro) ;
+    } ;
+  } ;
+  
+  if (strstr(Command,"List")) {
+    // List all active macros
+    for (i=0;i<MAX_ACTIVEMACROS;i++) {
+      if (ActiveMacros[i].Macro!=NULL) {
+	Makro[0]='\0' ;
+	FullObjectName(ActiveMacros[i].Macro,Makro) ;
+	sprintf (Answer,"Macro: %s\n",Makro) ;
+	send(Socket,Answer,strlen(Answer),0) ;
+      } ;
+    } ;
+    Answer[0]='\0' ;
+  } ;
+  
   return (TRUE) ;
 }
 

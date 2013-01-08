@@ -68,6 +68,13 @@
            <Aktion autonom="0" kommando="Runter" objekt="Erdgeschoss/Kueche/Fenster"/>
            <Aktion autonom="1" kommando="Runter" objekt="Erdgeschoss/Kueche/Fenster"/>
          </Sensor>
+         <Makro name="Aus">
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht"/>
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Tresenlicht"/>
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/SteckdoseTresen"/>
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/SteckdoseFensterAussen"/>
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/SteckdoseFensterMitte"/>
+         </Makro>
      </Zimmer>
      <Zimmer name="Bibliothek">
      </Zimmer>
@@ -94,6 +101,11 @@
            <Aktion autonom="0" kommando="Hoch" objekt="Erdgeschoss/Esszimmer/Fenster"/>
            <Aktion autonom="1" kommando="Hoch" objekt="Erdgeschoss/Esszimmer/Fenster"/>
          </Sensor>
+         <Makro name="Aus">
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Esszimmer/SteckdoseEcke"/>
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Esszimmer/SteckdoseTuer"/>
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Esszimmer/SteckdoseFenster"/>
+         </Makro>
      </Zimmer>
      <Zimmer name="Wohnzimmer">
          <Schalter name="DeckenVorlicht">
@@ -201,11 +213,20 @@
            <Aktion autonom="0" kommando="Runter" objekt="Erdgeschoss/Wohnzimmer/FensterRechts"/>
            <Aktion autonom="1" kommando="Runter" objekt="Erdgeschoss/Wohnzimmer/FensterRechts"/>
          </Sensor>
+         <Makro name="Aus">
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/Deckenlicht"/>
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks1"/>
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks2"/>
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts"/>
+         </Makro>
      </Zimmer>
      <Zimmer name="Flur">
          <Schalter name="Deckenlicht">
             <Adresse linie="1" knoten="102" port="2"/>
          </Schalter>
+         <Makro name="Aus">
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+         </Makro>
      </Zimmer>
      <Zimmer name="Bad">
          <Schalter name="Deckenlicht">
@@ -241,11 +262,17 @@
             <Aktion kurz="1" autonom="1" kommando="An"  objekt="Erdgeschoss/Bad/Deckenlicht"/>
             <Aktion kurz="0" autonom="1" kommando="Aus" objekt="Erdgeschoss/Bad/Deckenlicht"/>
 	 </Bad>
+         <Makro name="Aus">
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Bad/Deckenlicht"/>
+         </Makro>
      </Zimmer>
      <Zimmer name="Gaderobe">
          <Schalter name="Deckenlicht">
             <Adresse linie="1" knoten="102" port="6"/>
          </Schalter>
+         <Makro name="Aus">
+            <Aktion kommando="Aus" objekt="Erdgeschoss/Gaderobe/Deckenlicht"/>
+         </Makro>
      </Zimmer>
      <Zimmer name="Hauswirtschaftsraum">
      </Zimmer>
@@ -261,6 +288,14 @@
          <Adresse linie="0" knoten="102" port="0"/>
          <Aktion kommando="Toggle" objekt="Erdgeschoss/Gaderobe/Deckenlicht"/>
          <Aktion kommando="Toggle" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+     </Makro>
+     <Makro name="Aus">
+        <Sub makro="Erdgeschoss/Kueche/Aus"/>
+        <Sub makro="Erdgeschoss/Esszimmer/Aus"/>
+        <Sub makro="Erdgeschoss/Wohnzimmer/Aus"/>
+        <Sub makro="Erdgeschoss/Flur/Aus"/>
+        <Sub makro="Erdgeschoss/Gaderobe/Aus"/>
+        <Sub makro="Erdgeschoss/Bad/Aus"/>
      </Makro>
   </Etage>
   <Etage name="Obergeschoss">
@@ -291,6 +326,9 @@
            <Aktion autonom="0" kommando="Hoch" objekt="Obergeschoss/Bad/Fenster"/>
            <Aktion autonom="1" kommando="Hoch" objekt="Obergeschoss/Bad/Fenster"/>
          </Sensor>
+         <Makro name="Aus">
+            <Aktion kommando="Aus" objekt="Obergeschoss/Bad/Deckenlicht"/>
+         </Makro>
      </Zimmer>
      <Zimmer name="Becki">
          <Schalter name="DeckenlichtMitte">
@@ -345,6 +383,10 @@
            <Aktion autonom="1" kommando="Hoch" objekt="Obergeschoss/Becki/FensterMitte"/>
            <Aktion autonom="1" kommando="Hoch" objekt="Obergeschoss/Becki/FensterLinks"/>
          </Sensor>
+         <Makro name="Aus">
+            <Aktion kommando="Aus" objekt="Obergeschoss/Becki/DeckenlichtMitte"/>
+            <Aktion kommando="Aus" objekt="Obergeschoss/Becki/DeckenlichtAussen"/>
+         </Makro>
      </Zimmer>
      <Zimmer name="Niklas">
          <Schalter name="DeckenlichtMitte">
@@ -390,12 +432,25 @@
            <Aktion autonom="1" kommando="Runter" objekt="Obergeschoss/Niklas/FensterMitte"/>
            <Aktion autonom="1" kommando="Runter" objekt="Obergeschoss/Niklas/FensterLinks"/>
          </Sensor>
+         <Makro name="Aus">
+            <Aktion kommando="Aus" objekt="Obergeschoss/Niklas/DeckenlichtMitte"/>
+            <Aktion kommando="Aus" objekt="Obergeschoss/Niklas/DeckenlichtAussen"/>
+         </Makro>
      </Zimmer>
      <Zimmer name="Arbeit">
          <Schalter name="SteckdoseRechts">
             <Adresse linie="3" knoten="103" port="2"/>
          </Schalter>
+         <Makro name="Aus">
+            <Aktion kommando="Aus" objekt="Obergeschoss/Arbeit/SteckdoseRechts"/>
+         </Makro>
      </Zimmer>
+     <Makro name="Aus">
+        <Sub makro="Obergeschoss/Bad/Aus"/>
+        <Sub makro="Obergeschoss/Becki/Aus"/>
+        <Sub makro="Obergeschoss/Niklas/Aus"/>
+        <Sub makro="Obergeschoss/Arbeit/Aus"/>
+     </Makro>
   </Etage>
   <Etage name="Dachgeschoss">
      <Zimmer name="Eltern">
@@ -433,17 +488,29 @@
          <Schalter name="SeiteLicht">
             <Adresse linie="2" knoten="200" port="2"/>
          </Schalter>
+         <Makro name="Aus">
+            <Aktion kommando="Aus" objekt="Aussen/Vorgarten/BrunnenMotor"/>
+            <Aktion kommando="Aus" objekt="Aussen/Vorgarten/BrunnenLicht"/>
+            <Aktion kommando="Aus" objekt="Aussen/Vorgarten/SeiteLicht"/>
+         </Makro>
      </Zimmer>
      <Zimmer name="Terasse">
          <Schalter name="LichtBibliothek">
             <Adresse linie="1" knoten="101" port="10"/>
          </Schalter>
+         <Makro name="Aus">
+            <Aktion kommando="Aus" objekt="Aussen/Terasse/LichtBibliothek"/>
+         </Makro>
      </Zimmer>        
      <Makro name="Brunnen">
          <Adresse linie="0" knoten="101" port="0"/>
          <Aktion kommando="Toggle" objekt="Aussen/Vorgarten/BrunnenMotor"/>
          <Aktion kommando="Toggle" objekt="Aussen/Vorgarten/BrunnenLicht"/>
          <Aktion kommando="Toggle" objekt="Aussen/Vorgarten/SeiteLicht"/>
+     </Makro>
+     <Makro name="Aus">
+        <Sub makro="Aussen/Vorgarten/Aus"/>
+        <Sub makro="Aussen/Terasse/Aus"/>
      </Makro>
   </Etage>
   <Schalter name="Linie1">
@@ -480,6 +547,16 @@
     <Aktion kommando="An" objekt="Erdgeschoss/Kueche/SteckdoseSpueler"/>
     <Aktion kommando="An" objekt="Erdgeschoss/Kueche/SteckdoseMikrowelle"/>
     <Aktion kommando="An" objekt="Erdgeschoss/Wohnzimmer/DeckenVorlicht"/>
+  </Makro>
+  <Makro name="AllesAus">
+    <Sub makro="Erdgeschoss/Aus"/>
+    <Sub makro="Obergeschoss/Aus"/>
+    <Sub makro="Aussen/Aus"/>
+  </Makro>
+  <Makro name="GuteNacht">
+    <Sub makro="Erdgeschoss/Aus"/>
+    <Sub makro="Aussen/Aus"/>
+    <Sub makro="Obergeschoss/Arbeit/Aus"/>
   </Makro>
   <Firmware name="NodeConf/Bad.hex" id="1"/>
   <Firmware name="NodeConf/Relais.hex" id="16"/>

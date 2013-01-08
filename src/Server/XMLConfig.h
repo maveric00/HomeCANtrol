@@ -179,4 +179,4 @@ int ReadConfig(void) ;
 
 // Server.c-Definitionen
 void ExecuteMakro (struct Node *Makro);
-int HandleCommand (char *Command, char *Answer) ;
+int HandleCommand (char *Command, char *Answer,int Socket) ;
