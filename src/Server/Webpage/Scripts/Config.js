@@ -875,39 +875,36 @@ function CallAction (e)
   var Kommando=Att1.getValue() ;
   if ((Kommando=="Seite")||(Kommando=="Page")) {
     DisplayPage(Att2.getValue()) ;
-  };  
-  
-
-  if ((Kommando=="Rufe")||(Kommando=="Call")) {
+  } else if ((Kommando=="Rufe")||(Kommando=="Call")) {
     try {
       socket_di.send("Aktion " + Att2.getValue()) ;
     } catch (exception) {
       alert ("Aktion " + Att2.getValue()); 
     }
-  } ;
-
-  if ((Kommando=="Dimme-X")||(Kommando=="Dim-X")) {
+  } else if ((Kommando=="Dimme-X")||(Kommando=="Dim-X")) {
     try {
       socket_di.send("Dim " + Att2.getValue()+ " to "+(x*100/this.width).toPrecision(4)) ;
     } catch (exception) {
       alert("Dim X " + Att2.getValue()+ " to "+(x*100/this.width).toPrecision(4)) ;
     } ;
-  } ;
-
-  if ((Kommando=="Dimme-Y")||(Kommando=="Dim-Y")) {
+  } else if ((Kommando=="Dimme-Y")||(Kommando=="Dim-Y")) {
     try {
       socket_di.send("Dim " + Att2.getValue()+ " to "+(y*100/this.height).toPrecision(4)) ;
     } catch (exception) {
       alert("Dim Y " + Att2.getValue()+ " to "+(y*100/this.height).toPrecision(4)) ;
     } ;
-  } ;
-
-  if ((Kommando=="Dimme-IY")||(Kommando=="Dim-IY")) {
+  } else if ((Kommando=="Dimme-IY")||(Kommando=="Dim-IY")) {
     try {
       socket_di.send("Dim " + Att2.getValue()+ " to "+(y*100/this.height).toPrecision(4)) ;
     } catch (exception) {
       alert("Dim IY " + Att2.getValue()+ " to "+((this.height-y)*100/this.height).toPrecision(4)) ;
     } ;
+  } else {
+    try {
+      socket_di.send(Kommando + " " + Att2.getValue()) ;
+    } catch (exception) {
+      alert (Kommando + " " + Att2.getValue()); 
+    }
   } ;
 
 }
