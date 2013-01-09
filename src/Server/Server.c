@@ -241,6 +241,8 @@ void HandleCANRequest(void)
   p = (char*)&(websocket_buf[LWS_SEND_BUFFER_PRE_PADDING]) ;
 
   ReceiveCANMessage(&CANID,&Len,Data) ;
+  
+  if (Len==0) return; // Nothing has been received 
 
   GetSourceAddress(CANID,&FromLine,&FromAdd) ;
   GetDestinationAddress(CANID,&ToLine,&ToAdd) ;
@@ -313,9 +315,9 @@ void HandleCANRequest(void)
 
       SendConfigByte (FromLine,FromAdd) ;
     } ;
+    
 
-
-if ((Data[0]==UPDATE_REQ)||(Data[0]==WRONG_NUMBER_RESPONSE)||
+    if ((Data[0]==UPDATE_REQ)||(Data[0]==WRONG_NUMBER_RESPONSE)||
 	(Data[0]==(SUCCESSFULL_RESPONSE|IDENTIFY))||
 	(Data[0]==(ERROR_RESPONSE|IDENTIFY))||
 	(Data[0]==IDENTIFY)||
@@ -529,7 +531,8 @@ int main(int argc, char **argv)
       HandleCANRequest() ;
     }
 
-    
+    relworkqueue () ;
+
     libwebsocket_service(web_context,0);    
     // Alle regelmaessigen Tasks abarbeiten
     // Makros abarbeiten

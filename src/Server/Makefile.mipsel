@@ -22,7 +22,7 @@ TARGET = CANControl
 OBJDIR = build
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC  = ParseXML.c Node.c Network.c IHex.c Server.c ConfigNodes.c Mongoose/mongoose.c
+SRC  = ParseXML.c Node.c Network.c IHex.c Server.c ConfigNodes.c RelUDP.c Mongoose/mongoose.c
 SRC += 
 SRC += 
 

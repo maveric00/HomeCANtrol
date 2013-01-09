@@ -1,8 +1,6 @@
 /* Network.h: Deklarationen fuer die CAN-Kommunikation ueber Ethernet 
    Es werden jeweils die max. moeglichen 8 Byte als UDP-Paket an die Broadcast-Adresse gesendet, das
    Routing uebernehmen die Ethernet-CAN-Umsetzer
-
-   ToDo: Port und Broadcast-Adresse konfigurierbar (bzw. autokonfigurierend) machen
 */
 
 #define CANBUFLEN 20

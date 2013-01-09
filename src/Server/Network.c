@@ -21,6 +21,7 @@
 #define SERVER_INCLUDE 1
 #include "../Apps/Common/mcp2515.h"
 #include "Network.h"
+#include "RelUDP.h"
 
 char CAN_PORT[20] ;
 int CAN_PORT_NUM ;
@@ -217,6 +218,8 @@ int InitNetwork(void)
 
   MaxSock = RecSockFD>ComSockFD?RecSockFD:ComSockFD ;
 
+  relinit (SendSockFD,SendInfo) ;
+
   return (0) ;
 
 
@@ -239,13 +242,18 @@ int ReceiveCANMessage (ULONG *CANID, char *Len, unsigned char *Data)
   
   addr_len = sizeof their_addr;
 
-  if ((numbytes = recvfrom(RecSockFD, buf, CANBUFLEN-1 , 0,
-			   (struct sockaddr *)tap, &addr_len)) == -1) {
+  if ((numbytes = relrecvfrom(RecSockFD, buf, CANBUFLEN-1 , 0,
+			   (struct sockaddr_in *)tap, &addr_len)) == -1) {
     fprintf(stderr,"Could not read from socket?\n");
     return(1);
   }
   
-  sendto(GateSockFD, buf, numbytes, 0,GaInfo->ai_addr, GaInfo->ai_addrlen) ;
+  if (numbytes==0) {
+    *Len = 0 ; // nothing has been received (was probably an ack)
+    return (0) ;
+  } ;
+
+  relsendto(GateSockFD, buf, numbytes, 0,(struct sockaddr_in*)GaInfo->ai_addr, GaInfo->ai_addrlen) ;
 
   CANIDP = (unsigned char*)CANID ;
   for (i=0;i<4;i++) CANIDP[i]=buf[i] ;
@@ -275,8 +283,8 @@ int SendCANMessage (ULONG CANID, char Len, unsigned char *Data)
   for (i=0;i<Len;i++) Message[i+5] = Data[i] ;
   for (;i<8;i++) Message[i+5] = 0 ;
   
-  if ((numbytes = sendto(SendSockFD, Message, 13, 0,
-			 SendInfo->ai_addr, SendInfo->ai_addrlen)) != 13) {
+  if ((numbytes = relsendto(SendSockFD, Message, 13, 0,
+			    (struct sockaddr_in*)SendInfo->ai_addr, SendInfo->ai_addrlen)) != 13) {
     perror("SendCANMessage nicht erfolgreich");
     return(1);
   }

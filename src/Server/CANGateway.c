@@ -18,6 +18,7 @@
 #include <ctype.h>
 #include <linux/can.h>
 #include <linux/can/raw.h>
+#include "RelUDP.h"
 
 char *CommandName[]={
   "Update request",
@@ -483,6 +484,8 @@ int InitNetwork(void)
   // Make it a broadcast socket
 
   setsockopt(SendSockFD, SOL_SOCKET, SO_BROADCAST, (char *) &val, sizeof(val)) ;
+
+  relinit(SendSockFD,SendInfo) ;
   
   // Open CAN sockets (one for each interface)
 
@@ -555,10 +558,15 @@ int ReceiveFromUDP (struct CANCommand *Command)
   tap = (struct sockaddr_in*)&their_addr ;
 
   addr_len = sizeof their_addr;
-  if ((numbytes = recvfrom(RecSockFD, buf, CANBUFLEN-1 , 0,
+  if ((numbytes = relrecvfrom(RecSockFD, buf, CANBUFLEN-1 , 0,
 			   (struct sockaddr *)tap, &addr_len)) == -1) {
     perror("Lost UDP network (no recvfrom)");
   }
+
+  if (numbytes==0) {
+    Command->Len = 0 ;
+    return (0) ;
+  } ;
 
   // Decode UDP packet and fill CANCommand struct
 
@@ -659,7 +667,7 @@ int SendToUDP (struct CANCommand *Command)
   for (i=0;i<Command->Len;i++) Message[i+5] = Command->Data[i] ;
   for (;i<8;i++) Message[i+5] = 0 ;
   
-  if ((numbytes = sendto(SendSockFD, Message, 13, 0,
+  if ((numbytes = relsendto(SendSockFD, Message, 13, 0,
 			 SendInfo->ai_addr, SendInfo->ai_addrlen)) != 13) {
     perror("SendCANMessage to UDP");
   }
@@ -774,6 +782,7 @@ int main (int argc, char*argv[])
   struct CANCommand Command ;
   struct CANCommand NewCommand ;
   struct CANCommand *Exchange ;
+  struct timeval tv;
 
   for (i=1;i<argc;i++) {
     if (strstr("-v",argv[i])!=NULL) Verbose = 1 ;
@@ -800,6 +809,9 @@ int main (int argc, char*argv[])
   NewCommand.Interface = 0 ;
   NewCommand.Exchange= 0 ;
 
+  tv.tv_sec = 0 ;
+  tv.tv_usec = 10000 ;
+
   for (;;) {
     // Main loop - wait for something to receive and then filter/exchange it and route it
     FD_ZERO(&rdfs) ;
@@ -807,14 +819,19 @@ int main (int argc, char*argv[])
     FD_SET(Can0SockFD,&rdfs) ;
     FD_SET(Can1SockFD,&rdfs) ;
 
-    if ((i=select(Can1SockFD+1,&rdfs,NULL,NULL,NULL))<0) {
+    if ((i=select(Can1SockFD+1,&rdfs,NULL,NULL,&tv))<0) {
       perror ("CANGateway: Could not select") ;
       exit (1) ;
     } ;
+
+    relworkqueue () ;
+
+    if (i==0) continue ; // was timeout only
     
     if (FD_ISSET(RecSockFD,&rdfs)) {
       ReceiveFromUDP (&Command) ;
       Command.Interface = CIF_NET ;
+      if (Command->Len==0) continue ;
     } ;
 
     if (FD_ISSET(Can0SockFD,&rdfs)) {
