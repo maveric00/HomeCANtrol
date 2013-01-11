@@ -6,6 +6,8 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #define _XOPEN_SOURCE
 #include <time.h>
 #include "libwebsocket/libwebsockets.h"
@@ -15,6 +17,7 @@
 #include "../Apps/Common/mcp2515.h"
 #include "Network.h"
 #include "Mongoose/mongoose.h"
+#include "RelUDP.h"
 
 char *strptime(const char *s, const char *format, struct tm *tm);
 
@@ -238,11 +241,11 @@ void HandleCANRequest(void)
   char Temp[NAMELEN]; 
   char* p ;
 
-  p = (char*)&(websocket_buf[LWS_SEND_BUFFER_PRE_PADDING]) ;
-
   ReceiveCANMessage(&CANID,&Len,Data) ;
   
   if (Len==0) return; // Nothing has been received 
+
+  p = (char*)&(websocket_buf[LWS_SEND_BUFFER_PRE_PADDING]) ;
 
   GetSourceAddress(CANID,&FromLine,&FromAdd) ;
   GetDestinationAddress(CANID,&ToLine,&ToAdd) ;
@@ -348,45 +351,40 @@ int HandleCommand (char *Command, char *Answer,int Socket)
   struct Node *This ;
   struct EEPROM EEprom ;
 
+  Answer[0]='\0' ;
+
+  sscanf(Command,"%s %s",Com,Obj) ;
   
-  if (strstr(Command,"Config")) {
+  if (strcmp(Com,"Config")==0) {
     sscanf (Command,"Config %d %d",&Line,&Add) ;
     if ((Line!=0)&&(Add!=0)) {
       MakeConfig (Line,Add,&EEprom) ;
       WriteConfig (&EEprom) ;
       SendConfig(&EEprom) ;
       sprintf (Answer,"Update Config\n") ;
+      return (TRUE); 
     } ;
   } ;
-
-  if (strstr(Command,"Update")) {
+  
+  if (strcmp(Com,"Update")==0) {
     sscanf (Command,"Update %d %d",&Line,&Add) ;
     if ((Line!=0)&&(Add!=0)) {
       SendFirmware(Line,Add) ;
       sprintf (Answer,"Update Firmware\n") ;
+      return (TRUE); 
     }
   } ;
 
-  if (strstr(Command,"Reload")) {
+  if (strcmp(Com,"Reload")==0) {
     if (ReadConfig()!=0) {
       sprintf (Answer,"Error in Configuration\n") ;
       return(TRUE) ;
     } ;
     sprintf (Answer,"Updated Configuration\n") ;
-  } ;
-
-  if (strstr(Command,"Call")) {
-    sscanf (Command,"Call %s",Makro) ;
-    This = FindNode(Haus->Child,Makro) ;
-    if (This!=NULL) {
-      ExecuteMakro (This) ;
-      sprintf (Answer,"Macro executed\n") ;
-    } else {
-      sprintf (Answer,"Macro %s not found\n",Makro) ;
-    } ;
+    return (TRUE); 
   } ;
   
-  if (strstr(Command,"List")) {
+  if (strcmp(Command,"List")==0) {
     // List all active macros
     for (i=0;i<MAX_ACTIVEMACROS;i++) {
       if (ActiveMacros[i].Macro!=NULL) {
@@ -397,56 +395,47 @@ int HandleCommand (char *Command, char *Answer,int Socket)
       } ;
     } ;
     Answer[0]='\0' ;
+    return (TRUE); 
   } ;
 
-  Answer[0]='\0' ;
+  if (strcmp(Com,"Exit")==0) {
+    return (FALSE) ;
+  } ;
 
-  sscanf (Command,"%s %s",Com,Obj) ;
-
-  if ((strcmp(Com,"An")==0)||(strcmp(Com,"On")==0)) {
-    This = FindNode(Haus->Child,Obj) ;
-    if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
+  This = FindNode(Haus->Child,Obj) ;  
+  
+  if ((strcmp(Com,"Action")==0)||(strcmp(Com,"Aktion")==0)) {  
+    if (This!=NULL) {
+      ExecuteMakro (This) ;
+      sprintf (Answer,"Macro executed\n") ;
+    } else {
+      sprintf (Answer,"Macro %s not found\n",Obj) ;
+    } ;
+  } ;
+  
+  if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
+    sprintf (Answer,"%s: %s\n",Com,Obj) ;
+    if ((strcmp(Com,"An")==0)||(strcmp(Com,"On")==0)) {
       SendCommand(CHANNEL_ON,Line,Add,Port) ;
-    } ;
-  } ;
-  if ((strcmp(Com,"Aus")==0)||(strcmp(Com,"Off")==0)) {
-    This = FindNode(Haus->Child,Obj) ;
-    if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
+    } else if ((strcmp(Com,"Aus")==0)||(strcmp(Com,"Off")==0)) {
       SendCommand(CHANNEL_OFF,Line,Add,Port) ;
-    } ;
-  } ;
-  if (strcmp(Com,"Toggle")==0) {
-    This = FindNode(Haus->Child,Obj) ;
-    if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
+    } else if (strcmp(Com,"Toggle")==0) {
       SendCommand(CHANNEL_TOGGLE,Line,Add,Port) ;
-    } ;
-  } ;
-  if ((strcmp(Com,"Hoch")==0)||(strcmp(Com,"Up")==0)) {
-    This = FindNode(Haus->Child,Obj) ;
-    if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
+    } else if ((strcmp(Com,"Hoch")==0)||(strcmp(Com,"Up")==0)) {
       SendCommand(SHADE_UP_FULL,Line,Add,Port) ;
-    } ;
-  } ;
-  if ((strcmp(Com,"Runter")==0)||(strcmp(Com,"Down")==0)) {
-    This = FindNode(Haus->Child,Obj) ;
-    if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
+    } else if ((strcmp(Com,"Runter")==0)||(strcmp(Com,"Down")==0)) {
       SendCommand(SHADE_DOWN_FULL,Line,Add,Port) ;
-    } ;
-  } ;
-  if ((strcmp(Com,"KurzHoch")==0)||(strcmp(Com,"ShortUp")==0)) {
-    This = FindNode(Haus->Child,Obj) ;
-    if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
+    } else if ((strcmp(Com,"KurzHoch")==0)||(strcmp(Com,"ShortUp")==0)) {
       SendCommand(SHADE_UP_SHORT,Line,Add,Port) ;
-    } ;
-  } ;
-  if ((strcmp(Com,"KurzRunter")==0)||(strcmp(Com,"ShortDown")==0)) {
-    This = FindNode(Haus->Child,Obj) ;
-    if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
+    } else if ((strcmp(Com,"KurzRunter")==0)||(strcmp(Com,"ShortDown")==0)) {
       SendCommand(SHADE_DOWN_SHORT,Line,Add,Port) ;
-    } ;
-  } ;
-  
-  
+    } else {
+      sprintf (Answer,"Unknown command: %s\n",Com) ;
+    }
+  } else {
+    sprintf (Answer,"%s not known\n",Obj) ;
+  } ;    
+
   return (TRUE) ;
 }
 
@@ -469,6 +458,7 @@ int main(int argc, char **argv)
   int Error ;
 
   struct mg_context *ctx ;
+  struct timeval Now,Wait,Old ;
 
   char *web_options[] = {
     "listening_ports", "8080",
@@ -523,21 +513,31 @@ int main(int argc, char **argv)
 
   fprintf (stderr,"Starte Server\n") ;
 
+  Wait.tv_sec=0;
+  Wait.tv_usec=9000;
+  gettimeofday(&Old,NULL) ;
+
   // Endlosschleife : Netzwerkverkehr abarbeiten und Makros ausfuehren
   
   while(1) {
     if (CheckNetwork(&Error,10)) {
       // Netzwerk empfangen
       HandleCANRequest() ;
-    }
-
-    relworkqueue () ;
-
-    libwebsocket_service(web_context,0);    
-    // Alle regelmaessigen Tasks abarbeiten
-    // Makros abarbeiten
-    StepMakros() ;
+    } ;
+    
+    gettimeofday(&Now,NULL) ;
+    
+    if (timercmp(&Now,&Old,>)) { // if UDP packets are coming in very fast, do not step macros for each
+      
+      relworkqueue () ;
+      
+      libwebsocket_service(web_context,0);    
+      // Alle regelmaessigen Tasks abarbeiten
+      // Makros abarbeiten
+      StepMakros() ;
+      timeradd(&Now,&Wait,&Old) ;
+    } ;
   } ;
 
-  CloseNetwork () ;
+  CloseNetwork () ; // Will never be reached...
 }  /* End of main */

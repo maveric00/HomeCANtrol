@@ -239,8 +239,7 @@ int ReceiveCANMessage (ULONG *CANID, char *Len, unsigned char *Data)
   struct sockaddr_in *tap ;
 
   tap = (struct sockaddr_in*)&their_addr ;  
-  
-  addr_len = sizeof their_addr;
+  addr_len = sizeof(their_addr);
 
   if ((numbytes = relrecvfrom(RecSockFD, buf, CANBUFLEN-1 , 0,
 			   (struct sockaddr_in *)tap, &addr_len)) == -1) {
@@ -310,9 +309,12 @@ int CheckNetwork(int * error,int timeOut) // milliseconds
   int nbytes ;
   struct ListItem *Connect ;
   char Answer[NAMELEN*4] ;
+  int ToBeClosed ; 
   
   localReadSet = socketReadSet ;
   
+
+
   if (timeOut) {
     tv.tv_sec  = timeOut / 1000;
     tv.tv_usec = (timeOut % 1000) * 1000;
@@ -350,22 +352,14 @@ int CheckNetwork(int * error,int timeOut) // milliseconds
 	  Connect->Number = newfd ;
 	}
       } else {
+	ToBeClosed = 0 ;
 	// Command was sent, read it
 	if ((nbytes=recv(i,buf,sizeof(buf)-1,0))<=0) {
 	  // error or connection closed 
 	  if (nbytes!=0) {
 	    fprintf (stderr,"CheckNetwork: error receiving\n") ;
 	  } ;
-	  close (i) ;
-	  FD_CLR(i,&socketReadSet) ;
-	  fprintf (stderr,"CheckNetwork: Connection closed\n") ;
-	  if (i==MaxSock) {
-	    // reduce maximum socket number ;
-	    for (MaxSock--;!FD_ISSET(MaxSock,&socketReadSet);MaxSock--) ;
-	  } ;
-	  for (Connect=Connections;Connect!=NULL;Connect=Connect->Next) if (Connect->Number==i) break ;
-	  if (Connect==Connections) Connections = Connect->Next ;
-	  FreeItem(Connect) ;
+	  ToBeClosed = i ;
 	}  else {
 	  for (Connect=Connections;Connect!=NULL;Connect=Connect->Next) if (Connect->Number==i) break ;
 	  if (Connect==NULL) {
@@ -378,10 +372,24 @@ int CheckNetwork(int * error,int timeOut) // milliseconds
 	      // Execute Command
 	      if (HandleCommand ((char*)Connect->Data.Command,Answer,i)) {
 		send (i,Answer,strlen(Answer),0);
-	      }; 
+	      } else {
+		ToBeClosed = i ;
+	      } ;
 	      Connect->Data.Command[0] = '\0' ;
 	    } ;
 	  } ;
+	} ;
+	if (ToBeClosed!=0) {
+	  close (i) ;
+	  FD_CLR(i,&socketReadSet) ;
+	  fprintf (stderr,"CheckNetwork: Connection closed\n") ;
+	  if (i==MaxSock) {
+	    // reduce maximum socket number ;
+	    for (MaxSock--;!FD_ISSET(MaxSock,&socketReadSet);MaxSock--) ;
+	  } ;
+	  for (Connect=Connections;Connect!=NULL;Connect=Connect->Next) if (Connect->Number==i) break ;
+	  if (Connect==Connections) Connections = Connect->Next ;
+	  FreeItem(Connect) ;
 	} ;
       } ;
     } ;
@@ -636,54 +644,23 @@ static int callback_config(struct libwebsocket_context *context,
     // Es wurde etwas empfangen
     sscanf (in,"%s %s %s %s",Command,Objekt,Objekt2,Objekt3) ;
     fprintf (stderr,"%s %s %s %s\n",Command,Objekt,Objekt2,Objekt3) ;
+    This = FindNode(Haus->Child,Objekt) ;
+
     if ((strcmp(Command,"Aktion")==0)||(strcmp(Command,"Action")==0)) {
-      This = FindNode(Haus->Child,Objekt) ;
       ExecuteMakro (This) ;
     } ;
-    if ((strcmp(Command,"An")==0)||(strcmp(Command,"On")==0)) {
-      This = FindNode(Haus->Child,Objekt) ;
-      if (GetNodeAdress(This,&Linie,&Knoten,&Port)==0) {
-	SendCommand(CHANNEL_ON,Linie,Knoten,Port) ;
-      } ;
+
+    if (GetNodeAdress(This,&Linie,&Knoten,&Port)==0) {
+      if ((strcmp(Command,"An")==0)||(strcmp(Command,"On")==0)) SendCommand(CHANNEL_ON,Linie,Knoten,Port) ;
+      if ((strcmp(Command,"Aus")==0)||(strcmp(Command,"Off")==0)) SendCommand(CHANNEL_OFF,Linie,Knoten,Port) ;
+      if (strcmp(Command,"Toggle")==0) SendCommand(CHANNEL_TOGGLE,Linie,Knoten,Port) ;
+      if ((strcmp(Command,"Hoch")==0)||(strcmp(Command,"Up")==0)) SendCommand(SHADE_UP_FULL,Linie,Knoten,Port) ;
+      if ((strcmp(Command,"Runter")==0)||(strcmp(Command,"Down")==0)) SendCommand(SHADE_DOWN_FULL,Linie,Knoten,Port) ;
+      if ((strcmp(Command,"KurzHoch")==0)||(strcmp(Command,"ShortUp")==0)) SendCommand(SHADE_UP_SHORT,Linie,Knoten,Port) ;
+      if ((strcmp(Command,"KurzRunter")==0)||(strcmp(Command,"ShortDown")==0)) SendCommand(SHADE_DOWN_SHORT,Linie,Knoten,Port) ;
     } ;
-    if ((strcmp(Command,"Aus")==0)||(strcmp(Command,"Off")==0)) {
-      This = FindNode(Haus->Child,Objekt) ;
-      if (GetNodeAdress(This,&Linie,&Knoten,&Port)==0) {
-	SendCommand(CHANNEL_OFF,Linie,Knoten,Port) ;
-      } ;
-    } ;
-    if (strcmp(Command,"Toggle")==0) {
-      This = FindNode(Haus->Child,Objekt) ;
-      if (GetNodeAdress(This,&Linie,&Knoten,&Port)==0) {
-	SendCommand(CHANNEL_TOGGLE,Linie,Knoten,Port) ;
-      } ;
-    } ;
-    if ((strcmp(Command,"Hoch")==0)||(strcmp(Command,"Up")==0)) {
-      This = FindNode(Haus->Child,Objekt) ;
-      if (GetNodeAdress(This,&Linie,&Knoten,&Port)==0) {
-	SendCommand(SHADE_UP_FULL,Linie,Knoten,Port) ;
-      } ;
-    } ;
-    if ((strcmp(Command,"Runter")==0)||(strcmp(Command,"Down")==0)) {
-      This = FindNode(Haus->Child,Objekt) ;
-      if (GetNodeAdress(This,&Linie,&Knoten,&Port)==0) {
-	SendCommand(SHADE_DOWN_FULL,Linie,Knoten,Port) ;
-      } ;
-    } ;
-    if ((strcmp(Command,"KurzHoch")==0)||(strcmp(Command,"ShortUp")==0)) {
-      This = FindNode(Haus->Child,Objekt) ;
-      if (GetNodeAdress(This,&Linie,&Knoten,&Port)==0) {
-	SendCommand(SHADE_UP_SHORT,Linie,Knoten,Port) ;
-      } ;
-    } ;
-    if ((strcmp(Command,"KurzRunter")==0)||(strcmp(Command,"ShortDown")==0)) {
-      This = FindNode(Haus->Child,Objekt) ;
-      if (GetNodeAdress(This,&Linie,&Knoten,&Port)==0) {
-	SendCommand(SHADE_DOWN_SHORT,Linie,Knoten,Port) ;
-      } ;
-    } ;
+
     if (strcmp(Command,"Status")==0) {
-      This = FindNode(Haus->Child,Objekt) ;
       n = sprintf((char *)p, "Set %s %d", Objekt,This->Value);
       n = libwebsocket_write(wsi, p, n, LWS_WRITE_TEXT);
       if (n < 0) {

@@ -549,7 +549,7 @@ int ReceiveFromUDP (struct CANCommand *Command)
   int i ;
   char *CANIDP ;
   ULONG CANID ;
-  char buf[CANBUFLEN];
+  unsigned char buf[CANBUFLEN];
   size_t addr_len;
   int numbytes ;
   struct sockaddr_storage their_addr;
@@ -559,7 +559,7 @@ int ReceiveFromUDP (struct CANCommand *Command)
 
   addr_len = sizeof their_addr;
   if ((numbytes = relrecvfrom(RecSockFD, buf, CANBUFLEN-1 , 0,
-			   (struct sockaddr *)tap, &addr_len)) == -1) {
+			      (struct sockaddr_in *)tap,(socklen_t*) &addr_len)) == -1) {
     perror("Lost UDP network (no recvfrom)");
   }
 
@@ -651,7 +651,7 @@ int SendToCAN (int socket, struct CANCommand *Command)
 int SendToUDP (struct CANCommand *Command)
 {
   int i ;
-  char Message [CANBUFLEN] ;
+  unsigned char Message [CANBUFLEN] ;
   char *CANIDP ;
   ULONG CANID ;
   int numbytes;  
@@ -668,7 +668,7 @@ int SendToUDP (struct CANCommand *Command)
   for (;i<8;i++) Message[i+5] = 0 ;
   
   if ((numbytes = relsendto(SendSockFD, Message, 13, 0,
-			 SendInfo->ai_addr, SendInfo->ai_addrlen)) != 13) {
+			    (struct sockaddr_in*)SendInfo->ai_addr, SendInfo->ai_addrlen)) != 13) {
     perror("SendCANMessage to UDP");
   }
 
@@ -831,7 +831,7 @@ int main (int argc, char*argv[])
     if (FD_ISSET(RecSockFD,&rdfs)) {
       ReceiveFromUDP (&Command) ;
       Command.Interface = CIF_NET ;
-      if (Command->Len==0) continue ;
+      if (Command.Len==0) continue ;
     } ;
 
     if (FD_ISSET(Can0SockFD,&rdfs)) {
