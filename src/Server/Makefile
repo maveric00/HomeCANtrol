@@ -45,7 +45,7 @@ OPT = 0
 #     For a directory that has spaces, enclose it in quotes.
 EXTRAINCDIRS = 
 
-EXTRALIBS = -lexpat -lwebsockets -lz
+EXTRALIBS = -lexpat -lwebsockets -lz -lpthread
 
 # Compiler flag to set the C Standard level.
 #     c89   = "ANSI" C
@@ -76,7 +76,7 @@ CFLAGS = -g$(DEBUG)
 CFLAGS += $(CDEFS)
 CFLAGS += -O$(OPT)
 CFLAGS += -Wall
-CFLAGS += -Wstrict-prototypes -mthreads 
+CFLAGS += -Wstrict-prototypes 
 CFLAGS += $(CSTANDARD)
 
 #---------------- Compiler Options C++ ----------------
@@ -166,7 +166,7 @@ LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB) -L$(EXTRALIBDIRS) $(EXTRALIBS)
 
 # Define programs and commands.
 SHELL = sh
-CC = gcc-4
+CC = gcc
 REMOVE = rm -f
 REMOVEDIR = rm -rf
 COPY = cp

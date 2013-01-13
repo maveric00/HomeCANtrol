@@ -1,1 +1,7 @@
+#/bin/bash
+
+export STAGING_DIR=$HOME/Carambola/carambola/staging_dir
+export PATH=$PATH:$STAGING_DIR/toolchain-mipsel_r2_gcc-4.7-linaro_uClibc-0.9.33.2/bin
+
+
 make CC=mipsel-openwrt-linux-uclibc-gcc LD=mipsel-openwrt-linux-uclib-ld -f Makefile.mipsel

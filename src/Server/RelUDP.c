@@ -32,7 +32,10 @@
 
 struct RelUDPHost RelFirstSend ;
 struct RelUDPHost RelFirstRec ;
+struct RelUDPHost RelaySend ;
+struct RelUDPHost RelayRec ;
 int RelSendSock ;
+int SendCurrentSeq ;
 int RelCurrentSeq ;
 struct addrinfo *RelSendInfo ;
 
@@ -40,7 +43,9 @@ struct addrinfo *RelSendInfo ;
 struct RelUDPHost *RelFindHost(struct RelUDPHost *First, char *IP)
 {
   struct RelUDPHost *Host ;
-  for (Host = First->Next;Host!=NULL;Host=Host->Next) if (strcmp(Host->IP,IP)) break ;
+  for (Host = First->Next;Host!=NULL;Host=Host->Next) {
+    if (strcmp(Host->IP,IP)==0) break ;
+  } ;
   return (Host) ;
 }
 
@@ -63,6 +68,8 @@ struct RelUDPHost *RelAddHost (struct RelUDPHost *First, char *IP)
   
   There->Next = Host ;
 
+  printf ("Add host %s\n",IP) ;
+
   return (Host) ;
 }
 		
@@ -73,14 +80,16 @@ void RelDelHost(struct RelUDPHost *First, struct RelUDPHost *Host)
   for (There=First;(There!=NULL)&&(There->Next)!=Host;There=There->Next) ;
   
   if (There==NULL) {
-    fprintf (stderr,"Unknown host in RelDelHost\n") ;
     return ;
   }
   There->Next = Host->Next; 
+
+  printf ("Del host %s\n",Host->IP) ;
+
   free (Host) ;
 }
 
-int RelAddMessage (struct RelUDPHost *Host, unsigned char *Buffer, size_t Bufferlen)
+int RelAddMessage (struct RelUDPHost *Host, unsigned char *Buffer, size_t Bufferlen,int SendSocket, struct sockaddr *tap, socklen_t taplen)
 {
   int i ;
 
@@ -89,6 +98,13 @@ int RelAddMessage (struct RelUDPHost *Host, unsigned char *Buffer, size_t Buffer
 
   Host->Messages[i].len = Bufferlen ;
   memcpy (Host->Messages[i].Buffer,Buffer,Bufferlen) ;
+  
+  Host->SendSocket = SendSocket ;
+  Host->tap = tap ;
+  Host->taplen = taplen ;
+  
+  printf ("Add Message %d to  %s\n",i,Host->IP) ;
+
   return (0) ;
 } ;
 
@@ -99,7 +115,9 @@ int RelCmpMessage (struct RelUDPHost *Host, unsigned char *Buffer, size_t Buffer
   i = Buffer[0] ;
   if (i>=RELQLEN) return (FALSE) ; // Out of ring buffer???
 
+
   if ((Host->Messages[i].len==Bufferlen)&&(memcmp(Host->Messages[i].Buffer,Buffer,Bufferlen)==0)) return (TRUE) ;
+
 
   return (FALSE) ;
 }
@@ -109,102 +127,153 @@ void RelDelMessage (struct RelUDPHost *Host, unsigned char SeqNr)
 {
   Host->Messages[SeqNr].len = 0 ; // Mark as deleted
   Host->NotSeen = 0 ; // Host has sent an Ack
+  printf ("Del Message %d to  %s\n",SeqNr,Host->IP) ;
 }
 
 void relworkqueue ()
 {
   struct RelUDPHost *Host,*Next ;
-  int Sent ;
   int i ;
   static int Count = 0 ;
 
-  if (Count++<10) return ; // Only every 10th time check the queues...
-  Count = 0 ;
+  i = Count ;
   
   for (Host=RelFirstSend.Next;Host!=NULL;Host=Next) {
     Next = Host->Next ; // if Host gets deleted ;
-    Sent = 0 ;
-    for (i=0;i<RELQLEN;i++) 
-      if (Host->Messages[i].len!=0) {
-	sendto(RelSendSock,Host->Messages[i].Buffer,Host->Messages[i].len,0,RelSendInfo->ai_addr,RelSendInfo->ai_addrlen) ;
-	Sent=1 ;
-      } ;
-    if (Sent==1) Host->NotSeen++ ;
+    if (Host->Messages[i].len!=0) {
+      printf ("ReSend %d to %s\n",i,Host->IP) ;
+      sendto(Host->SendSocket,Host->Messages[i].Buffer,Host->Messages[i].len,0,Host->tap,Host->taplen) ;
+      Host->NotSeen++ ;
+    } ;
     if (Host->NotSeen>50) RelDelHost(&RelFirstSend,Host) ; // Seems to be gone for good...
   }
+  if (RelaySend.NotSeen<50) {
+    if (RelaySend.Messages[i].len!=0) {
+      printf ("ReSend %d to Gateway\n",i) ;
+      sendto(RelaySend.SendSocket,RelaySend.Messages[i].Buffer,RelaySend.Messages[i].len,0,RelaySend.tap,RelaySend.taplen) ;
+      RelaySend.NotSeen++ ;
+    } ;
+  } ;
+
+  Count++ ;
+  if (Count>=RELQLEN) Count = 0 ;
 }
 
-int relrecvfrom (int Socket,unsigned char *Buffer, size_t Bufferlen, int flag, struct sockaddr_in *tap, socklen_t *taplen)
+int relrecvfrom (int Socket,unsigned char *Buffer, size_t Bufferlen, int flag, struct sockaddr_in *tap, socklen_t *taplen, int *Relay)
 {
   int numbytes ;
   struct RelUDPHost *Host ;
   char IP[INET_ADDRSTRLEN]; 
   unsigned char Buf[RELBUFLEN] ;
+  unsigned char Ack[RELBUFLEN] ;
 
   if ((numbytes = recvfrom(Socket, Buf, RELBUFLEN , flag,
 			   (struct sockaddr*)tap, taplen)) == -1) {
-    fprintf(stderr,"Could not read from socket?\n");
     return(1);
   }
   
+
   inet_ntop(AF_INET,(const void*)&(tap->sin_addr),IP,INET_ADDRSTRLEN) ;
 
-  if (numbytes<3) { // This is an acknowledgement...
-    inet_ntop(AF_INET,(const void*)&(tap->sin_addr),IP,INET_ADDRSTRLEN) ;
+
+
+  if (numbytes<5) { // This is an acknowledgement...
+    printf ("Got Ack for %d from %s:%d\n",Buf[0],IP,Buf[1]); 
     Host = RelFindHost(&RelFirstSend,IP) ;
-    if (Host==NULL) { // This host is not registered, yet, so register it
-      Host=RelAddHost(&RelFirstSend,IP) ;
-    } else {
-      RelDelMessage(Host,Buf[0]) ;
+    if ((Host==NULL)&&(*Relay!=(int)Buf[1])) { // This host is not registered, yet, so register it if it is not us...
+      if (Buf[1]!=99) { 
+	Host=RelAddHost(&RelFirstSend,IP) ;
+      } 
+      printf ("in Ack\n") ;
     } ;
+    if (Buf[1]==99) {
+	RelaySend.NotSeen = 0 ;
+	Host = &RelaySend ;
+    } ;
+    
+    if (Host!=NULL) RelDelMessage(Host,Buf[0]) ;
+
     return (0) ; // was an ack, so nothing to do any more
   } ;
 
-  // not an acknowledgement, so ack it
-
-  sendto(RelSendSock,Buf,1,0,RelSendInfo->ai_addr,RelSendInfo->ai_addrlen) ;
+  // not an acknowledgement, so ack it if it not from us...
   
-  // Check if Message has already been received
-
-  Host = RelFindHost(&RelFirstRec,IP) ;
-  if (Host==NULL) { // This host is not registered, yet, so register it
-    Host=RelAddHost(&RelFirstSend,IP) ; // it will never be deleted, though
-  } else {
-    if (RelCmpMessage(Host,Buf,numbytes)) { // we already received it 
-      return (0) ;
-    } ;
-  }
-  RelAddMessage (Host,Buf,numbytes) ;
+  if (*Relay!=(int)Buf[1]) {
+    Ack[0] = Buf[0] ;
+    if (Buf[1]!=99) {
+      Ack[1] = *Relay ;
+    } else {
+      Ack[1] = 99 ;
+    }
+    printf ("Ack %d to %s:%d\n",Buf[0],IP,Buf[1]) ;
+    sendto(RelSendSock,Ack,2,0,RelSendInfo->ai_addr,RelSendInfo->ai_addrlen) ;
+    
+    // Check if Message has already been received
+    
+    printf ("Received Mesg %d from %s\n",Buf[0],IP); 
+    
+    Host = RelFindHost(&RelFirstRec,IP) ;
+    if (Host==NULL) { // This host is not registered, yet, so register it
+      Host=RelAddHost(&RelFirstRec,IP) ; // it will never be deleted, though
+      printf ("in Received\n") ;
+    } else {
+      if (RelCmpMessage(Host,Buf,numbytes)) { // we already received it 
+	printf ("Already got it from %s: %d %d %d %d %d\n",Host->IP,Buf[0],Buf[1],Buf[2],Buf[3],Buf[4]) ;
+	return (0) ;
+      } ;
+    }
+    RelAddMessage (Host,Buf,numbytes,Socket,(struct sockaddr*)tap,*taplen) ;
+  } ;
 
   // Return Message without sequence counter only
-  memcpy (Buffer,&(Buf[1]),numbytes-1) ;
+  memcpy (Buffer,&(Buf[2]),numbytes-2) ;
   
-  return (numbytes-1) ;
+  *Relay = (int)Buf[1]; 
+  
+  return (numbytes-2) ;
 }
 
-int relsendto (int Socket,unsigned char *Buffer, size_t Bufferlen, int flag, struct sockaddr_in *tap, socklen_t taplen)
+int relsendto (int Socket,unsigned char *Buffer, size_t Bufferlen, int flag, struct sockaddr_in *tap, socklen_t taplen,int Relay)
 {
   int numbytes ;
   struct RelUDPHost *Host ;
   unsigned char Buf[RELBUFLEN] ;
   
-  if (Bufferlen>(RELBUFLEN-1)) return (-1) ;
+  if (Bufferlen>(RELBUFLEN-2)) return (-1) ;
 
-  memcpy (&(Buf[1]),Buffer,Bufferlen) ;
+  memcpy (&(Buf[2]),Buffer,Bufferlen) ;
 
-  RelCurrentSeq++ ; // Implement ringbuffer
-  if (RelCurrentSeq>=RELQLEN) RelCurrentSeq=0 ;  
+  if (Relay!=99) {
+    SendCurrentSeq++ ; // Implement ringbuffer
+    if (SendCurrentSeq>=RELQLEN) SendCurrentSeq=0 ;  
+    Buf[0] = SendCurrentSeq ;
+  } else {
+    RelCurrentSeq++ ; // Implement ringbuffer
+    if (RelCurrentSeq>=RELQLEN) RelCurrentSeq=0 ;  
+    Buf[0] = RelCurrentSeq ;
+  }; 
 
-  Buf[0] = RelCurrentSeq ;
-  
-  if ((numbytes = sendto(Socket, Buf, Bufferlen+1, flag, (struct sockaddr*)tap, taplen)) != Bufferlen+1) {
+
+  Buf[1] = Relay ;
+
+  if (Relay!=99) {
+    printf ("Send Mesg %d to All\n",Buf[0]); 
+  } else {
+    printf ("Send Mesg %d to Relay\n",Buf[0]); 
+  }; 
+
+  if ((numbytes = sendto(Socket, Buf, Bufferlen+2, flag, (struct sockaddr*)tap, taplen)) != Bufferlen+2) {
     perror("relsendto nicht erfolgreich");
     return(-1);
   }
 
-  for (Host=RelFirstSend.Next;Host!=NULL;Host=Host->Next) RelAddMessage(Host,Buf,Bufferlen+1) ;
+  if (Relay!=99) {
+    for (Host=RelFirstSend.Next;Host!=NULL;Host=Host->Next) RelAddMessage(Host,Buf,Bufferlen+2,Socket,(struct sockaddr*)tap,taplen) ;
+  } else {
+    RelAddMessage(&RelaySend,Buf,Bufferlen+2,Socket,(struct sockaddr*)tap,taplen) ;
+  } ;
 
-  return (numbytes-1); 
+  return (numbytes-2); 
 }
 
 

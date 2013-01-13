@@ -508,7 +508,7 @@ int main(int argc, char **argv)
 
   if ((ctx=mg_start(&Handle_Webserver,NULL,(const char**) web_options))==NULL) {
     fprintf (stderr,"Fehler im Webserver\n") ;
-    exit(-1) ;
+    //    exit(-1) ;
   } ;
 
   fprintf (stderr,"Starte Server\n") ;

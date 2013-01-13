@@ -119,6 +119,7 @@ char *ToCommand(int Command)
 char CAN_PORT[MAXLINE] ;
 int CAN_PORT_NUM ;
 char CAN_BROADCAST[MAXLINE] ;
+int GatewayNum ;
 int Verbose=0 ;
 int NoTime=0 ;
 int NoRoute=0 ;
@@ -329,29 +330,35 @@ void ReadConfig(void)
       sscanf(Line,"Port: %s",CAN_PORT) ;
       sscanf (CAN_PORT,"%d",&CAN_PORT_NUM) ;
     } ;
+    if (strstr(Line,"GatewayNumber:")!=NULL) {
+      sscanf(Line,"GatewayNumber: %d",&GatewayNum) ;
+    } ;
     
     // Read routing information; Format: "CAN0-Line: Line1 Line2 Line3 ..."
     // Messages targeted to Line1,... are sent out to CAN0
 
-    if (strstr(Line,"CAN0-Line:")) {
+    if (strstr(Line,"CAN0-Line:")!=NULL) {
       for (i=0;(Line[i]!='\0')&&(Line[i]!=' ');i++) ;
       i++ ;
       for (;Line[i]!='\0';i++) {
 	sscanf (&(Line[i]),"%d",&j) ;
 	if ((j>0)&&(j<255)) RouteIF0[j]=1 ;
 	for (;(Line[i]!='\0')&&(Line[i]!=' ');i++) ;
+	if (Line[i]=='\0') break ;
       } ;
     } ;
 
     // Same for CAN1
 
-    if (strstr(Line,"CAN1-Line:")) {
+    if (strstr(Line,"CAN1-Line:")!=NULL) {
+      printf ("Full: %s\n",Line) ;
       for (i=0;(Line[i]!='\0')&&(Line[i]!=' ');i++) ;
       i++ ;
       for (;Line[i]!='\0';i++) {
 	sscanf (&(Line[i]),"%d",&j) ;
 	if ((j>0)&&(j<255)) RouteIF1[j]=1 ;
 	for (;(Line[i]!='\0')&&(Line[i]!=' ');i++) ;
+	if (Line[i]=='\0') break ;
       } ;
     } ;
 
@@ -415,6 +422,7 @@ int InitNetwork(void)
   int val ;
   struct sockaddr_can CANAddr ;
   struct ifreq ifr ;
+ 
   
   val = (0==0) ;
 
@@ -430,30 +438,27 @@ int InitNetwork(void)
   RecAddr.sin_port        = htons(CAN_PORT_NUM);
 
   // Bind the socket to the Address
-  
   if (bind(RecSockFD, (struct sockaddr *) &RecAddr, sizeof(RecAddr)) == -1) {
     // If address in use then try one lower - CANControl might be running
-    fprintf (stderr,"Socket in use, trying one lower (CANControl is running)\n") ;
     close (RecSockFD) ;
-
+    
     if ((RecSockFD = socket(AF_INET, SOCK_DGRAM,0)) == -1) {
       perror("CANGateway: Receive socket");
       exit(0);
     }
-
+    
     memset(&RecAddr, 0, sizeof(struct sockaddr_in));
     RecAddr.sin_family      = AF_INET;
     RecAddr.sin_addr.s_addr = INADDR_ANY;   // zero means "accept data from any IP address"
     RecAddr.sin_port        = htons(CAN_PORT_NUM-1);
+    fprintf (stderr,"Socket in use, trying %d as TCP (CANControl is running)\n",CAN_PORT_NUM-1) ;
+    
+    // Bind the socket to the Address
     if (bind(RecSockFD, (struct sockaddr *) &RecAddr, sizeof(RecAddr)) == -1) {
-      close(RecSockFD);
-      perror("listener: bind");
-    }
+      fprintf(stderr,"Could not connect to CANControl\n") ;
+      exit(-1) ;
+    } ;
   } ;
-  
-  // Receive broadcast, also
-
-  setsockopt(RecSockFD, SOL_SOCKET, SO_BROADCAST, (char *) &val, sizeof(val)) ;
   
   // Set up send-Socket
   memset(&hints, 0, sizeof hints);
@@ -554,20 +559,22 @@ int ReceiveFromUDP (struct CANCommand *Command)
   int numbytes ;
   struct sockaddr_storage their_addr;
   struct sockaddr_in *tap ;
+  int Source ;
   
   tap = (struct sockaddr_in*)&their_addr ;
 
   addr_len = sizeof their_addr;
+  Source = GatewayNum ;
+
   if ((numbytes = relrecvfrom(RecSockFD, buf, CANBUFLEN-1 , 0,
-			      (struct sockaddr_in *)tap,(socklen_t*) &addr_len)) == -1) {
+			      (struct sockaddr_in *)tap,(socklen_t*) &addr_len,&Source)) == -1) {
     perror("Lost UDP network (no recvfrom)");
   }
-
-  if (numbytes==0) {
+    
+  if ((numbytes==0)||(Source==GatewayNum)) { //either Ack or same Station
     Command->Len = 0 ;
     return (0) ;
   } ;
-
   // Decode UDP packet and fill CANCommand struct
 
   CANIDP = (char*)&CANID ;
@@ -668,7 +675,7 @@ int SendToUDP (struct CANCommand *Command)
   for (;i<8;i++) Message[i+5] = 0 ;
   
   if ((numbytes = relsendto(SendSockFD, Message, 13, 0,
-			    (struct sockaddr_in*)SendInfo->ai_addr, SendInfo->ai_addrlen)) != 13) {
+			    (struct sockaddr_in*)SendInfo->ai_addr, SendInfo->ai_addrlen,GatewayNum)) != 13) {
     perror("SendCANMessage to UDP");
   }
 
@@ -801,6 +808,12 @@ int main (int argc, char*argv[])
   ReadConfig() ;
 
   printf ("Initializing %s at port %d\n",CAN_BROADCAST,CAN_PORT_NUM) ;
+  printf ("Routing to Line0:\n"); 
+  for (i=0;i<255;i++) if (RouteIF0[i]!=0) printf ("%d ",i) ;
+  printf ("\n") ;
+  printf ("Routing to Line1:\n"); 
+  for (i=0;i<255;i++) if (RouteIF1[i]!=0) printf ("%d ",i) ;
+  printf ("\n") ;
   
   InitNetwork () ;
   
@@ -809,8 +822,6 @@ int main (int argc, char*argv[])
   NewCommand.Interface = 0 ;
   NewCommand.Exchange= 0 ;
 
-  tv.tv_sec = 0 ;
-  tv.tv_usec = 10000 ;
 
   for (;;) {
     // Main loop - wait for something to receive and then filter/exchange it and route it
@@ -819,6 +830,10 @@ int main (int argc, char*argv[])
     FD_SET(Can0SockFD,&rdfs) ;
     FD_SET(Can1SockFD,&rdfs) ;
 
+    tv.tv_sec = 0 ;
+    tv.tv_usec = 10000 ; // will be deleted by select!
+
+
     if ((i=select(Can1SockFD+1,&rdfs,NULL,NULL,&tv))<0) {
       perror ("CANGateway: Could not select") ;
       exit (1) ;
@@ -826,23 +841,23 @@ int main (int argc, char*argv[])
 
     relworkqueue () ;
 
-    if (i==0) continue ; // was timeout only
+    if (i==0) {
+      continue ; // was timeout only
+    } ;
     
     if (FD_ISSET(RecSockFD,&rdfs)) {
       ReceiveFromUDP (&Command) ;
       Command.Interface = CIF_NET ;
       if (Command.Len==0) continue ;
-    } ;
-
-    if (FD_ISSET(Can0SockFD,&rdfs)) {
+    } else if (FD_ISSET(Can0SockFD,&rdfs)) {
       ReceiveFromCAN (Can0SockFD,&Command) ;
       Command.Interface = CIF_CAN0 ;
-    } ;
-
-    if (FD_ISSET(Can1SockFD,&rdfs)) {
+    } else if (FD_ISSET(Can1SockFD,&rdfs)) {
       ReceiveFromCAN (Can1SockFD,&Command) ;
       Command.Interface = CIF_CAN0 ;
     } ; 
+
+    usleep(2000) ;
 
     // Look-up if received Element should be exchanged with other element(s)
     Exchange = CommandMatch(&Command) ;

@@ -470,6 +470,22 @@
          <Rollo name="FensterRechtsHinten" kurz="50" lang="50" vertauschen="1">
             <Adresse linie="3" knoten="101" port="5"/>
          </Rollo>
+     <Makro name="Hoch">
+         <Aktion kommando="Hoch" objekt="Dachgeschoss/Eltern/FensterLinksVorne"/>
+         <Aktion kommando="Hoch" objekt="Dachgeschoss/Eltern/FensterLinksMitte"/>
+         <Aktion kommando="Hoch" objekt="Dachgeschoss/Eltern/FensterLinksHinten"/>
+         <Aktion kommando="Hoch" objekt="Dachgeschoss/Eltern/FensterRechtsVorne"/>
+         <Aktion kommando="Hoch" objekt="Dachgeschoss/Eltern/FensterRechtsMitte"/>
+         <Aktion kommando="Hoch" objekt="Dachgeschoss/Eltern/FensterRechtsHinten"/>
+     </Makro>
+     <Makro name="Runter">
+         <Aktion kommando="Runter" objekt="Dachgeschoss/Eltern/FensterLinksVorne"/>
+         <Aktion kommando="Runter" objekt="Dachgeschoss/Eltern/FensterLinksMitte"/>
+         <Aktion kommando="Runter" objekt="Dachgeschoss/Eltern/FensterLinksHinten"/>
+         <Aktion kommando="Runter" objekt="Dachgeschoss/Eltern/FensterRechtsVorne"/>
+         <Aktion kommando="Runter" objekt="Dachgeschoss/Eltern/FensterRechtsMitte"/>
+         <Aktion kommando="Runter" objekt="Dachgeschoss/Eltern/FensterRechtsHinten"/>
+     </Makro>
      </Zimmer>
   </Etage>
   <Etage name="Aussen">

@@ -167,7 +167,7 @@ LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB) $(EXTRALIBS)
 
 # Define programs and commands.
 SHELL = sh
-CC = gcc-4
+CC = gcc
 REMOVE = rm -f
 REMOVEDIR = rm -rf
 COPY = cp

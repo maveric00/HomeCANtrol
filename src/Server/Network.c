@@ -15,6 +15,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <ctype.h>
+#include <linux/tcp.h>
 #include "libwebsocket/libwebsockets.h"
 #include "ConfigNodes.h"
 #include "XMLConfig.h"
@@ -35,6 +36,7 @@ char CAN_BROADCAST[NAMELEN] ;
 
 int RecSockFD;
 int GateSockFD;
+int GateSockInFD;
 int ComSockFD;
 int SendSockFD;
 int RecAjaxFD ;
@@ -124,12 +126,12 @@ int InitNetwork(void)
   
   // Mark it as Broadcast
 
-  setsockopt(RecSockFD, SOL_SOCKET, SO_BROADCAST, (char *) &val, sizeof(val)) ;
+  //  setsockopt(RecSockFD, SOL_SOCKET, SO_BROADCAST, (char *) &val, sizeof(val)) ;
   
   // Reserve Receive-Socket for Commands
 
   if ((ComSockFD = socket(AF_INET, SOCK_STREAM,0)) == -1) {
-    perror("talker: command socket");
+    perror("talker: ComSock socket");
     fprintf(stderr, "Could not get socket\n");
     return(1);
   }
@@ -173,12 +175,13 @@ int InitNetwork(void)
   }
   setsockopt(SendSockFD, SOL_SOCKET, SO_BROADCAST, (char *) &val, sizeof(val)) ;
 
-  // Set up send-Socket for CAN-Gateway data
-  memset(&hints, 0, sizeof(hints));
+
+  sprintf(CAN_LOOP_PORT,"%d",CAN_PORT_NUM-1) ;
+
+  // Set up send-Socket for CAN data
+  memset(&hints, 0, sizeof hints);
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_DGRAM;
-
-  sprintf (CAN_LOOP_PORT,"%d",CAN_PORT_NUM-1) ;
   
   if ((rv = getaddrinfo("127.0.0.1", CAN_LOOP_PORT, &hints, &gateinfo)) != 0) {
     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
@@ -189,7 +192,7 @@ int InitNetwork(void)
   for(GaInfo = gateinfo; GaInfo != NULL; GaInfo = GaInfo->ai_next) {
     if ((GateSockFD = socket(GaInfo->ai_family, GaInfo->ai_socktype,
 			     GaInfo->ai_protocol)) == -1) {
-      perror("Gate: socket");
+      perror("talker: Gate socket");
       continue;
     }
     
@@ -197,7 +200,7 @@ int InitNetwork(void)
   }
   
   if (GaInfo == NULL) {
-    fprintf(stderr, "talker: failed to get Gate-socket\n");
+    fprintf(stderr, "talker: failed to get Send-socket\n");
     return 2;
   }
 
@@ -207,7 +210,7 @@ int InitNetwork(void)
     fprintf (stderr,"listener: failed to listen on command port\n") ;
     return 2 ;
   }
-  
+
   // Init select set
   
   FD_ZERO(&socketReadSet);
@@ -237,22 +240,26 @@ int ReceiveCANMessage (ULONG *CANID, char *Len, unsigned char *Data)
   int numbytes ;
   struct sockaddr_storage their_addr;
   struct sockaddr_in *tap ;
+  int Source ;
 
   tap = (struct sockaddr_in*)&their_addr ;  
   addr_len = sizeof(their_addr);
-
+  
+  Source = 0 ;
   if ((numbytes = relrecvfrom(RecSockFD, buf, CANBUFLEN-1 , 0,
-			   (struct sockaddr_in *)tap, &addr_len)) == -1) {
+			      (struct sockaddr_in *)tap, &addr_len,&Source)) == -1) {
     fprintf(stderr,"Could not read from socket?\n");
     return(1);
   }
   
-  if (numbytes==0) {
+  if ((numbytes==0)||(Source==0)) { // Either an Ack or from CANControl
     *Len = 0 ; // nothing has been received (was probably an ack)
     return (0) ;
   } ;
-
-  relsendto(GateSockFD, buf, numbytes, 0,(struct sockaddr_in*)GaInfo->ai_addr, GaInfo->ai_addrlen) ;
+  printf ("Relay to gateway\n") ;
+  //Relay to Gateway (with source) ;
+  relsendto(GateSockFD, buf, numbytes, 0,
+	    (struct sockaddr_in*)GaInfo->ai_addr, GaInfo->ai_addrlen,99) ;
 
   CANIDP = (unsigned char*)CANID ;
   for (i=0;i<4;i++) CANIDP[i]=buf[i] ;
@@ -281,12 +288,15 @@ int SendCANMessage (ULONG CANID, char Len, unsigned char *Data)
 
   for (i=0;i<Len;i++) Message[i+5] = Data[i] ;
   for (;i<8;i++) Message[i+5] = 0 ;
-  
+
   if ((numbytes = relsendto(SendSockFD, Message, 13, 0,
-			    (struct sockaddr_in*)SendInfo->ai_addr, SendInfo->ai_addrlen)) != 13) {
+			    (struct sockaddr_in*)SendInfo->ai_addr, SendInfo->ai_addrlen,0)) != 13) {
     perror("SendCANMessage nicht erfolgreich");
     return(1);
   }
+  
+  relsendto(GateSockFD, Message, 13, 0,
+	    (struct sockaddr_in*)GaInfo->ai_addr, GaInfo->ai_addrlen,99) ;
 
   return (0);
 }
@@ -430,17 +440,20 @@ void SendAction (struct Node *Action)
   unsigned char Data[8]; 
   char Len ;
   int Linie,Knoten,Port ;
+
+  /*
   static struct timeval Old ;
   struct timeval Now,Wait ;
 
   Wait.tv_sec=0;
-  Wait.tv_usec=1000;
+  Wait.tv_usec=5000;
 
   while(1) {
     gettimeofday(&Now,NULL) ;
     if (timercmp(&Now,&Old,>)) break ;
   } ;
   timeradd(&Now,&Wait,&Old) ;
+  */
 
   Command = 0 ;
   switch (Action->Data.Aktion.Unit->Type) {
