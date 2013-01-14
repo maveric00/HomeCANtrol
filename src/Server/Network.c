@@ -15,7 +15,6 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <ctype.h>
-#include <linux/tcp.h>
 #include "libwebsocket/libwebsockets.h"
 #include "ConfigNodes.h"
 #include "XMLConfig.h"
@@ -256,7 +255,7 @@ int ReceiveCANMessage (ULONG *CANID, char *Len, unsigned char *Data)
     *Len = 0 ; // nothing has been received (was probably an ack)
     return (0) ;
   } ;
-  printf ("Relay to gateway\n") ;
+
   //Relay to Gateway (with source) ;
   relsendto(GateSockFD, buf, numbytes, 0,
 	    (struct sockaddr_in*)GaInfo->ai_addr, GaInfo->ai_addrlen,99) ;
@@ -322,8 +321,6 @@ int CheckNetwork(int * error,int timeOut) // milliseconds
   int ToBeClosed ; 
   
   localReadSet = socketReadSet ;
-  
-
 
   if (timeOut) {
     tv.tv_sec  = timeOut / 1000;
@@ -408,7 +405,7 @@ int CheckNetwork(int * error,int timeOut) // milliseconds
 }
 
 
-/* Aufraeum-Funktion */
+/* Aufraeum-Funktion, wird vermutlich nie aufgerufen */
 
 void CloseNetwork (void) 
 {
@@ -440,20 +437,6 @@ void SendAction (struct Node *Action)
   unsigned char Data[8]; 
   char Len ;
   int Linie,Knoten,Port ;
-
-  /*
-  static struct timeval Old ;
-  struct timeval Now,Wait ;
-
-  Wait.tv_sec=0;
-  Wait.tv_usec=5000;
-
-  while(1) {
-    gettimeofday(&Now,NULL) ;
-    if (timercmp(&Now,&Old,>)) break ;
-  } ;
-  timeradd(&Now,&Wait,&Old) ;
-  */
 
   Command = 0 ;
   switch (Action->Data.Aktion.Unit->Type) {

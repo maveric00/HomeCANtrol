@@ -30,6 +30,19 @@
 #define FALSE (1==0)
 #define TRUE (1==1) 
 
+/*
+  Message composition:
+  Byte 1: Sequence number
+  Byte 2: Origin (0: CANControl, 1...98: Gateways, 99: Traffic relayed from CC
+  Byte 3: CANID0
+  Byte 4: CANID1
+  Byte 5: CANID2
+  Byte 6: CANID3
+  Byte 7: LEN
+  Byte 8: CAN Command
+  Byte 9..15: Command data 
+ */
+
 struct RelUDPHost RelFirstSend ;
 struct RelUDPHost RelFirstRec ;
 struct RelUDPHost RelaySend ;
@@ -68,7 +81,9 @@ struct RelUDPHost *RelAddHost (struct RelUDPHost *First, char *IP)
   
   There->Next = Host ;
 
+#ifdef DEBUG
   printf ("Add host %s\n",IP) ;
+#endif
 
   return (Host) ;
 }
@@ -84,7 +99,9 @@ void RelDelHost(struct RelUDPHost *First, struct RelUDPHost *Host)
   }
   There->Next = Host->Next; 
 
+#ifdef DEBUG
   printf ("Del host %s\n",Host->IP) ;
+#endif
 
   free (Host) ;
 }
@@ -103,7 +120,9 @@ int RelAddMessage (struct RelUDPHost *Host, unsigned char *Buffer, size_t Buffer
   Host->tap = tap ;
   Host->taplen = taplen ;
   
+#ifdef DEBUG
   printf ("Add Message %d to  %s\n",i,Host->IP) ;
+#endif
 
   return (0) ;
 } ;
@@ -127,7 +146,9 @@ void RelDelMessage (struct RelUDPHost *Host, unsigned char SeqNr)
 {
   Host->Messages[SeqNr].len = 0 ; // Mark as deleted
   Host->NotSeen = 0 ; // Host has sent an Ack
+#ifdef DEBUG
   printf ("Del Message %d to  %s\n",SeqNr,Host->IP) ;
+#endif
 }
 
 void relworkqueue ()
@@ -141,7 +162,9 @@ void relworkqueue ()
   for (Host=RelFirstSend.Next;Host!=NULL;Host=Next) {
     Next = Host->Next ; // if Host gets deleted ;
     if (Host->Messages[i].len!=0) {
+#ifdef DEBUG
       printf ("ReSend %d to %s\n",i,Host->IP) ;
+#endif
       sendto(Host->SendSocket,Host->Messages[i].Buffer,Host->Messages[i].len,0,Host->tap,Host->taplen) ;
       Host->NotSeen++ ;
     } ;
@@ -149,7 +172,9 @@ void relworkqueue ()
   }
   if (RelaySend.NotSeen<50) {
     if (RelaySend.Messages[i].len!=0) {
+#ifdef DEBUG
       printf ("ReSend %d to Gateway\n",i) ;
+#endif
       sendto(RelaySend.SendSocket,RelaySend.Messages[i].Buffer,RelaySend.Messages[i].len,0,RelaySend.tap,RelaySend.taplen) ;
       RelaySend.NotSeen++ ;
     } ;
@@ -178,13 +203,17 @@ int relrecvfrom (int Socket,unsigned char *Buffer, size_t Bufferlen, int flag, s
 
 
   if (numbytes<5) { // This is an acknowledgement...
+#ifdef DEBUG
     printf ("Got Ack for %d from %s:%d\n",Buf[0],IP,Buf[1]); 
+#endif
     Host = RelFindHost(&RelFirstSend,IP) ;
     if ((Host==NULL)&&(*Relay!=(int)Buf[1])) { // This host is not registered, yet, so register it if it is not us...
       if (Buf[1]!=99) { 
 	Host=RelAddHost(&RelFirstSend,IP) ;
       } 
+#ifdef DEBUG
       printf ("in Ack\n") ;
+#endif
     } ;
     if (Buf[1]==99) {
 	RelaySend.NotSeen = 0 ;
@@ -205,22 +234,34 @@ int relrecvfrom (int Socket,unsigned char *Buffer, size_t Bufferlen, int flag, s
     } else {
       Ack[1] = 99 ;
     }
+#ifdef DEBUG
     printf ("Ack %d to %s:%d\n",Buf[0],IP,Buf[1]) ;
+#endif
     sendto(RelSendSock,Ack,2,0,RelSendInfo->ai_addr,RelSendInfo->ai_addrlen) ;
     
     // Check if Message has already been received
     
+#ifdef DEBUG
     printf ("Received Mesg %d from %s\n",Buf[0],IP); 
+#endif
     
     // Check if timing message, if yes, don't store it...
-    if (Buf[5]!=16) {
+    // This makes sense, as repeated time infos are not critical but are repeated
+    // often enough that a 1:3 chance exists that the ringbuffer still contains a 
+    // time info message with the same sequence number for the same CAN channel...
+    // Byte 7 in the buffer is the CAN Command
+    if (Buf[7]!=16) {
       Host = RelFindHost(&RelFirstRec,IP) ;
       if (Host==NULL) { // This host is not registered, yet, so register it
 	Host=RelAddHost(&RelFirstRec,IP) ; // it will never be deleted, though
+#ifdef DEBUG
 	printf ("in Received\n") ;
+#endif
       } else {
 	if (RelCmpMessage(Host,Buf,numbytes)) { // we already received it 
+#ifdef DEBUG
 	  printf ("Already got it from %s: %d %d %d %d %d\n",Host->IP,Buf[0],Buf[1],Buf[2],Buf[3],Buf[4]) ;
+#endif
 	  return (0) ;
 	} ;
       }
@@ -259,11 +300,13 @@ int relsendto (int Socket,unsigned char *Buffer, size_t Bufferlen, int flag, str
 
   Buf[1] = Relay ;
 
+#ifdef DEBUG
   if (Relay!=99) {
     printf ("Send Mesg %d to All\n",Buf[0]); 
   } else {
     printf ("Send Mesg %d to Relay\n",Buf[0]); 
   }; 
+#endif
 
   if ((numbytes = sendto(Socket, Buf, Bufferlen+2, flag, (struct sockaddr*)tap, taplen)) != Bufferlen+2) {
     perror("relsendto nicht erfolgreich");
