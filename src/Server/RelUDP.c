@@ -212,17 +212,20 @@ int relrecvfrom (int Socket,unsigned char *Buffer, size_t Bufferlen, int flag, s
     
     printf ("Received Mesg %d from %s\n",Buf[0],IP); 
     
-    Host = RelFindHost(&RelFirstRec,IP) ;
-    if (Host==NULL) { // This host is not registered, yet, so register it
-      Host=RelAddHost(&RelFirstRec,IP) ; // it will never be deleted, though
-      printf ("in Received\n") ;
-    } else {
-      if (RelCmpMessage(Host,Buf,numbytes)) { // we already received it 
-	printf ("Already got it from %s: %d %d %d %d %d\n",Host->IP,Buf[0],Buf[1],Buf[2],Buf[3],Buf[4]) ;
-	return (0) ;
-      } ;
-    }
-    RelAddMessage (Host,Buf,numbytes,Socket,(struct sockaddr*)tap,*taplen) ;
+    // Check if timing message, if yes, don't store it...
+    if (Buf[5]!=16) {
+      Host = RelFindHost(&RelFirstRec,IP) ;
+      if (Host==NULL) { // This host is not registered, yet, so register it
+	Host=RelAddHost(&RelFirstRec,IP) ; // it will never be deleted, though
+	printf ("in Received\n") ;
+      } else {
+	if (RelCmpMessage(Host,Buf,numbytes)) { // we already received it 
+	  printf ("Already got it from %s: %d %d %d %d %d\n",Host->IP,Buf[0],Buf[1],Buf[2],Buf[3],Buf[4]) ;
+	  return (0) ;
+	} ;
+      }
+      RelAddMessage (Host,Buf,numbytes,Socket,(struct sockaddr*)tap,*taplen) ;
+    } ;
   } ;
 
   // Return Message without sequence counter only
