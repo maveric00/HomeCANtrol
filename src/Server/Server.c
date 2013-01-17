@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <expat.h>
 #include <string.h>
+#include <ctype.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -503,10 +504,81 @@ int HandleCommand (char *Command, char *Answer,int Socket)
 
 static void *Handle_Webserver(enum mg_event event, struct mg_connection *conn) 
 {
-  // const struct mg_request_info *request_info = mg_get_request_info(conn); 
+  const struct mg_request_info *ri = mg_get_request_info(conn); 
+  char data[NAMELEN*4] ;
+  char Com[NAMELEN*4] ;
+  char Obj[NAMELEN*4] ;
+  struct Node *This ;
+  int Line,Add,Port ;
+  int i,j ;
+  
+  if (event==MG_NEW_REQUEST) {
+    if (!strcmp(ri->uri, "/Action")) {      
+      // User has submitted a form, show submitted data and a variable value 
+      if (ri->query_string==NULL) return (NULL) ;
+      
+      for (i=0,j=0;(ri->query_string[i]!='\0')&&(ri->query_string[i]!='.')&&(j<NAMELEN*4-1);i++,j++) {
+	if (ri->query_string[i]=='+') {
+	  data[j]=' ' ;
+	} else if (ri->query_string[i]=='%') {
+	  data[j]='?' ;
+	  if ((ri->query_string[i+1]=='2')&&(toupper((int)ri->query_string[i+2])=='F')) data[j]='/' ;
+	  if ((ri->query_string[i+1]=='3')&&(toupper((int)ri->query_string[i+2])=='A')) data[j]=':' ;
+	  i+=2 ;
+	} else {
+	  data[j]=ri->query_string[i] ;
+	} ;
+      }
+      data[j] = '\0' ;
+      Obj[0] = '\0' ;
+      Com[0] = '\0' ;
+      
+      sscanf(data,"%s %s",Com,Obj) ;
+      
+      if ((strlen(Com)==0)||strlen(Obj)==0) return NULL ;
 
-  // Everything handled in mongoose
-  return NULL ;
+      This = FindNode(Haus->Child,Obj) ;  
+
+      if ((strcmp(Com,"Action")==0)||(strcmp(Com,"Aktion")==0)) {  
+	ExecuteMakro (This) ;
+      } ;
+      
+      if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
+	if ((strcmp(Com,"An")==0)||(strcmp(Com,"On")==0)) {
+	  SendCommand(CHANNEL_ON,Line,Add,Port) ;
+	} else if ((strcmp(Com,"Aus")==0)||(strcmp(Com,"Off")==0)) {
+	  SendCommand(CHANNEL_OFF,Line,Add,Port) ;
+	} else if (strcmp(Com,"Toggle")==0) {
+	  SendCommand(CHANNEL_TOGGLE,Line,Add,Port) ;
+	} else if ((strcmp(Com,"Hoch")==0)||(strcmp(Com,"Up")==0)) {
+	  SendCommand(SHADE_UP_FULL,Line,Add,Port) ;
+	} else if ((strcmp(Com,"Runter")==0)||(strcmp(Com,"Down")==0)) {
+	  SendCommand(SHADE_DOWN_FULL,Line,Add,Port) ;
+	} else if ((strcmp(Com,"KurzHoch")==0)||(strcmp(Com,"ShortUp")==0)) {
+	  SendCommand(SHADE_UP_SHORT,Line,Add,Port) ;
+	} else if ((strcmp(Com,"KurzRunter")==0)||(strcmp(Com,"ShortDown")==0)) {
+	  SendCommand(SHADE_DOWN_SHORT,Line,Add,Port) ;
+	}
+      } ;    
+      
+      // Give return command
+      
+      mg_printf (conn,"HTTP/1.0 200 OK\r\n"
+		 "Content-type: text/html\r\n\r\n"
+		 "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">\r\n"
+		 "<html><head><title>Action</title></head><body>\r\n"
+		 "<script type=\"text/javascript\">\r\n"
+		 "history.back();\r\n"
+		 "</script>"
+		 "</html>") ;      
+      return ""; 
+    }  ;
+
+  } ;
+
+  // Let mongoose handle everything else...
+  return NULL; 
+
 }
 
 
