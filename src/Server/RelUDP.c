@@ -26,6 +26,8 @@
 #include <netdb.h>
 #include <ctype.h>
 #include "RelUDP.h"
+#define SERVER_INCLUDE 1
+#include "../Apps/Common/mcp2515.h"
 
 #define FALSE (1==0)
 #define TRUE (1==1) 
@@ -251,7 +253,7 @@ int relrecvfrom (int Socket,unsigned char *Buffer, size_t Bufferlen, int flag, s
     // often enough that a 1:3 chance exists that the ringbuffer still contains a 
     // time info message with the same sequence number for the same CAN channel...
     // Byte 7 in the buffer is the CAN Command
-    if (Buf[7]!=16) {
+    if (Buf[7]!=TIME) {
       Host = RelFindHost(&RelFirstRec,IP) ;
       if (Host==NULL) { // This host is not registered, yet, so register it
 	Host=RelAddHost(&RelFirstRec,IP) ; // it will never be deleted, though
