@@ -353,27 +353,32 @@ int HandleCommand (char *Command, char *Answer,int Socket)
   static struct Node *MenuCurrent = NULL ;
   
   if (MenuCurrent==NULL) MenuCurrent = Haus ;
+
+  Obj[0] = '\0' ;
+  Com[0] = '\0' ;
+
+  sscanf(Command,"%s %s",Com,Obj) ;
   
   // Send current location and available Childs...
   
   if ((strcmp(Com,"Help")==0)||(strcmp(Com,"Hilfe")==0)) {
     sprintf (Answer,"Available Commands:\r\n"
 	     "Help/Hilfe: This help\r\n"
-	     "Config (Line)(Adress): Configure node with parameters\r\n"
-	     "Update (Line)(Adress): Update node with firmware stored in NodeConf\r\n"
-	     "Reload:                Reload CANControl configuration\r\n"
-	     "List:                  List all running macros\r\n"
-	     "Exit:                  Exit this communication\r\n"
-	     "An/On [Object]:        Switch on Object or current location\r\n"
-	     "Aus/Off [Object]:      Switch off object or current location\r\n"
-	     "Toggle [Object]:       Toggle object or current location\r\n"
-	     "Hoch/Up [Object]:      Open shades completely\r\n"
-             "Runter/Down [Object]:  Close shades completely\r\n"
-	     "KurzHoch/ShortUp [Object]: Open shades slightly\r\n"
+	     "Config (Line)(Adress):         Configure node with parameters\r\n"
+	     "Update (Line)(Adress):         Update node with firmware stored in NodeConf\r\n"
+	     "Reload:                        Reload CANControl configuration\r\n"
+	     "List:                          List all running macros\r\n"
+	     "Exit:                          Exit this communication\r\n"
+	     "An/On [Object]:                Switch on Object or current location\r\n"
+	     "Aus/Off [Object]:              Switch off object or current location\r\n"
+	     "Toggle [Object]:               Toggle object or current location\r\n"
+	     "Hoch/Up [Object]:              Open shades completely\r\n"
+             "Runter/Down [Object]:          Close shades completely\r\n"
+	     "KurzHoch/ShortUp [Object]:     Open shades slightly\r\n"
 	     "KurzRunter/ShortDown [Object]: Close shades slightly\r\n\r\n"
-	     "[Number]:              Select child object\r\n"
-	     "Parent:                Select parent object\r\n"
-	     "Top:                   Select top level\r\n"); 
+	     "[Number]:                      Select child object\r\n"
+	     "Parent:                        Select parent object\r\n"
+	     "Top:                           Select top level\r\n"); 
     send(Socket,Answer,strlen(Answer),0) ;
     sprintf (Answer,"Command: ") ;
     return(TRUE) ;
@@ -387,9 +392,12 @@ int HandleCommand (char *Command, char *Answer,int Socket)
     MenuCurrent = Haus ;
   }
   
+  i = 0 ;
   sscanf (Com,"%d",&i) ;
-  if (i>0) {
-    for (This=MenuCurrent->Child;(i>0)&&(This!=NULL);This=This->Next,i--) ;
+  if (i==99) {
+    if (MenuCurrent->Parent!=NULL) MenuCurrent=MenuCurrent->Parent ;
+  } else if (i>0) {
+    for (This=MenuCurrent->Child;(i>1)&&(This!=NULL);This=This->Next,i--) ;
     if (This==NULL) {
       sprintf (Answer,"Selection out of range\r\n") ;
       send(Socket,Answer,strlen(Answer),0) ;
@@ -397,28 +405,33 @@ int HandleCommand (char *Command, char *Answer,int Socket)
       MenuCurrent = This ;
     }; 
   } ;
-  
-  FullObjectName(MenuCurrent,Makro) ;
+
+  Makro[0]='\0' ;  
+  if (MenuCurrent==Haus) {
+    strcpy (Makro,"Top") ;
+  } else {
+    FullObjectName(MenuCurrent,Makro) ;
+  } ;
   sprintf (Answer,"Location: %s\r\n",Makro) ;
   send(Socket,Answer,strlen(Answer),0) ;
   sprintf (Answer,"Available childs:\r\n") ;
   send(Socket,Answer,strlen(Answer),0) ;
   for (This = MenuCurrent->Child,i=1;This!=NULL;This=This->Next,i++) {
+    Makro[0]='\0' ;
     FullObjectName(This,Makro) ;
     sprintf (Answer,"%d: %s\r\n",i,Makro) ;
     send(Socket,Answer,strlen(Answer),0) ;
   } ;
-  
-  sprintf (Answer,"Command: ") ;
+  sprintf (Answer,"99: One level up\r\n") ;
   send(Socket,Answer,strlen(Answer),0) ;
   
+  if (strlen(Com)==0) {
+    sprintf (Answer,"Command: ") ;
+    return (TRUE) ;  
+  } ;
   
   Answer[0]='\0' ;
-  Obj[0] = '\0' ;
-  Com[0] = '\0' ;
   
-  sscanf(Command,"%s %s",Com,Obj) ;
-  if (strlen(Com)==0) return (TRUE) ;
   
   if (strcmp(Com,"Config")==0) {
     sscanf (Command,"Config %d %d",&Line,&Add) ;
@@ -427,6 +440,8 @@ int HandleCommand (char *Command, char *Answer,int Socket)
       WriteConfig (&EEprom) ;
       SendConfig(&EEprom) ;
       sprintf (Answer,"Update Config\r\n") ;
+      send(Socket,Answer,strlen(Answer),0) ;
+      sprintf (Answer,"Command: ") ;
       return (TRUE); 
     } ;
   } ;
@@ -436,6 +451,8 @@ int HandleCommand (char *Command, char *Answer,int Socket)
     if ((Line!=0)&&(Add!=0)) {
       SendFirmware(Line,Add) ;
       sprintf (Answer,"Update Firmware\r\n") ;
+      send(Socket,Answer,strlen(Answer),0) ;
+      sprintf (Answer,"Command: ") ;
       return (TRUE); 
     }
   } ;
@@ -443,13 +460,17 @@ int HandleCommand (char *Command, char *Answer,int Socket)
   if (strcmp(Com,"Reload")==0) {
     if (ReadConfig()!=0) {
       sprintf (Answer,"Error in Configuration\r\n") ;
+      send(Socket,Answer,strlen(Answer),0) ;
+      sprintf (Answer,"Command: ") ;
       return(TRUE) ;
     } ;
     sprintf (Answer,"Updated Configuration\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"Command: ") ;
     return (TRUE); 
   } ;
   
-  if (strcmp(Command,"List")==0) {
+  if (strcmp(Com,"List")==0) {
     // List all active macros
     for (i=0;i<MAX_ACTIVEMACROS;i++) {
       if (ActiveMacros[i].Macro!=NULL) {
@@ -459,16 +480,25 @@ int HandleCommand (char *Command, char *Answer,int Socket)
 	send(Socket,Answer,strlen(Answer),0) ;
       } ;
     } ;
-    Answer[0]='\0' ;
+    sprintf (Answer,"Command: ") ;
     return (TRUE); 
   } ;
   
   if (strcmp(Com,"Exit")==0) {
     return (FALSE) ;
   } ;
-  
-  This = FindNode(Haus->Child,Obj) ;  
-  if (This==NULL) This = MenuCurrent ;
+
+  if (strlen(Obj)!=0) {
+    This = FindNode(Haus->Child,Obj) ;  
+    if (This==NULL) {
+      strcpy(Answer,"Object not found\r\n") ;
+      send(Socket,Answer,strlen(Answer),0) ;
+      sprintf (Answer,"Command: ") ;
+      return(TRUE) ;
+    } ;
+  } else {
+    This = MenuCurrent ;
+  } ;
   
   if ((strcmp(Com,"Action")==0)||(strcmp(Com,"Aktion")==0)) {  
     ExecuteMakro (This) ;
@@ -476,7 +506,7 @@ int HandleCommand (char *Command, char *Answer,int Socket)
   } ;
   
   if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
-    sprintf (Answer,"%s: %s\r\n",Com,Obj) ;
+    sprintf (Answer,"%s: %s\r\n",Com,This->Name) ;
     if ((strcmp(Com,"An")==0)||(strcmp(Com,"On")==0)) {
       SendCommand(CHANNEL_ON,Line,Add,Port) ;
     } else if ((strcmp(Com,"Aus")==0)||(strcmp(Com,"Off")==0)) {
@@ -495,9 +525,11 @@ int HandleCommand (char *Command, char *Answer,int Socket)
       sprintf (Answer,"Unknown command: %s\r\n",Com) ;
     }
   } else {
-    sprintf (Answer,"%s does not have an adress\r\n",Obj) ;
+    // sprintf (Answer,"%s does not have an adress\r\n",Obj) ;
   } ;    
-  
+
+  send(Socket,Answer,strlen(Answer),0) ;
+  sprintf (Answer,"Command: ") ;
   return (TRUE) ;
 }
 

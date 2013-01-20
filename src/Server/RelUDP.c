@@ -119,10 +119,11 @@ int RelAddMessage (struct RelUDPHost *Host, unsigned char *Buffer, size_t Buffer
   Host->SendSocket = SendSocket ;
   Host->tap = tap ;
   Host->taplen = taplen ;
-  
-#ifdef DEBUG
+
+#ifdef DEBUG  
   printf ("Add Message %d to  %s\n",i,Host->IP) ;
 #endif
+
 
   return (0) ;
 } ;
@@ -259,13 +260,20 @@ int relrecvfrom (int Socket,unsigned char *Buffer, size_t Bufferlen, int flag, s
 #endif
       } else {
 	if (RelCmpMessage(Host,Buf,numbytes)) { // we already received it 
-#ifdef DEBUG
-	  printf ("Already got it from %s: %d %d %d %d %d\n",Host->IP,Buf[0],Buf[1],Buf[2],Buf[3],Buf[4]) ;
-#endif
+	  int h ;
+	  printf ("Already got it from %s: ",Host->IP) ;
+	  for (h=0;h<15;h++) printf("%d ",Buf[h]) ;
+	  printf ("\n") ;
 	  return (0) ;
 	} ;
       }
       RelAddMessage (Host,Buf,numbytes,Socket,(struct sockaddr*)tap,*taplen) ;
+      {
+	int h ;
+	printf ("Add message to receive queue from %s: ",Host->IP) ;
+	for (h=0;h<15;h++) printf("%d ",Buf[h]) ;
+	printf ("\n") ;
+      } ;
     } ;
   } ;
 
