@@ -26,6 +26,7 @@ char *strptime(const char *s, const char *format, struct tm *tm);
 #define MAX_ACTIVEMACROS 255
 
 struct MacroList ActiveMacros[MAX_ACTIVEMACROS] ;
+struct SeqList ActiveSeq[MAX_ACTIVEMACROS] ;
 
 int IsMakro (struct Node *This)
 {
@@ -33,6 +34,7 @@ int IsMakro (struct Node *This)
 	  (This->Type==N_CALL)||(This->Type==N_TASK)||
 	  (This->Type==N_IF)||(This->Type==N_SET)||(This->Type==N_REPEAT)) ;
 } ;
+
 
 void ExecuteMakro (struct Node *Makro)
 {
@@ -51,6 +53,30 @@ void ExecuteMakro (struct Node *Makro)
   for (i=0;i<MAX_ACTIVEMACROS;i++) if (ActiveMacros[i].Macro==NULL) break ;
   
   ActiveMacros[i].Macro = Makro ;
+}
+
+void ExecuteSeq (struct Node *Action) ;
+{
+  struct SeqList *This ;
+  int i ;
+  
+  for (This=Sequences;This!=NULL;This=This->Next)
+    if (strcmp(This->Name,Action->Data.Aktion.Sequence)==0) break ;
+  
+  if (This==NULL) {
+    fprintf (stderr,"Unknown sequence %s\n",Action->Data.Aktion.Sequence) ;
+    return ;
+  } ;
+
+  if (This->Current!=NULL) {
+    fprintf (stderr,"Sequence %s already running\n",This->Name) ;
+    return ;
+  } ;
+
+  This->Current = This->First ;
+  This->Action = Action ;
+  for (i=0;i<MAX_ACTIVEMACROS;i++) if (ActiveSeq[i]==NULL) break ;
+  ActiveSeq[i]=This ;
 }
 
 int MakroVergleich (int a, int b, int Vergleich)
@@ -190,6 +216,68 @@ void StepMakros (void)
     } ;
   } ;
 }
+
+void StepSeq (void)
+{
+  int i,j ;
+  ULONG CANID ;
+  unsigned char Data[8]; 
+  char Len ;
+  int Linie,Knoten,Port ;  
+  struct Sequence *This ;
+  struct Sequence *Current ;
+
+  for (i=0;i<MAX_ACTIVEMACROS;i++) {
+    if (ActiveSeq[i]==NULL) continue ;
+    if (ActiveSeq[i]->Current==NULL) {
+      ActiveSeq[i]=NULL ;
+      continue ;
+    } ;
+    Current = ActiveSeq[i]->Current ;
+    switch (Current->Command) {
+    case S_NOP:
+    default:
+      ActiveSeq[i]->Current = Current->Next ;
+      break ;
+    case S_GOTO:
+      for (This=ActiveSeq[i]->First;This!=NULL;This=This->Next) if (This->LineNumber==Current->Para) break ;
+      if (This==NULL) {
+	fprintf (stderr,"Line number %d of Goto not found in sequence %s\n",Current->Para,ActiveSeq[i]->Name) ;
+      } ;
+      ActiveSeq[i]->Current = This ;
+      break ;
+    case S_DELAY:
+      if (Current->CurrVal==0) {
+	Current->CurrVal=Current->Para ;
+      } else if (Current->CurrVal==1) {
+	ActiveSeq[i]->Current = Current->Next ;
+      } else {
+	Current->CurrVal-- ;
+      } ;
+      break ;
+    case S_DIM:
+      // Output Elements
+      if (GetNodeAdress(ActiveSeq[i]->Action->Data.Aktion.Unit,&Linie,&Knoten,&Port)==0) {
+	CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
+	Data[0] = LOAD_LED ;
+	for (i=0;i<Current->DataLen;i+=3) {
+	  Data[1] = i/3 ;
+	  Data[2] = Current->Data[i]; 
+	  Data[3] = Current->Data[i+1]; 
+	  Data[4] = Current->Data[i+2]; 
+	  Len=5 ;
+	  SendCANMessage(CANID,Len,Data) ;
+	} ;
+	Data[0] = OUT_LED ;
+	Data[1] = Current->Para ;
+	Len = 2 ;
+	SendCANMessage(CANID,Len,Data) ;
+      }; 
+      ActiveSeq[i]->Current = ActiveSeq[i]->Current->Next ;
+      break ;
+    } ;
+  };
+} 
 
 void InitAlways(void)
 {
@@ -513,6 +601,7 @@ static void *Handle_Webserver(enum mg_event event, struct mg_connection *conn)
   int i,j ;
   
   if (event==MG_NEW_REQUEST) {
+    printf ("%s\n",ri->uri) ;
     if (!strcmp(ri->uri, "/Action")) {      
       // User has submitted a form, show submitted data and a variable value 
       if (ri->query_string==NULL) return (NULL) ;
@@ -532,6 +621,7 @@ static void *Handle_Webserver(enum mg_event event, struct mg_connection *conn)
       data[j] = '\0' ;
       Obj[0] = '\0' ;
       Com[0] = '\0' ;
+      printf ("Data: %s\n",data) ;
       
       sscanf(data,"%s %s",Com,Obj) ;
       

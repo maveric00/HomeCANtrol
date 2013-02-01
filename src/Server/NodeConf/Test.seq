@@ -1,0 +1,14 @@
+% WS2801-Programm (z.B. zur Ausfuehrung mit dem Sensor-Board
+% Zeilen mit % am Anfang und Leerzeilen werden ignoriert
+% Das Programm besteht aus einzelnen Kommando- oder Daten-Zeilen. Jede Zeile beginnt mit einer Zeilennummer
+% In einer Kommando-Zeile steht ein Kommando mit Parameter.
+% Eine Datenzeile besteht aus N 24-Bit-Werten, die die Werte für die LEDs darstellen
+% Implementierte Kommandos: Dim $TIME: Dimmt in Time(*50 ms) auf die Werte in der folgenden Datenzeile
+%                           Goto $LINE: Springt zur angegebenen Zeile
+%                           Delay $TIME: Wartet Time(*50 ms)
+%			    
+10 DIM 20
+20 FFFFFF FFFFFF FFFFFF FFFFFF
+30 DIM 20
+40 000000 000000 000000 000000
+50 GOTO 10

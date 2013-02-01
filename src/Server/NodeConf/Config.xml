@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-
 <Haus>
   <Sprache ist="deutsch"/>
-  <Broadcast IP="192.168.69.255"/>
+  <Broadcast IP="127.0.0.1"/>
   <Port CAN="13247" WS="13248" COM="13249" HTTP="80"/>
   <Etage name="Keller">
      <Zimmer name="Flur">
@@ -575,13 +574,10 @@
   <Firmware name="NodeConf/Relais.hex" id="16"/>
   <Firmware name="NodeConf/Licht.hex" id="18"/>
   <Firmware name="NodeConf/Sensor.hex" id="32"/>
+  <Sequenz name="TestSeq" datei="NodeConf/Test.seq"/>
   <Immer>
-    <Gleichzeitig makro="Heartbeat"/>
-    <Gleichzeitig makro="AbendSimulation"/>
-    <Gleichzeitig makro="MorgenSimulation"/>
   </Immer>
   <Start>
-     <Gleichzeitig makro="Init"/>
   </Start>
   <Variable name="Var" wert="0"/>
   <Web name="Webpage">
