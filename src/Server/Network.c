@@ -438,6 +438,11 @@ void SendAction (struct Node *Action)
   char Len ;
   int Linie,Knoten,Port ;
 
+  if (Action->Data.Aktion.Type==A_SEQUENCE) {
+    ExecuteSeq(Action) ;
+    return ;
+  } ;
+
   Command = 0 ;
   switch (Action->Data.Aktion.Unit->Type) {
   case N_ONOFF:

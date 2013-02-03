@@ -1,12 +1,20 @@
 #include <sys/time.h>
 #define NAMELEN 255
 #define MAX_ADD_PER_NODE 10
+#define MAX_WSLEDS 20
 
 typedef enum {
   WS_UNDEF = 0,
   WS_SEND_STATUS = 1,
   WS_SEND_ALL_STATUS = 2
 } tWsSend ;
+
+typedef enum {
+  S_NOP = 0,
+  S_DIM = 1,
+  S_GOTO = 2,
+  S_DELAY = 3,
+} tSeqCom ;
 
 
 typedef enum {
@@ -35,6 +43,7 @@ typedef enum {
   N_FIRMWARE = 22,
   N_BAD = 23,
   N_PROGRAM = 24,
+  N_SEQUENCE = 25,
   S_SIMPLE = 100,
   S_SHORTLONG = 101,
   S_SHADE_SHORTLONG = 102,
@@ -55,7 +64,8 @@ typedef enum {
   A_SHADE_TO = 207,
   A_SEND_VAL = 208,
   A_HEARTBEAT = 209,
-  A_CALL = 210
+  A_CALL = 210,
+  A_SEQUENCE = 211
 } NodeType ;
 
 typedef enum {
@@ -82,6 +92,7 @@ struct Aktion {
   int Short ;
   char UnitName[NAMELEN*4] ;
   struct Node *Unit ;
+  char Sequence[NAMELEN] ;
 } ;
 
 struct Werte {
@@ -156,6 +167,24 @@ struct MacroList {
     struct Node *WaitNode ;
     struct timeval WaitTime ;
   } Delay ;
+} ;
+
+struct Sequence {
+  struct Sequence *Next ;
+  int LineNumber ;
+  tSeqCom Command ;
+  int Para;
+  int CurrVal ;
+  int DataLen ;
+  unsigned char Data[MAX_WSLEDS*3] ;
+} ;
+
+struct SeqList {
+  struct SeqList *Next ;
+  struct Sequence *First ;
+  struct Sequence *Current;
+  struct Node *Action ;
+  char Name[NAMELEN] ;
 } ;
 
 extern struct Node *Haus ;

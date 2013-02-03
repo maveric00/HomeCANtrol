@@ -14,8 +14,9 @@
 
 #define BUFF_SIZE 10240
 
-struct Node *Haus ;
-struct Node *Current ;
+struct Node *Haus=NULL ;
+struct Node *Current=NULL ;
+struct SeqList *Seqences=NULL ;
 
 int MakroNummer;
 int Depth;
@@ -66,6 +67,8 @@ struct TypSel Types[] = {
   {"Port",N_PORT},
   {"Broadcast",N_BROADCAST},
   {"Firmware",N_FIRMWARE},
+  {"Sequence",N_SEQUENCE},
+  {"Sequenz",N_SEQUENCE},
   {"Program",N_PROGRAM},
   {"Programm",N_PROGRAM},
   {"Einfach",S_SIMPLE},
@@ -102,6 +105,8 @@ struct TypSel Types[] = {
   {"Heartbeat",A_HEARTBEAT},
   {"Rufe",A_CALL},
   {"Call",A_CALL},
+  {"Sequenz",A_SEQUENCE},
+  {"Sequence",A_SEQUENCE},
   {NULL,0} 
 } ;
 
@@ -161,6 +166,9 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       }
       if ((strcmp(attr[i],"objekt")==0)||(strcmp(attr[i],"object")==0)) {
 	strncpy(Current->Data.Aktion.UnitName,attr[i+1],NAMELEN*4) ;
+      } ;
+      if ((strcmp(attr[i],"sequenz")==0)||(strcmp(attr[i],"sequence")==0)) {
+	strncpy(Current->Data.Aktion.Sequence,attr[i+1],NAMELEN) ;
       } ;
       if ((strcmp(attr[i],"autonom")==0)||(strcmp(attr[i],"standalone")==0)) {
 	sscanf(attr[i+1],"%d",&(Current->Data.Aktion.StandAlone)) ;
@@ -285,6 +293,11 @@ void XMLCALL start(void *data, const char *el, const char **attr)
     case N_FIRMWARE:
       if (strcmp(attr[i],"id")==0) {
 	sscanf(attr[i+1],"%d",&(Current->Value)) ;
+      } ;
+      break ;
+    case N_SEQUENCE:
+      if ((strcmp(attr[i],"file")==0)||(strcmp(attr[i],"datei")==0)) {
+	ReadSequence (Current->Name,attr[i+1]) ;
       } ;
       break ;
     case N_PROGRAM:
@@ -447,3 +460,100 @@ int ReadConfig(void)
 
   return (ParseError) ;
 } 
+
+void ReadSequence (char *Name, char *File) 
+{
+  FILE *InFile ;
+  struct SeqList *List ;
+  struct Sequence *This ;
+  char Line[NAMELEN] ;
+  char Command[NAMELEN] ;
+  char Val[5] ;
+  int i,j ;
+
+  InFile = fopen(File,"r") ;
+  if (InFile==NULL) {
+    fprintf (stderr,"File %s not found for sequence %s\n",File,Name) ;
+    return ;
+  } ;
+  
+  Val[0] = '0' ;
+  Val[1] = 'x' ;
+  Val[4] = '\0' ;
+  
+  if (Sequences==NULL) {
+    Sequences = malloc (sizeof(struct SeqList)) ;
+    if (Sequences==NULL) {
+      fprintf (stderr,"Out of memory\n") ;
+      exit(-1) ;
+    } ;
+    List = Sequences ;
+  } else {
+    for (List=Sequences;List->Next!=NULL;List=List->Next) ;
+    List->Next = malloc (sizeof(struct SeqList)) ;
+    if (List->Next==NULL) {
+      fprintf (stderr,"Out of memory\n") ;
+      exit(-1) ;
+    } ;
+    List=List->Next ;
+  } ;
+
+  strcpy (List->Name,Name) ;
+  This = NULL ;
+
+  while (fgets(Line,NAMELEN,InFile)!=NULL) {
+    // Kommentarzeilen ausblenden
+    if (Line[0]=='%%') continue ;
+    // Neuen Sequenzschritt allokieren
+    ofr (i=0;i<strlen(Line);i++) Line[i]=toupper(Line[i]); 
+    if (This==NULL) {
+      List->First = malloc(sizeof(struct Sequence)) ;
+      This=List->First ;
+    } else {
+      This->Next = malloc(sizeof(struct Sequence)) ;
+      This=This->Next ;
+    } ;
+    if (This==NULL) {
+      fprintf (stderr,"Out of memory\n") ;
+      exit(0) ;
+    } ;
+
+    // Initialisiere Sequenz-Schritt
+    This->Next = NULL ;
+    This->CurrVal = 0 ;
+    for (i=0;i<MAX_WSLEDS*3;i++) This->Data[i]=0 ;
+
+    // Lese Zeilennummer, Kommando und Parameter ein
+    sscanf (Line,"%d %s %d",&(This->LineNumber),Command,&(This->Para)) ;
+    if (strcmp(Command,"DIM")==0) {
+      This->Command=S_DIM ;
+      if (fgets(Line,NAMELEN,InFile)==NULL) {
+	fprintf (stderr,"Unexpected EOF in seqence %s\n",File) ;
+	return ;
+      } ;
+      // Zeilennummer und Whitespace entfernen
+      for (i=0;i<strlen(Line)&&Line[i]!=' ';i++) ;
+      for (j=0;i<strlen(Line);i++) {
+	Line[j]=Line[i] ;
+	if ((Line[i]!=' ')&&(Line[i]!='\t')&&(Line[i]!='\r')&&(Line[i]!='\n')) j++ ;
+      } ;
+      Line[j]='\0' ;
+      
+      for (i=0;i<strlen(Line);i+=2) {
+	Val[2] = Line[i] ;
+	Val[3] = Line[i+1] ;
+	sscanf (Val,"%hhx",&(This->Data[i/2])) ;
+      } ;
+      This->DataLen = i/2 ;
+      if (This->DataLen%3!=0) {
+	fprintf (stderr,"Data not in RGB format in Sequence %s, Line %d\n",Name,This->LineNumber) ;
+      } ;
+    } else if (strcmp(Command,"DELAY")==0) {
+      This->Command=S_DELAY ;
+    } else if (strcmp(Command,"GOTO")==0) {
+      This->Command=S_GOTO ;
+    } ;
+  } ;
+}
+
+  
