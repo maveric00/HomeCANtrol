@@ -26,7 +26,7 @@ char *strptime(const char *s, const char *format, struct tm *tm);
 #define MAX_ACTIVEMACROS 255
 
 struct MacroList ActiveMacros[MAX_ACTIVEMACROS] ;
-struct SeqList ActiveSeq[MAX_ACTIVEMACROS] ;
+struct SeqList *ActiveSeq[MAX_ACTIVEMACROS] ;
 
 int IsMakro (struct Node *This)
 {
@@ -55,7 +55,7 @@ void ExecuteMakro (struct Node *Makro)
   ActiveMacros[i].Macro = Makro ;
 }
 
-void ExecuteSeq (struct Node *Action) ;
+void ExecuteSeq (struct Node *Action)
 {
   struct SeqList *This ;
   int i ;
@@ -219,7 +219,7 @@ void StepMakros (void)
 
 void StepSeq (void)
 {
-  int i,j ;
+  int i ;
   ULONG CANID ;
   unsigned char Data[8]; 
   char Len ;
@@ -544,6 +544,16 @@ int HandleCommand (char *Command, char *Answer,int Socket)
       sprintf (Answer,"Update Firmware\r\n") ;
       send(Socket,Answer,strlen(Answer),0) ;
       sprintf (Answer,"Command: ") ;
+      return (TRUE); 
+    } ;
+    printf ("No Add read\n") ;
+  } ;
+
+  if (strcmp(Com,"TC")==0) {
+    printf ("Toggle command\n") ;
+    sscanf (Command,"TC %d %d %d",&Line,&Add,&Port) ;
+    if ((Line!=0)&&(Add!=0)) {
+      SendCommand(CHANNEL_TOGGLE,Line,Add,Port) ;
       return (TRUE); 
     } ;
     printf ("No Add read\n") ;

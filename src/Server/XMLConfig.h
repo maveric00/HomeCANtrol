@@ -188,7 +188,7 @@ struct SeqList {
 } ;
 
 extern struct Node *Haus ;
-
+extern struct SeqList *Sequences ;
 // Node.c-Definitionen
 struct Node *CreateNode (void);
 void FreeNode (struct Node *This) ;
@@ -204,8 +204,9 @@ struct ListItem *CreateItem (struct ListItem* Head) ;
 
 // ParseXML.c-Definitionen
 int ReadConfig(void) ;
-
+void ReadSequence (char *Name, char *FileName) ;
 
 // Server.c-Definitionen
 void ExecuteMakro (struct Node *Makro);
+void ExecuteSeq (struct Node *Action) ;
 int HandleCommand (char *Command, char *Answer,int Socket) ;

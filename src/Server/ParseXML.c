@@ -16,7 +16,7 @@
 
 struct Node *Haus=NULL ;
 struct Node *Current=NULL ;
-struct SeqList *Seqences=NULL ;
+struct SeqList *Sequences=NULL ;
 
 int MakroNummer;
 int Depth;
@@ -297,7 +297,7 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       break ;
     case N_SEQUENCE:
       if ((strcmp(attr[i],"file")==0)||(strcmp(attr[i],"datei")==0)) {
-	ReadSequence (Current->Name,attr[i+1]) ;
+	ReadSequence (Current->Name,(char*)attr[i+1]) ;
       } ;
       break ;
     case N_PROGRAM:
@@ -461,7 +461,7 @@ int ReadConfig(void)
   return (ParseError) ;
 } 
 
-void ReadSequence (char *Name, char *File) 
+void ReadSequence (char *Name, char *FileName) 
 {
   FILE *InFile ;
   struct SeqList *List ;
@@ -471,9 +471,9 @@ void ReadSequence (char *Name, char *File)
   char Val[5] ;
   int i,j ;
 
-  InFile = fopen(File,"r") ;
+  InFile = fopen(FileName,"r") ;
   if (InFile==NULL) {
-    fprintf (stderr,"File %s not found for sequence %s\n",File,Name) ;
+    fprintf (stderr,"File %s not found for sequence %s\n",FileName,Name) ;
     return ;
   } ;
   
@@ -503,9 +503,9 @@ void ReadSequence (char *Name, char *File)
 
   while (fgets(Line,NAMELEN,InFile)!=NULL) {
     // Kommentarzeilen ausblenden
-    if (Line[0]=='%%') continue ;
+    if (Line[0]=='%') continue ;
     // Neuen Sequenzschritt allokieren
-    ofr (i=0;i<strlen(Line);i++) Line[i]=toupper(Line[i]); 
+    for (i=0;i<strlen(Line);i++) Line[i]=toupper(Line[i]); 
     if (This==NULL) {
       List->First = malloc(sizeof(struct Sequence)) ;
       This=List->First ;
@@ -528,7 +528,7 @@ void ReadSequence (char *Name, char *File)
     if (strcmp(Command,"DIM")==0) {
       This->Command=S_DIM ;
       if (fgets(Line,NAMELEN,InFile)==NULL) {
-	fprintf (stderr,"Unexpected EOF in seqence %s\n",File) ;
+	fprintf (stderr,"Unexpected EOF in seqence %s\n",FileName) ;
 	return ;
       } ;
       // Zeilennummer und Whitespace entfernen
