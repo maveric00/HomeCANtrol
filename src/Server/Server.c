@@ -448,14 +448,17 @@ int HandleCommand (char *Command, char *Answer,int Socket)
   } ;
   
   if (strcmp(Com,"Update")==0) {
+    printf ("Update command\n") ;
     sscanf (Command,"Update %d %d",&Line,&Add) ;
     if ((Line!=0)&&(Add!=0)) {
+      printf ("Line %d, Add %d\n",Line,Add) ;
       SendFirmware(Line,Add) ;
       sprintf (Answer,"Update Firmware\r\n") ;
       send(Socket,Answer,strlen(Answer),0) ;
       sprintf (Answer,"Command: ") ;
       return (TRUE); 
-    }
+    } ;
+    printf ("No Add read\n") ;
   } ;
   
   if (strcmp(Com,"Reload")==0) {
@@ -545,6 +548,7 @@ static void *Handle_Webserver(enum mg_event event, struct mg_connection *conn)
   int i,j ;
   
   if (event==MG_NEW_REQUEST) {
+    printf ("%s\n",ri->uri) ;
     if (!strcmp(ri->uri, "/Action")) {      
       // User has submitted a form, show submitted data and a variable value 
       if (ri->query_string==NULL) return (NULL) ;
@@ -567,6 +571,8 @@ static void *Handle_Webserver(enum mg_event event, struct mg_connection *conn)
       
       sscanf(data,"%s %s",Com,Obj) ;
       
+      printf ("%s %s\n",Com,Obj) ;
+
       if ((strlen(Com)==0)||strlen(Obj)==0) return NULL ;
 
       This = FindNode(Haus->Child,Obj) ;  

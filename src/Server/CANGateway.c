@@ -351,7 +351,6 @@ void ReadConfig(void)
     // Same for CAN1
 
     if (strstr(Line,"CAN1-Line:")!=NULL) {
-      printf ("Full: %s\n",Line) ;
       for (i=0;(Line[i]!='\0')&&(Line[i]!=' ');i++) ;
       i++ ;
       for (;Line[i]!='\0';i++) {
@@ -377,6 +376,11 @@ void ReadConfig(void)
 
   for (i=0;(i<255)&&(RouteIF1[i]==0);i++) ;
   if (i==255) for(i=0;i<255;i++) RouteIF1[i] = 1 ;
+
+  if (GatewayNum==0) {
+    fprintf (stderr,"Please specify GatewayNumber in Config\n") ;
+    exit(0) ;
+  }; 
 }
 
 
@@ -459,7 +463,9 @@ int InitNetwork(void)
       exit(-1) ;
     } ;
   } ;
-  
+
+  setsockopt(RecSockFD, SOL_SOCKET, SO_BROADCAST, (char *) &val, sizeof(val)) ;  
+
   // Set up send-Socket
   memset(&hints, 0, sizeof hints);
   hints.ai_family = AF_INET;
@@ -565,6 +571,7 @@ int ReceiveFromUDP (struct CANCommand *Command)
 
   addr_len = sizeof their_addr;
   Source = GatewayNum ;
+
 
   if ((numbytes = relrecvfrom(RecSockFD, buf, CANBUFLEN-1 , 0,
 			      (struct sockaddr_in *)tap,(socklen_t*) &addr_len,&Source)) == -1) {

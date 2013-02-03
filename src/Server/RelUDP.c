@@ -263,19 +263,23 @@ int relrecvfrom (int Socket,unsigned char *Buffer, size_t Bufferlen, int flag, s
       } else {
 	if (RelCmpMessage(Host,Buf,numbytes)) { // we already received it 
 	  int h ;
+#ifdef DEBUG
 	  printf ("Already got it from %s: ",Host->IP) ;
 	  for (h=0;h<15;h++) printf("%d ",Buf[h]) ;
 	  printf ("\n") ;
+#endif
 	  return (0) ;
 	} ;
       }
       RelAddMessage (Host,Buf,numbytes,Socket,(struct sockaddr*)tap,*taplen) ;
+#ifdef DEBUG
       {
 	int h ;
 	printf ("Add message to receive queue from %s: ",Host->IP) ;
 	for (h=0;h<15;h++) printf("%d ",Buf[h]) ;
 	printf ("\n") ;
       } ;
+#endif
     } ;
   } ;
 

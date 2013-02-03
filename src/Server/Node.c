@@ -134,7 +134,7 @@ struct Node *FindNodeAdress (struct Node *Root,int Linie, int Knoten, int Port,s
 void FullObjectName(struct Node *Node, char *Name)
 {
   // rekursiv nach oben gehen ;
-  if (Node->Parent->Parent!=NULL) {
+  if ((Node->Parent!=NULL)&&(Node->Parent->Parent!=NULL)) {
     FullObjectName (Node->Parent,Name) ;
     strcat (Name,"/") ;
   } ;
