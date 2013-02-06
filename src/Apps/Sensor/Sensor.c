@@ -98,6 +98,7 @@
 #define I_MONO      3
 #define I_RETRIG    4
 #define I_ANALOG    5
+#define I_BWM       6
 #define O_ONOFF    10
 #define O_PWM      11
 #define O_WSCLOCK  20
@@ -342,6 +343,11 @@ ISR( TIM0_OVF_vect )
  
 // check if a key has been pressed. Each pressed key is reported
 // only once
+uint8_t get_key_stat (uint8_t key_mask)
+{
+  return ((key_mask&(((PINB&0x7)<<3)|(PINA&0x7)))!=0);
+}
+
 
 uint8_t get_key_press( uint8_t key_mask )
 {
@@ -608,8 +614,8 @@ int main(void)
 	      TimerStatus |= 1<<i ;
 	    } else {
 	      if ((TimerStatus&(1<<i))>0) {
-		SendPinMessage(i,1,0) ;
-		TimerStatus &= ~(1<<i) ;
+     		SendPinMessage(i,1,0) ;
+	    	TimerStatus &= ~(1<<i) ;
 	      } ;
 	    } ;
 	  } ;
@@ -629,6 +635,22 @@ int main(void)
 	    } ;
 	  } ;
 	  break ;
+  	case I_BWM: // Nachstellbares Monoflop als Bewegungsmelder
+	  if (!get_key_stat(1<<i)) {
+	    if (Timers[i]==0) {
+	      SendPinMessage(i,0,0) ;
+	    } ;
+	    Timers[i] = ((uint16_t)Config[i])*100 ;
+	    TimerStatus |= 1<<i ;
+	  } ;
+	  if (Timers[i]==0) {
+	    if ((TimerStatus&(1<<i))>0) {
+	      SendPinMessage(i,1,0) ;
+	      TimerStatus &= ~(1<<i) ;
+	    } ;
+	  } ;
+	  break ;
+
 	case I_ANALOG: // Analog-Input, wird alle ConfigByte-Sekunden auf dem Bus ausgegeben.
 	  if (Timers[i]==0) {
 	    r = ADCH ;
