@@ -80,6 +80,8 @@ struct TypSel Types[] = {
   {"Rollo_Einfach",S_SHADE_SIMPLE},
   {"Shade_Simple",S_SHADE_SIMPLE},
   {"Monoflop",S_MONO},
+  {"BWM",S_BWM},
+  {"Movement",S_BWM},
   {"R_Monoflop",S_RETMONO},
   {"Analog",S_ANALOG},
   {"Ausgang",S_OUTPUT},
@@ -191,7 +193,7 @@ void XMLCALL start(void *data, const char *el, const char **attr)
 	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.Reset)) ;
       } ;
       if ((strcmp(attr[i],"intervall")==0)||(strcmp(attr[i],"interval")==0)) {
-	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.Ende)) ;
+	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.Intervall)) ;
       } ;
       break ;
     case N_BAD:
