@@ -5,6 +5,12 @@
   <Port CAN="13247" WS="13248" COM="13249" HTTP="80"/>
   <Etage name="Keller">
      <Zimmer name="Flur">
+     <Sensor name="Decke1" typ="WSData">
+        <Adresse linie="5" knoten="52" port="4"/>
+     </Sensor>
+     <Sensor name="Decke2" typ="WSClock">
+        <Adresse linie="5" knoten="52" port="5"/>
+     </Sensor>
      </Zimmer>
      <Zimmer name="Technik">
      </Zimmer>
@@ -570,14 +576,18 @@
     <Sub makro="Aussen/Aus"/>
     <Sub makro="Obergeschoss/Arbeit/Aus"/>
   </Makro>
+  <Makro name="SeqTest">
+    <Aktion kommando="Sequenz" sequenz="TestSeq" objekt="Keller/Flur/Decke1"/>
+  </Makro>
   <Firmware name="NodeConf/Bad.hex" id="1"/>
   <Firmware name="NodeConf/Relais.hex" id="16"/>
   <Firmware name="NodeConf/Licht.hex" id="18"/>
   <Firmware name="NodeConf/Sensor.hex" id="32"/>
-  <Sequenz name="TestSeq" datei="NodeConf/Test.seq"/>
+  <Seq name="TestSeq" datei="NodeConf/Test.seq"/>
   <Immer>
   </Immer>
   <Start>
+    <Gleichzeitig makro="Init"/>
   </Start>
   <Variable name="Var" wert="0"/>
   <Web name="Webpage">

@@ -50,7 +50,7 @@ void ExecuteMakro (struct Node *Makro)
   
   Makro->Data.MakroStep = This ;
 
-  for (i=0;i<MAX_ACTIVEMACROS;i++) if (ActiveMacros[i].Macro==NULL) break ;
+  for (i=0;i<MAX_ACTIVEMACROS-1;i++) if (ActiveMacros[i].Macro==NULL) break ;
   
   ActiveMacros[i].Macro = Makro ;
 }
@@ -75,7 +75,7 @@ void ExecuteSeq (struct Node *Action)
 
   This->Current = This->First ;
   This->Action = Action ;
-  for (i=0;i<MAX_ACTIVEMACROS;i++) if (ActiveSeq[i]==NULL) break ;
+  for (i=0;i<MAX_ACTIVEMACROS-1;i++) if (ActiveSeq[i]==NULL) break ;
   ActiveSeq[i]=This ;
 }
 
@@ -219,7 +219,7 @@ void StepMakros (void)
 
 void StepSeq (void)
 {
-  int i ;
+  int i,j ;
   ULONG CANID ;
   unsigned char Data[8]; 
   char Len ;
@@ -248,7 +248,7 @@ void StepSeq (void)
       break ;
     case S_DELAY:
       if (Current->CurrVal==0) {
-	Current->CurrVal=Current->Para ;
+	Current->CurrVal=Current->Para*5+1 ;
       } else if (Current->CurrVal==1) {
 	ActiveSeq[i]->Current = Current->Next ;
       } else {
@@ -260,11 +260,11 @@ void StepSeq (void)
       if (GetNodeAdress(ActiveSeq[i]->Action->Data.Aktion.Unit,&Linie,&Knoten,&Port)==0) {
 	CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
 	Data[0] = LOAD_LED ;
-	for (i=0;i<Current->DataLen;i+=3) {
-	  Data[1] = i/3 ;
-	  Data[2] = Current->Data[i]; 
-	  Data[3] = Current->Data[i+1]; 
-	  Data[4] = Current->Data[i+2]; 
+	for (j=0;j<Current->DataLen;j+=3) {
+	  Data[1] = j/3 ;
+	  Data[2] = Current->Data[j]; 
+	  Data[3] = Current->Data[j+1]; 
+	  Data[4] = Current->Data[j+2]; 
 	  Len=5 ;
 	  SendCANMessage(CANID,Len,Data) ;
 	} ;
@@ -806,6 +806,7 @@ int main(int argc, char **argv)
       // Alle regelmaessigen Tasks abarbeiten
       // Makros abarbeiten
       StepMakros() ;
+      StepSeq() ;
       timeradd(&Now,&Wait,&Old) ;
     } ;
   } ;

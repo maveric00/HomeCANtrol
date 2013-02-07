@@ -67,8 +67,7 @@ struct TypSel Types[] = {
   {"Port",N_PORT},
   {"Broadcast",N_BROADCAST},
   {"Firmware",N_FIRMWARE},
-  {"Sequence",N_SEQUENCE},
-  {"Sequenz",N_SEQUENCE},
+  {"Seq",N_SEQUENCE},
   {"Program",N_PROGRAM},
   {"Programm",N_PROGRAM},
   {"Einfach",S_SIMPLE},
@@ -347,8 +346,19 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       for (This=Current;This!=NULL;This=This->Parent) fprintf (stderr,"%s ",This->Name) ;
       fprintf (stderr,"\n") ;
     } ;
+    // Schauen, ob im Parent schon eine Adresse eingetragen ist; ggf diese ebenfalls
+    // ueberschreiben (Ein Element sollte nur eine Adresse haben...)
+    // Dient auch der Möglichkeit, Makros nachträglich mit einer Adresse zu versehen,
+    // um die Konfiguration von Aktionen im Sensor nicht von der Reihenfolge der Makros
+    // abhaengig zu haben.
+    for (This=Current->Prev;This!=NULL;This=This->Prev)
+      if (This->Type==N_ADRESS) {
+	This->Data.Adresse.Linie = Current->Data.Adresse.Linie ;
+	This->Data.Adresse.Knoten = Current->Data.Adresse.Knoten ;
+	This->Data.Adresse.Port = Current->Data.Adresse.Port ;
+      } ;
   } ;
-
+  
   // Element nachbearbeiten
   // Makros nummerieren 
   if (Current->Type==N_MACRO) {
