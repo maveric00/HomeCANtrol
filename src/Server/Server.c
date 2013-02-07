@@ -250,6 +250,7 @@ void StepSeq (void)
       if (Current->CurrVal==0) {
 	Current->CurrVal=Current->Para*5+1 ;
       } else if (Current->CurrVal==1) {
+	Current->CurrVal=0 ;
 	ActiveSeq[i]->Current = Current->Next ;
       } else {
 	Current->CurrVal-- ;
