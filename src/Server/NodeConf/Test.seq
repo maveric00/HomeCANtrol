@@ -3,14 +3,29 @@
 % Das Programm besteht aus einzelnen Kommando- oder Daten-Zeilen. Jede Zeile beginnt mit einer Zeilennummer
 % In einer Kommando-Zeile steht ein Kommando mit Parameter.
 % Eine Datenzeile besteht aus N 24-Bit-Werten, die die Werte für die LEDs darstellen
-% Implementierte Kommandos: Dim $TIME: Dimmt in Time(*50 ms) auf die Werte in der folgenden Datenzeile
-%                           Goto $LINE: Springt zur angegebenen Zeile
-%                           Delay $TIME: Wartet Time(*50 ms)
+% Implementierte Kommandos: DIM TIME: Dimmt in Time(in 0,1 Sekunden) auf die folgenden RGB-Werte 
+%                           DIM_H TIME: Dimmt in Time(in 0,1 Sekunden) auf die folgenden HSV-Werte 
+%			    SINGLE TIME INDEX: Dimmt die ab INDEX beginnenden LEDs in Time(in 0,1 Sekunden) 
+%                                              auf die folgenden RGB-Werte 
+%			    SINGLE_H TIME INDEX: Dimmt die ab INDEX beginnenden LEDs in Time(in 0,1 Sekunden) 
+%                                              auf die folgenden HSV-Werte 
+%                           GOTO LINE: Springt zur angegebenen Zeile
+%                           COUNT_UP NUMBER: Beginnt eine Schleife von 1 bis NUMBER
+%                           COUNT_DOWN NUMBER: Beginnt eine Schleife von NUMBER bis 1
+%                           COUNT_END INCREMENT: Beendet die Schleife
+%                           DELAY TIME: Wartet Time(*0,1 Sekunden)
 %			    
-10 DIM 20
-20 FFFFFF FFFFFF FFFFFF FFFFFF
-25 DELAY 20
-30 DIM 20
-40 000000 000000 000000 000000
-45 DELAY 20
-50 GOTO 10
+10 DIM 20 FFFFFF FFFFFF FFFFFF FFFFFF
+20 DIM 20 000000 000000 000000 000000
+30 DELAY 20
+40 DIM_H 20 1F59FF 1F59FF 1F59FF 1F59FF
+50 DIM_H 20 A959FF A959FF A959FF A959FF
+60 DIM 20 1F5920 1F5920 1F5920 1F5920
+70 COUNT_UP 4
+80 SINGLE_H 20 $$ 1F59FF
+100 COUNT_END 1
+110 COUNT_DOWN 4
+120 SINGLE_H 20 $$ 1F5920
+140 COUNT_END 1
+150 DELAY 50
+160 GOTO 10

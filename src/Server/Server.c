@@ -219,7 +219,7 @@ void StepMakros (void)
 
 void StepSeq (void)
 {
-  int i,j ;
+  int i,j,k ;
   ULONG CANID ;
   unsigned char Data[8]; 
   char Len ;
@@ -239,6 +239,36 @@ void StepSeq (void)
     default:
       ActiveSeq[i]->Current = Current->Next ;
       break ;
+    case S_COUNTUP:
+      ActiveSeq[i]->Counter = 1 ;
+      ActiveSeq[i]->UpDown = 0 ;
+      ActiveSeq[i]->LineNumber = Current->LineNumber ;
+      ActiveSeq[i]->Current = Current->Next ;
+      break ;
+    case S_COUNTDOWN:
+      ActiveSeq[i]->Counter = Current->Para ;
+      ActiveSeq[i]->UpDown = 1 ;
+      ActiveSeq[i]->LineNumber = Current->LineNumber ;
+      ActiveSeq[i]->Current = Current->Next ;
+      break ;
+    case S_COUNTEND:
+      for (This=ActiveSeq[i]->First;This!=NULL;This=This->Next) if (This->LineNumber==ActiveSeq[i]->LineNumber) break ;
+      if (ActiveSeq[i]->UpDown==0) {
+	ActiveSeq[i]->Counter+=Current->Para;
+	if (ActiveSeq[i]->Counter<=This->Para) {
+	  ActiveSeq[i]->Current = This->Next ;
+	} else {
+	  ActiveSeq[i]->Current = Current->Next ;
+	} ;
+      } else {
+	ActiveSeq[i]->Counter-=Current->Para;
+	if (ActiveSeq[i]->Counter>0) {
+	  ActiveSeq[i]->Current = This->Next ;
+	} else {
+	  ActiveSeq[i]->Current = Current->Next ;
+	} ;
+      } ;
+      break ;
     case S_GOTO:
       for (This=ActiveSeq[i]->First;This!=NULL;This=This->Next) if (This->LineNumber==Current->Para) break ;
       if (This==NULL) {
@@ -248,7 +278,8 @@ void StepSeq (void)
       break ;
     case S_DELAY:
       if (Current->CurrVal==0) {
-	Current->CurrVal=Current->Para*5+1 ;
+	Current->CurrVal=Current->Para*10+1 ; // Para ist Delay in 0,1 Sekunden, diese Routine wird ungefaehr
+	                                      // alle 10 ms aufgerufen -> Faktor 10
       } else if (Current->CurrVal==1) {
 	Current->CurrVal=0 ;
 	ActiveSeq[i]->Current = Current->Next ;
@@ -261,11 +292,43 @@ void StepSeq (void)
       if (GetNodeAdress(ActiveSeq[i]->Action->Data.Aktion.Unit,&Linie,&Knoten,&Port)==0) {
 	CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
 	Data[0] = LOAD_LED ;
+	ActiveSeq[i]->DataLen = Current->DataLen ;
 	for (j=0;j<Current->DataLen;j+=3) {
 	  Data[1] = j/3 ;
-	  Data[2] = Current->Data[j]; 
-	  Data[3] = Current->Data[j+1]; 
-	  Data[4] = Current->Data[j+2]; 
+	  Data[2] = ActiveSeq[i]->Data[j] = Current->Data[j]; 
+	  Data[3] = ActiveSeq[i]->Data[j+1] = Current->Data[j+1]; 
+	  Data[4] = ActiveSeq[i]->Data[j+2] = Current->Data[j+2]; 
+	  Len=5 ;
+	  SendCANMessage(CANID,Len,Data) ;
+	} ;
+	Data[0] = OUT_LED ;
+	Data[1] = Current->Para ;
+	Len = 2 ;
+	SendCANMessage(CANID,Len,Data) ;
+      }; 
+      ActiveSeq[i]->Current = ActiveSeq[i]->Current->Next ;
+      break ;
+    case S_SINGLE:
+      // Update Data
+      if (Current->LED==-1) {
+	j = (ActiveSeq[i]->Counter-1)*3 ;
+      } else {
+	j = (Current->LED-1)*3 ;
+      } ;
+
+      for (k=0;(k<Current->DataLen)&&(j<MAX_WSLEDS*3);k++,j++) {
+	ActiveSeq[i]->Data[j] = Current->Data[k] ;
+      } ;
+
+      // Output Elements
+      if (GetNodeAdress(ActiveSeq[i]->Action->Data.Aktion.Unit,&Linie,&Knoten,&Port)==0) {
+	CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
+	Data[0] = LOAD_LED ;
+	for (j=0;j<ActiveSeq[i]->DataLen;j+=3) {
+	  Data[1] = j/3 ;
+	  Data[2] = ActiveSeq[i]->Data[j]; 
+	  Data[3] = ActiveSeq[i]->Data[j+1]; 
+	  Data[4] = ActiveSeq[i]->Data[j+2]; 
 	  Len=5 ;
 	  SendCANMessage(CANID,Len,Data) ;
 	} ;

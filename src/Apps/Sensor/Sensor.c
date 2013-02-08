@@ -130,8 +130,8 @@ volatile uint8_t  PWMStep ;
 
 uint8_t  SOLL_WS[MAX_LEDS*3] ;
 volatile uint8_t  START_WS[MAX_LEDS*3] ;
-volatile uint16_t TimerLED ;
-volatile uint16_t DurationLED ;
+volatile int16_t TimerLED ;
+volatile int16_t DurationLED ;
 uint8_t  NumLED ;
 
 volatile uint8_t* PIX_Clock ;
@@ -300,12 +300,13 @@ ISR( TIM0_OVF_vect )
 
   WSCounter++ ;
   if (WSCounter>1) {
+    // Nur alle 20 ms updaten (50 Hz Update-Rate reicht); maximale Fading-Zeit liegt bei 25,5 Sekunden mit 0,1 Sekunde Auflösung
     WSCounter = 0 ;
     // Berechnen des Sollwerts und Ausgeben desselben
     if (TimerLED>0) {
       TimerLED-- ;
       for (i=0;i<NumLED*3;i++) {
-	WSByte = (uint8_t)(((uint16_t)START_WS[i])+(((uint16_t)(SOLL_WS[i]-START_WS[i]))*(DurationLED-TimerLED)/DurationLED)) ;
+	WSByte = (uint8_t)(((uint16_t)START_WS[i])+(((int16_t)((int16_t)SOLL_WS[i]-(int16_t)START_WS[i]))*(DurationLED-TimerLED)/DurationLED)) ;
 	ws2801_writeByte(WSByte) ;
       } ;
       PIX_Clock[0] &= ~(PIX_CL) ; //Clock Low zum Latchen
@@ -316,7 +317,7 @@ ISR( TIM0_OVF_vect )
     } else {
       // Noch einmal den letzten Wert ausgeben, damit der Wert übernommen wird (das Pixel übernimmt erst mit
       // Beginn des nächsten Frames die Werte in die Ausgabe.
-      if (DurationLED>1) {
+      if (DurationLED>0) {
 	DurationLED-- ;
 	for (i=0;i<NumLED*3;i++) {
 	  ws2801_writeByte(START_WS[i]) ;
@@ -757,8 +758,8 @@ int main(void)
       break ;
     case LOAD_LED:
       r = Message.data[1] ;
-      if (r>MAX_LEDS) break; // Zu hohe LED-Nummer
-      NumLED = r>NumLED?r:NumLED ; // Set Max used LED
+      if ((r+1)>MAX_LEDS) break; // Zu hohe LED-Nummer
+      NumLED = (r+1)>NumLED?(r+1):NumLED ; // Set Max used LED
       SOLL_WS[r*3] = Message.data[2] ;
       SOLL_WS[r*3+1] = Message.data[3] ;
       SOLL_WS[r*3+2] = Message.data[4] ;

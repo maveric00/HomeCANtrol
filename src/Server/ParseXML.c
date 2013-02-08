@@ -473,14 +473,84 @@ int ReadConfig(void)
   return (ParseError) ;
 } 
 
+void ReadTrippleVals (char *Line, int InitParas, struct Sequence *This)
+{
+  char Val[5] ;
+  int i,j ;
+  
+  Val[0] = '0' ;
+  Val[1] = 'x' ;
+  Val[4] = '\0' ;
+  
+  // Die initialen Parameter (Zeilennummer, Kommando,Parameter,...) ueberspringen
+  for (i=0,j=0;j<InitParas;j++) {
+    for (;i<strlen(Line)&&Line[i]!=' ';i++) ;
+    for (;i<strlen(Line)&&Line[i]==' ';i++) ; // i is on next Parameter
+  } ;
+
+  // Whitespace und Initialparameter loeschen
+
+  for (j=0;i<strlen(Line);i++) {
+    Line[j]=Line[i] ;
+    if ((Line[i]!=' ')&&(Line[i]!='\t')&&(Line[i]!='\r')&&(Line[i]!='\n')) j++ ;
+  } ;
+  Line[j]='\0' ;
+  
+  // Werte einlesen
+
+  for (i=0;i<strlen(Line);i+=2) {
+    Val[2] = Line[i] ;
+    Val[3] = Line[i+1] ;
+    sscanf (Val,"%hhx",&(This->Data[i/2])) ;
+  } ;
+  This->DataLen = i/2 ;
+}
+
+void hsv_to_rgb (unsigned char h, unsigned char s, unsigned char v,unsigned char *r, unsigned char *g, unsigned char *b)
+{
+  unsigned char i, f;
+  unsigned int p, q, t;
+  
+  if( s == 0 ) {	
+    *r = *g = *b = v;
+  } else {
+    i=h/43;
+    f=h%43;
+    p = (v * (255 - s))/256;
+    q = (v * ((10710 - (s * f))/42))/256;
+    t = (v * ((10710 - (s * (42 - f)))/42))/256;
+    
+    switch( i ) {
+    case 0:
+      *r = v; *g = t; *b = p; 
+      break;
+    case 1:
+      *r = q; *g = v; *b = p; 
+      break;
+    case 2:
+      *r = p; *g = v; *b = t; 
+      break;
+    case 3:
+      *r = p; *g = q; *b = v; 
+      break;			
+    case 4:
+      *r = t; *g = p; *b = v; 
+      break;				
+    case 5:
+      *r = v; *g = p; *b = q; 
+      break;
+    }
+  }
+}
+
 void ReadSequence (char *Name, char *FileName) 
 {
   FILE *InFile ;
   struct SeqList *List ;
-  struct Sequence *This ;
+  struct Sequence *This,*That ;
   char Line[NAMELEN] ;
   char Command[NAMELEN] ;
-  char Val[5] ;
+  char Val[10] ;
   int i,j ;
 
   InFile = fopen(FileName,"r") ;
@@ -488,11 +558,7 @@ void ReadSequence (char *Name, char *FileName)
     fprintf (stderr,"File %s not found for sequence %s\n",FileName,Name) ;
     return ;
   } ;
-  
-  Val[0] = '0' ;
-  Val[1] = 'x' ;
-  Val[4] = '\0' ;
-  
+
   if (Sequences==NULL) {
     Sequences = malloc (sizeof(struct SeqList)) ;
     if (Sequences==NULL) {
@@ -516,8 +582,12 @@ void ReadSequence (char *Name, char *FileName)
   while (fgets(Line,NAMELEN,InFile)!=NULL) {
     // Kommentarzeilen ausblenden
     if (Line[0]=='%') continue ;
-    // Neuen Sequenzschritt allokieren
+
+    // Ganze Zeile zu Grossbuchstaben wandeln
+
     for (i=0;i<strlen(Line);i++) Line[i]=toupper(Line[i]); 
+
+    // Neuen Sequenzschritt allokieren
     if (This==NULL) {
       List->First = malloc(sizeof(struct Sequence)) ;
       This=List->First ;
@@ -529,41 +599,63 @@ void ReadSequence (char *Name, char *FileName)
       fprintf (stderr,"Out of memory\n") ;
       exit(0) ;
     } ;
-
+    
     // Initialisiere Sequenz-Schritt
     This->Next = NULL ;
     This->CurrVal = 0 ;
     for (i=0;i<MAX_WSLEDS*3;i++) This->Data[i]=0 ;
-
+    
     // Lese Zeilennummer, Kommando und Parameter ein
     sscanf (Line,"%d %s %d",&(This->LineNumber),Command,&(This->Para)) ;
-    if (strcmp(Command,"DIM")==0) {
-      This->Command=S_DIM ;
-      if (fgets(Line,NAMELEN,InFile)==NULL) {
-	fprintf (stderr,"Unexpected EOF in seqence %s\n",FileName) ;
-	return ;
+    if ((strcmp(Command,"DIM")==0)||(strcmp(Command,"DIM_H")==0)||
+	(strcmp(Command,"SINGLE")==0)||(strcmp(Command,"SINGLE_H")==0)) {
+      if ((strcmp(Command,"SINGLE")==0)||(strcmp(Command,"SINGLE_H")==0)) {
+	This->Command=S_SINGLE ;
+	sscanf (Line,"%d %s %d %s",&(This->LineNumber),Command,&(This->Para),Val) ;
+	if (Val[0]=='$') {
+	  This->LED = -1 ;
+	} else {
+	  sscanf (Val,"%d",&(This->LED)) ;
+	} ;
+	j = 4 ;
+      } else {
+	This->Command=S_DIM ;
+	j = 3 ;
       } ;
-      // Zeilennummer und Whitespace entfernen
-      for (i=0;i<strlen(Line)&&Line[i]!=' ';i++) ;
-      for (j=0;i<strlen(Line);i++) {
-	Line[j]=Line[i] ;
-	if ((Line[i]!=' ')&&(Line[i]!='\t')&&(Line[i]!='\r')&&(Line[i]!='\n')) j++ ;
-      } ;
-      Line[j]='\0' ;
       
-      for (i=0;i<strlen(Line);i+=2) {
-	Val[2] = Line[i] ;
-	Val[3] = Line[i+1] ;
-	sscanf (Val,"%hhx",&(This->Data[i/2])) ;
-      } ;
-      This->DataLen = i/2 ;
+      ReadTrippleVals (Line,j,This) ;
+
       if (This->DataLen%3!=0) {
 	fprintf (stderr,"Data not in RGB format in Sequence %s, Line %d\n",Name,This->LineNumber) ;
       } ;
+
+      if ((strcmp(Command,"DIM_H")==0)||(strcmp(Command,"SINGLE_H")==0)) {
+	// HSV-Werte nach RGB wandeln
+	for (i=0;i<This->DataLen;i+=3) 
+	  hsv_to_rgb (This->Data[i],This->Data[i+1],This->Data[i+2],&(This->Data[i]),&(This->Data[i+1]),&(This->Data[i+2])) ;
+      } ;
+
+      // Entsprechendes Delay hinzufuegen
+      This->Next = malloc(sizeof(struct Sequence)) ;
+      That=This->Next ;
+      if (That==NULL) {
+	fprintf (stderr,"Out of memory\n") ;
+	exit(0) ;
+      } ;
+      That->Command=S_DELAY ;
+      That->LineNumber = This->LineNumber ;
+      That->Para = This->Para ;
+      This = That ;
     } else if (strcmp(Command,"DELAY")==0) {
       This->Command=S_DELAY ;
     } else if (strcmp(Command,"GOTO")==0) {
       This->Command=S_GOTO ;
+    } else if (strcmp(Command,"COUNT_UP")==0) {
+      This->Command=S_COUNTUP ;
+    } else if (strcmp(Command,"COUNT_DOWN")==0) {
+      This->Command=S_COUNTDOWN ;
+    } else if (strcmp(Command,"COUNT_END")==0) {
+      This->Command=S_COUNTEND ;
     } ;
   } ;
 }

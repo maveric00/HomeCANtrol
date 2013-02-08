@@ -14,6 +14,10 @@ typedef enum {
   S_DIM = 1,
   S_GOTO = 2,
   S_DELAY = 3,
+  S_SINGLE = 4,
+  S_COUNTUP = 5,
+  S_COUNTDOWN = 6,
+  S_COUNTEND = 7
 } tSeqCom ;
 
 
@@ -175,6 +179,7 @@ struct Sequence {
   int LineNumber ;
   tSeqCom Command ;
   int Para;
+  int LED ;
   int CurrVal ;
   int DataLen ;
   unsigned char Data[MAX_WSLEDS*3] ;
@@ -185,6 +190,11 @@ struct SeqList {
   struct Sequence *First ;
   struct Sequence *Current;
   struct Node *Action ;
+  int Counter ;
+  int LineNumber ;
+  int UpDown ;
+  int DataLen ;
+  unsigned char Data[MAX_WSLEDS*3] ;
   char Name[NAMELEN] ;
 } ;
 
