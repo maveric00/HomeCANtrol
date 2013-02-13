@@ -111,6 +111,8 @@
 
 #define TIMER_PRESET 177
 
+#define TIMEOUT 1000 // 10 Sekunden Timeout
+
 // globale Variablen
 
 can_t    Message ;
@@ -118,11 +120,12 @@ uint8_t  BoardLine ;
 uint16_t BoardAdd ;
 
 uint8_t  LastCommand ;
-volatile uint8_t  Heartbeat ;
+volatile uint16_t  Heartbeat ;
 volatile uint16_t Timers[6] ;
 uint8_t  TimerStatus ;
 uint8_t  Type[6] ;
 uint8_t  Config[6];
+uint8_t  Running[6] ;
 volatile uint8_t  PWM[6] ;
 volatile uint8_t  PWMTime[6] ;
 volatile uint8_t  PWMPort[6] ;
@@ -213,10 +216,11 @@ void SendPinMessage (uint8_t Pin, uint8_t Long,uint8_t SendData)
   uint8_t i ;
   uint8_t Timer ;
   
-  Timer = (Heartbeat>200)?1:0 ;
+  Timer = (Heartbeat>TIMEOUT)?1:0 ; 
   Data = (uint8_t*)10 ;
   Data += Pin*40 ;
   if (Timer == 1) Data +=20 ;
+  if (Running[(int)Pin]==0) return ; // Dieser Pin ist ausgeschaltet worden
   
   Command = eeprom_read_byte(Data+3) ;
   SendLine = eeprom_read_byte(Data+2) ;
@@ -295,7 +299,7 @@ ISR( TIM0_OVF_vect )
  
   TCNT0 = (uint8_t)TIMER_PRESET;  // preload for 10ms
 
-  if (Heartbeat<250) Heartbeat++ ;
+  if (Heartbeat<=TIMEOUT+1) Heartbeat++ ;
   for (i=0;i<6;i++) if (Timers[i]>0) Timers[i]-- ;
 
   WSCounter++ ;
@@ -573,6 +577,8 @@ int main(void)
   
   /* Filter muss hier gesetzt werden */	
   SetFilter(BoardLine,BoardAdd) ;
+
+  for (r=0;r<6;r++) Running[r] = 1 ; // Alle Eingänge sind aktiv
   
   // Ports, Timer, ADC initialisieren
   InitMC() ;
@@ -767,6 +773,12 @@ int main(void)
     case OUT_LED:
       TimerLED = Message.data[1]*5+1 ;
       DurationLED = TimerLED ;
+      break ;
+    case START_SENSOR:
+      Running[(int)Message.data[1]-1] = 1 ;
+      break ;
+    case STOP_SENSOR:
+      Running[(int)Message.data[1]-1] = 0 ;
       break ;
     } ;
   } ;

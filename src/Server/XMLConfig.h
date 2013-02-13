@@ -48,6 +48,7 @@ typedef enum {
   N_BAD = 23,
   N_PROGRAM = 24,
   N_SEQUENCE = 25,
+  N_WAITFOR = 26,
   S_SIMPLE = 100,
   S_SHORTLONG = 101,
   S_SHADE_SHORTLONG = 102,
@@ -76,7 +77,8 @@ typedef enum {
 typedef enum {
   W_MACRO=1,
   W_DELAY=2,
-  W_TIME=3
+  W_TIME=3,
+  W_VALUE=4
 } WaitType ;
 
 

@@ -32,7 +32,8 @@ int IsMakro (struct Node *This)
 {
   return ((This->Type==N_ACTION)||(This->Type==N_DELAY)||(This->Type==N_TIMER)||
 	  (This->Type==N_CALL)||(This->Type==N_TASK)||
-	  (This->Type==N_IF)||(This->Type==N_SET)||(This->Type==N_REPEAT)) ;
+	  (This->Type==N_IF)||(This->Type==N_SET)||(This->Type==N_REPEAT)||
+	  (This->Type==N_WAITFOR)) ;
 } ;
 
 
@@ -127,7 +128,13 @@ void StepMakros (void)
 	  } else if (ActiveMacros[i].DelayType==W_TIME) {
 	    gettimeofday(&Now,NULL) ;
 	    if (timercmp(&Now,&ActiveMacros[i].Delay.WaitTime,>)) ActiveMacros[i].DelayType=0 ;
-	  } ;
+	  } else if (ActiveMacros[i].DelayType==W_VALUE) {
+	    That = ActiveMacros[i].Delay.WaitNode ;
+	    Caller = FindNode(Haus->Child,That->Data.Wert.UnitName) ;
+	    if ((Caller==NULL)||(MakroVergleich(Caller->Value,That->Data.Wert.Wert,That->Data.Wert.Vergleich))) {
+	      ActiveMacros[i].DelayType=0 ;
+	    }; 
+	  };
 	} else {
 	  // Naechste Aktion durchfuehren
 	  That = This->Data.MakroStep ;
@@ -137,6 +144,9 @@ void StepMakros (void)
 	    gettimeofday(&Now,NULL) ;
 	    timeradd(&Now,&That->Data.Time,&ActiveMacros[i].Delay.WaitTime) ;
 	    ActiveMacros[i].DelayType=W_TIME ;
+	  } else if (That->Type==N_WAITFOR) {
+	    ActiveMacros[i].Delay.WaitNode=That ;
+	    ActiveMacros[i].DelayType=W_VALUE ;
 	  } else if (That->Type==N_TIMER) {
 	    ActiveMacros[i].DelayType=W_TIME ;
 	    time (&tim) ;

@@ -62,6 +62,8 @@ struct TypSel Types[] = {
   {"Set",N_SET},
   {"Solange",N_REPEAT},
   {"While",N_REPEAT},
+  {"Warte_Auf",N_WAITFOR},
+  {"Wait_for",N_WAITFOR},
   {"Sprache",N_LANGUAGE},
   {"Language",N_LANGUAGE},
   {"Port",N_PORT},
@@ -232,6 +234,7 @@ void XMLCALL start(void *data, const char *el, const char **attr)
     case N_IF:
     case N_SET:
     case N_REPEAT:
+    case N_WAITFOR:
       if ((strcmp(attr[i],"objekt")==0)||(strcmp(attr[i],"object")==0)) {
 	strncpy(Current->Data.Wert.UnitName,attr[i+1],NAMELEN*4) ;
       } ;
