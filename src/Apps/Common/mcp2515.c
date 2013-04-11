@@ -1,5 +1,5 @@
 #include <avr/pgmspace.h>
-#include <util/delay.h>
+#include <util/delay_basic.h>
 #include "utils.h"
 #include "mcp2515.h"
 #include "spi.h"
@@ -118,18 +118,6 @@ uint8_t mcp2515_read_status(uint8_t type)
 	return data;
 }
 
-static uint8_t spi_temp;
-
-static void spi_start(uint8_t data) {
-	spi_temp = spi_putc(data);
-}
-
-static uint8_t spi_wait(void) {
-	return spi_temp;
-}
-
-
-
 uint8_t mcp2515_read_id(uint32_t *id)
 {
 	uint8_t first;
@@ -139,34 +127,14 @@ uint8_t mcp2515_read_id(uint32_t *id)
 	tmp   = spi_putc(0xff);
 	
 	if (tmp & (1 << IDE)) {
-		spi_start(0xff);
-		
+	  // Nur Extended IDs empfangen
 		*((uint16_t *) id + 1)  = (uint16_t) first << 5;
-		*((uint8_t *)  id + 1)  = spi_wait();
-		spi_start(0xff);
-		
+		*((uint8_t *)  id + 1)  = spi_putc(0xff);
 		*((uint8_t *)  id + 2) |= (tmp >> 3) & 0x1C;
 		*((uint8_t *)  id + 2) |=  tmp & 0x03;
-		
-		*((uint8_t *)  id)      = spi_wait();
-		
+		*((uint8_t *)  id)      = spi_putc(0xff);
 		return TRUE;
-	}
-	else {
-		spi_start(0xff);
-		
-		*((uint8_t *)  id + 3) = 0;
-		*((uint8_t *)  id + 2) = 0;
-		
-		*((uint16_t *) id) = (uint16_t) first << 3;
-		
-		spi_wait();
-		spi_start(0xff);
-		
-		*((uint8_t *) id) |= tmp >> 5;
-		
-		spi_wait();
-		
+	} else {
 		return FALSE;
 	}
 }
@@ -175,15 +143,12 @@ void mcp2515_write_id(const uint32_t *id)
 {
 	uint8_t tmp;
 	
-	spi_start(*((uint16_t *) id + 1) >> 5);
+	spi_putc(*((uint16_t *) id + 1) >> 5);
 	
 	// naechsten Werte berechnen
 	tmp  = (*((uint8_t *) id + 2) << 3) & 0xe0;
 	tmp |= (1 << IDE);
 	tmp |= (*((uint8_t *) id + 2)) & 0x03;
-	
-	// warten bis der vorherige Werte geschrieben wurde
-	spi_wait();
 	
 	// restliche Werte schreiben
 	spi_putc(tmp);
@@ -194,66 +159,62 @@ void mcp2515_write_id(const uint32_t *id)
 
 uint8_t mcp2515_send_message(const can_t *msg)
 {
-	// Status des MCP2515 auslesen
-	uint8_t status = mcp2515_read_status(SPI_READ_STATUS);
+  // Status des MCP2515 auslesen
+  uint8_t status = mcp2515_read_status(SPI_READ_STATUS);
 	
-	/* Statusbyte:
-	 *
-	 * Bit	Funktion
-	 *  2	TXB0CNTRL.TXREQ
-	 *  4	TXB1CNTRL.TXREQ
-	 *  6	TXB2CNTRL.TXREQ
-	 */
-	uint8_t address;
+  /* Statusbyte:
+   *
+   * Bit	Funktion
+   *  2	TXB0CNTRL.TXREQ
+   *  4	TXB1CNTRL.TXREQ
+   *  6	TXB2CNTRL.TXREQ
+   */
+  uint8_t address;
   address = 0xff ;
   
-  while (1) {
+  while (address==0xff) {
     // solange versuchen, bis ein Puffer freigeworden ist 
     status = mcp2515_read_status(SPI_READ_STATUS);
     
     if (_bit_is_clear(status, 2)) {
       address = 0x00;
     }
-//
-// Aktuell wird nur der erste Send-Buffer verwendet
-//
-//    else if (_bit_is_clear(status, 4)) {
-//      address = 0x02;
-//    } 
-//    else if (_bit_is_clear(status, 6)) {
-//      address = 0x04;
-//    } ;
-    if (address<0xff) break ; // wenn Puffer gefunden -> weitermachen
+    else if (_bit_is_clear(status, 4)) {
+      address = 0x02;
+    } 
+    else if (_bit_is_clear(status, 6)) {
+      address = 0x04;
+    } ;
   }
-	
-	RESET(MCP2515_CS);
-
-	spi_putc(SPI_WRITE_TX | address);
-	
-	mcp2515_write_id(&msg->id);
-
-	uint8_t length = msg->length & 0x0f;
-	
-	// Nachrichten Laenge einstellen
-	spi_putc(length);
-		
-	// Daten
-	for (uint8_t i=0;i<length;i++) {
-		spi_putc(msg->data[i]);
-	}
-	SET(MCP2515_CS);
-	
-	_delay_us(1);
-	
-	// CAN Nachricht verschicken
-	// die letzten drei Bit im RTS Kommando geben an welcher
-	// Puffer gesendet werden soll.
-	RESET(MCP2515_CS);
-	address = (address == 0) ? 1 : address;
-	spi_putc(SPI_RTS | address);
-	SET(MCP2515_CS);
-	
-	return address;
+  
+  RESET(MCP2515_CS);
+  
+  spi_putc(SPI_WRITE_TX | address);
+  
+  mcp2515_write_id(&msg->id);
+  
+  uint8_t length = msg->length & 0x0f;
+  
+  // Nachrichten Laenge einstellen
+  spi_putc(length);
+  
+  // Daten
+  for (uint8_t i=0;i<length;i++) {
+    spi_putc(msg->data[i]);
+  }
+  SET(MCP2515_CS);
+  
+  asm volatile ("nop");
+  
+  // CAN Nachricht verschicken
+  // die letzten drei Bit im RTS Kommando geben an welcher
+  // Puffer gesendet werden soll.
+  RESET(MCP2515_CS);
+  address = (address == 0) ? 1 : address;
+  spi_putc(SPI_RTS | address);
+  SET(MCP2515_CS);
+  
+  return address;
 }
 
 
@@ -276,6 +237,8 @@ uint8_t mcp2515_get_message(can_t *msg)
 {
 	uint8_t addr;
 	
+	if (IS_SET(MCP2515_INT)) return 0x3f ; // Kein Interrupt gesetzt, damit auch keine Nachricht vorhanden...
+
 	// read status
 	uint8_t status = mcp2515_read_status(SPI_RX_STATUS);
 	
@@ -332,7 +295,7 @@ void mcp2515_init(void)
 	SET(MCP2515_CS);
 	
 	// ein bisschen warten bis der MCP2515 sich neu gestartet hat
-	_delay_ms(0.1);
+	_delay_loop_2(1000);
 	
 	// Filter usw. setzen
 	RESET(MCP2515_CS);
@@ -342,7 +305,7 @@ void mcp2515_init(void)
 		spi_putc(pgm_read_byte(&mcp2515_register_map[i]));
 	SET(MCP2515_CS);
 	
-	// nur Standard IDs, Message Rollover nach Puffer 1
+	// nur Extended IDs mit Filter, Message Rollover nach Puffer 1
 	mcp2515_write_register(RXB0CTRL, (1<<RXM1)|(0<<RXM0)|(1<<BUKT));
 	mcp2515_write_register(RXB1CTRL, (1<<RXM1)|(0<<RXM0));
 	

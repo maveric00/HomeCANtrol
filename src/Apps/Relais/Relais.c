@@ -15,7 +15,6 @@
 #include <avr/pgmspace.h>
 #include <avr/eeprom.h>
 #include <avr/wdt.h>
-#include <util/delay.h>
 #include "../Common/mcp2515.h"
 #include "../Common/utils.h"
 
@@ -55,6 +54,7 @@ volatile uint8_t Channel[10] ; // Zustand des Relais-Kanals
 volatile uint16_t Timer[5] ; // Timer im 1/100 Sekunden Takt (bis max. 600 Sekunden) für Rollo, 
                     // automatisch abwärtszählend bis 0 ;
 uint8_t Position[5] ; // Aktueller Port-Status
+uint8_t BroadcastWaiting ; // Wurde ein Status-Broadcast wegen voller Empfangspuffer verschoben?
 
 #define MAX_MESSAGES 4
 volatile uint8_t LEDMessage[MAX_MESSAGES][4] ;
@@ -312,6 +312,14 @@ void BroadcastStatus(  uint8_t BoardLine, uint16_t BoardAdd )
 {
   uint8_t i ;
   uint8_t ChanStat[10] ;
+
+  if (!IS_SET(MCP2515_INT)) {
+    BroadcastWaitintg = 1 ;
+    return ; // Es wartet eine weitere Nachricht im Empfangsbuffer, also jetzt keinen Status senden...
+  } ;
+  
+  BroadcastWaiting = 0 ;
+
   // An den Systembus schicken (Addresse: 0/1) 
   Message.id = BuildCANId (0,0,BoardLine,BoardAdd,0,1,0) ;
 
@@ -349,6 +357,7 @@ int main(void)
   BoardLine = 1 ;
   ActualMessage = 0 ;
   SaveMessage = 0 ;
+  BroadcastWaiting = 0 ;
 
   // Noch einmal setzen (sollte nach Boot-Loader an sich schon passiert sein)
   SET_OUTPUT(CHAN0);
@@ -395,6 +404,9 @@ int main(void)
     // Warte auf die nächste CAN-Message
     while ((LastCommand=mcp2515_get_message(&Message)) == NO_MESSAGE) {
       // Rollo-Zustandsmaschine
+      if (BroadcastWaiting) {
+	BroadcastStatus(BoardLine,BoardAdd) ;
+      } ;
       for (i=0;i<5;i++) {
 	if (UpDown[i]>0) { //Rollo soll verfahren werden
 	  switch (State[i]) {
@@ -553,15 +565,15 @@ int main(void)
       // Relais-Befehle
     case CHANNEL_ON:
       if (Message.data[1]<11) Channel[Message.data[1]-1] = 1 ;
-	  BroadcastStatus(BoardLine,BoardAdd) ;
+      BroadcastStatus(BoardLine,BoardAdd) ;
       break ;
     case CHANNEL_OFF:
       if (Message.data[1]<11) Channel[Message.data[1]-1] = 0 ;
-	  BroadcastStatus(BoardLine,BoardAdd) ;
+      BroadcastStatus(BoardLine,BoardAdd) ;
       break ;
     case CHANNEL_TOGGLE:
       if (Message.data[1]<11) Channel[Message.data[1]-1] = (Channel[Message.data[1]-1]==0?1:0) ;
-	  BroadcastStatus(BoardLine,BoardAdd) ;
+      BroadcastStatus(BoardLine,BoardAdd) ;
       break ;
     case SHADE_UP_FULL:
       i = Message.data[1]-1 ;
