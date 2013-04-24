@@ -77,6 +77,8 @@ typedef enum {
   LOAD_HIGH		= 41,
   START_PROG		= 42,
   STOP_PROG		= 43,
+  DIM_TO                = 44,
+  HDIM_TO               = 45,
   // Sensor commands
   SET_PIN               = 50,
   LOAD_LED              = 51,

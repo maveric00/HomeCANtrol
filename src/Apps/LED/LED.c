@@ -1,37 +1,11 @@
 /*
-    Eine 8-kanalige PWM mit intelligentem Lösungsansatz
- 
-    ATmega32 @ 8 MHz
- 
+
+  LED.c Steuert das LED-Board an; MC: At90PWM3B mit 16 MHz
+
 */
  
 // Defines an den Controller und die Anwendung anpassen
  
-#define F_PWM         90L               // PWM-Frequenz in Hz
-#define PWM_PRESCALER 8                  // Vorteiler für den Timer
-#define PWM_STEPS     1024                // PWM-Schritte pro Zyklus(1..256)
-#define PWM_PORT1      PORTB              // Port für PWM
-#define PWM_PORT2      PORTC
-#define PWM_PORT3      PORTD
-#define PWM_PORT4      PORTE
-#define PWM_DDR1       DDRB               // Datenrichtungsregister für PWM
-#define PWM_DDR2       DDRC 
-#define PWM_DDR3       DDRD 
-#define PWM_DDR4       DDRE 
-#define PWM_CHANNELS  22                 // Anzahl der PWM-Kanäle
-
- 
-// ab hier nichts ändern, wird alles berechnet
- 
-#define T_PWM (F_CPU/(PWM_PRESCALER*F_PWM*PWM_STEPS)) // Systemtakte pro PWM-Takt
- 
-#if ((T_PWM*PWM_PRESCALER)<(111+5))
-    #error T_PWM zu klein, F_CPU muss vergrösst werden oder F_PWM oder PWM_STEPS verkleinert werden
-#endif
- 
-#if ((T_PWM*PWM_STEPS)>65535)
-    #error Periodendauer der PWM zu gross! F_PWM oder PWM_PRESCALER erhöhen.   
-#endif
 // includes
  
 #include <stdint.h>
@@ -64,322 +38,44 @@ EEProm-Belegung vom LED-Board:
 */
 // globale Variablen
 
+#define PWM_CHANNELS  24                 // Anzahl der PWM-Kanaele
+#define TIMER_PRESET 99
 
-uint16_t Actual[PWM_CHANNELS] ;
-int16_t Delta[PWM_CHANNELS] ;
-uint8_t Counter[PWM_CHANNELS] ;
-uint8_t Step[PWM_CHANNELS] ;
+extern void InitBCM(void);
 
+extern volatile uint8_t LEDVal[PWM_CHANNELS] ;
+extern volatile uint8_t LEDPWM[56] ;
+extern volatile uint8_t MasterVal ;
+volatile uint16_t LEDV2[PWM_CHANNELS] ;
+volatile int16_t Delta[PWM_CHANNELS] ;
+volatile uint8_t Counter[PWM_CHANNELS] ;
+volatile uint8_t Step[PWM_CHANNELS] ;
 
+can_t Message ;
+uint8_t  BoardLine ;
+uint16_t BoardAdd ;
 
-const uint16_t LogCurve[] PROGMEM =  {
-  0,  1,  1,  1,  1,  2,  2,  2,  3,  3,  3,  4,  4,  4,  5,  5,  5,  5,  6,  6,  6,  7,
-  7,  8,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
-  26, 28, 30, 31, 32, 34, 36, 37, 38, 40, 42, 43, 44, 46, 48, 50, 52, 54, 56, 58,
-  60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80, 82, 84, 87, 90, 92, 94, 97,100,102,
-  104,107,110,112,114,117,120,123,126,129,132,135,138,141,144,147,150,153,156,159,
-  162,165,168,171,174,178,182,185,188,192,196,199,202,206,210,213,216,220,224,228,
-  232,236,240,244,248,252,256,260,264,268,272,276,280,284,288,292,296,301,306,310,
-  314,319,324,328,332,336,340,345,350,355,360,365,370,375,380,385,390,395,400,405,
-  410,415,420,425,430,435,440,445,450,456,462,467,472,478,484,489,494,500,506,511,
-  516,522,528,534,540,546,552,558,564,570,576,582,588,594,600,606,612,618,624,630,
-  636,643,650,656,662,669,676,682,688,695,702,708,714,721,728,735,742,749,756,765,
-  770,777,784,791,798,805,812,819,826,833,840,847,854,862,870,877,884,892,900,907,
-  914,922,930,937,944,952,960,969,975,983,993,1002,1013,1023};
+uint8_t  LastCommand ;
+volatile uint8_t  Heartbeat ;
+volatile uint16_t Timers ;
+uint8_t  TimerStatus ;
 
 const uint16_t LED_TO_R [] PROGMEM = { 0,9,1,18,12,4,7} ;
 const uint16_t LED_TO_G [] PROGMEM = { 8,10,2,19,13,5,15} ;
 const uint16_t LED_TO_B [] PROGMEM = { 16,11,3,20,14,6,21} ;
 
-	
-// globale Variablen
-
- 
-uint16_t pwm_timing[PWM_CHANNELS+1];          // Zeitdifferenzen der PWM Werte
-uint16_t pwm_timing_tmp[PWM_CHANNELS+1];      
-uint16_t pwm_setting[PWM_CHANNELS+1];           // Einstellungen für die einzelnen PWM-Kanäle
-uint8_t pwm_mask[(PWM_CHANNELS+1)*3];            // Bitmaske für PWM Bits, welche gelöscht werden sollen
-uint8_t pwm_mask_tmp[(PWM_CHANNELS+1)*3];        
-
- 
-volatile uint16_t pwm_cnt_max=1;               // Zählergrenze, Initialisierung mit 1 ist wichtig!
-volatile uint8_t pwm_sync;                    // Update jetzt möglich
-volatile uint8_t pwm_updated ;
- 
-// Pointer für wechselseitigen Datenzugriff
- 
-uint16_t* isr_ptr_time  = pwm_timing;
-uint16_t* main_ptr_time = pwm_timing_tmp;
-uint8_t* isr_ptr_mask  = pwm_mask;
-uint8_t* main_ptr_mask = pwm_mask_tmp;
-uint8_t   pwm_cnt_max_tmp ;
-
-// Zeiger austauschen
-// das muss in einem Unterprogramm erfolgen,
-// um eine Zwischenspeicherung durch den Compiler zu verhindern
- 
-static inline void tausche_zeiger(void) 
-{
-  uint16_t* tmp_ptr16;
-  uint8_t* tmp_ptr32;
-  
-  tmp_ptr16 = isr_ptr_time;
-  isr_ptr_time = main_ptr_time;
-  main_ptr_time = tmp_ptr16;
-  tmp_ptr32 = isr_ptr_mask;
-  isr_ptr_mask = main_ptr_mask;
-  main_ptr_mask = tmp_ptr32;
-  pwm_cnt_max = pwm_cnt_max_tmp ;
-}
-
-void setmask(uint8_t *mask, uint8_t index, uint32_t val)
-{
-  uint8_t *where ;
-  where = (uint8_t*)&(val) ;
-  mask[(index<<1)+index] = where[0] ;
-  mask[(index<<1)+index+1] = where[1] ;
-  mask[(index<<1)+index+2] = where[2] ;
-}
-
-void readmask(uint8_t *mask, uint8_t index, uint32_t *val)
-{
-  uint8_t *where ;
-  where = (uint8_t*)(val) ;
-  where[0] = mask[(index<<1)+index] ;
-  where[1] = mask[(index<<1)+index+1] ;
-  where[2] = mask[(index<<1)+index+2] ;
-  where[3] = 0 ;
-} ;
-
-// PWM Update, berechnet aus den PWM Einstellungen
-// die neuen Werte für die Interruptroutine
- 
-void pwm_update(void) 
-{
-  uint8_t i, j, k;
-  uint16_t tim_k ;
-  uint16_t min;
-  uint32_t tmp,tmp2;
-  
-  // PWM Maske für Start berechnen
-  // gleichzeitig die Bitmasken generieren und PWM Werte kopieren
-  
-  pwm_sync = 0 ; // Swap vermeiden während update
-  
-  tmp = 0;
-  tmp2= 1;
-  
-  for (i=0;i<PWM_CHANNELS;i++) pwm_setting[i+1] = pgm_read_word(&LogCurve[(Actual[i]>>8)]) ;
-  
-  
-  for(i=1; i<=(PWM_CHANNELS); i++) {
-    setmask(main_ptr_mask,i,~tmp2) ;
-    if (pwm_setting[i]!=0) tmp |= tmp2;        // Maske zum setzen der IOs am PWM Start
-    tmp2 <<= 1;
-  }
-  
-  setmask(main_ptr_mask,0,tmp) ;
-  
-  // PWM settings sortieren; Einfügesortieren
-  
-  for(i=1; i<=PWM_CHANNELS; i++) {
-    min=PWM_STEPS-1;
-    k=i;
-    for(j=i; j<=PWM_CHANNELS; j++) {
-      if (pwm_setting[j]<min) {
-	k=j;                                // Index und PWM-setting merken
-	min = pwm_setting[j];
-      }
-    }
-    if (k!=i) {
-      // ermitteltes Minimum mit aktueller Sortiertstelle tauschen
-      tim_k = pwm_setting[k];
-      pwm_setting[k] = pwm_setting[i];
-      pwm_setting[i] = tim_k;
-      readmask(main_ptr_mask,k,&tmp) ;	
-      readmask(main_ptr_mask,i,&tmp2) ;
-      setmask(main_ptr_mask,k,tmp2) ;
-      setmask(main_ptr_mask,i,tmp) ;
-    }
-  }
-  
-  // Gleiche PWM-Werte vereinigen, ebenso den PWM-Wert 0 löschen falls vorhanden
-  
-  k=PWM_CHANNELS;             // PWM_CHANNELS Datensätze
-  i=1;                        // Startindex
-  
-  while(k>i) {
-    while ( ((pwm_setting[i]==pwm_setting[i+1]) || (pwm_setting[i]==0))  && (k>i) ) {
-      
-      // aufeinanderfolgende Werte sind gleich und können vereinigt werden
-      // oder PWM Wert ist Null
-      if (pwm_setting[i]!=0) {
-	readmask(main_ptr_mask,i,&tmp) ;
-	readmask(main_ptr_mask,i+1,&tmp2) ;
-	setmask(main_ptr_mask,i+1,tmp&tmp2) ;
-      } ;
-      
-      // Datensatz entfernen,
-      // Nachfolger alle eine Stufe hochschieben
-      for(j=i; j<k; j++) {
-	pwm_setting[j] = pwm_setting[j+1];
-	readmask(main_ptr_mask,j+1,&tmp) ;
-	setmask(main_ptr_mask,j,tmp) ;
-      }
-      k--;
-    }
-    i++;
-  }
-  
-  // letzten Datensatz extra behandeln
-  // Vergleich mit dem Nachfolger nicht möglich, nur löschen
-  // gilt nur im Sonderfall, wenn alle Kanäle 0 sind
-  if (pwm_setting[i]==0) k--;
-  
-  // Zeitdifferenzen berechnen
-  
-  if (k==0) { // Sonderfall, wenn alle Kanäle 0 sind
-    main_ptr_time[0]=(uint16_t)T_PWM*PWM_STEPS/2;
-    main_ptr_time[1]=(uint16_t)T_PWM*PWM_STEPS/2;
-    k=1;
-  }
-  else {
-    i=k;
-    main_ptr_time[i]=(uint16_t)T_PWM*(PWM_STEPS-pwm_setting[i]);
-    tim_k=pwm_setting[i];
-    i--;
-    for (; i>0; i--) {
-      main_ptr_time[i]=(uint16_t)T_PWM*(tim_k-pwm_setting[i]);
-      tim_k=pwm_setting[i];
-    }
-    main_ptr_time[0]=(uint16_t)T_PWM*tim_k;
-  }
-  
-  // auf Sync warten
-  pwm_cnt_max_tmp = k;
-  pwm_sync=1;             // Sync wird im Interrupt gesetzt
-  pwm_updated = 1 ;
-}
-
-// Timer 1 Output COMPARE A Interrupt
-volatile uint8_t Timer ;
-
-ISR(TIMER1_COMPA_vect) 
-{
-  static uint8_t pwm_cnt;
-  uint8_t *tmp;
-  uint8_t tmp3 ;
-  
-  OCR1A += isr_ptr_time[pwm_cnt];
-  tmp = (uint8_t*)&(isr_ptr_mask[(pwm_cnt<<1)+pwm_cnt]) ;
-  
-  Timer++ ;
-  
-  tmp3    = tmp[2];
-  if ((tmp3&0x20)!=0) {
-    tmp3|=0x80 ;
-  } else {
-    tmp3 &=0x7f ;
-  } ;
-  if ((tmp3&0x10)!=0) {
-    tmp3|=0x20 ;
-  } else {
-    tmp3&=0xDf ;
-  } ;
-  tmp3 &= 0xaf ;
-  
-  if (pwm_cnt == 0) {
-    PWM_DDR1 = tmp[0];                         // Ports setzen zu Begin der PWM
-    PWM_DDR2 = tmp[1];
-    PWM_DDR3 = (PWM_DDR3&0x5e)|(tmp3&0xA1) ;  
-    PWM_DDR4 = (PWM_DDR4&0xF8)|((tmp3>>1)&0x7) ;
-    pwm_cnt++;
-  }
-  else {
-    PWM_DDR1 &= tmp[0];                        // Ports löschen
-    PWM_DDR2 &= tmp[1];                        // Ports löschen
-    PWM_DDR3 &= tmp3|0x5e ;						
-    PWM_DDR4 &= (tmp3>>1)|0xf8 ;
-    if (pwm_cnt == pwm_cnt_max) {
-      if (pwm_sync==1) {
-	tausche_zeiger();
-	pwm_sync = 0;                       // Update jetzt möglich
-      }
-      pwm_cnt  = 0;
-    }
-    else pwm_cnt++;
-  }
-}
-
-uint8_t GetProgram(uint8_t Channel, uint8_t PStep)
-{
-  uint8_t *Da ;
-  
-  if (PStep>=20) return (0) ;
-  Da = (uint8_t*) 10 ;
-  Da += Channel*20;
-  Da += PStep ;
-  return (eeprom_read_byte(Da)) ;
-}
-
-
-
-inline void StepLight (void)
-{
-  uint8_t Channel ;
-  uint8_t Command ;
-  
-  // Alle Kanaele abarbeiten 
-  for (Channel=0;Channel<PWM_CHANNELS;Channel++) {
-    if (Counter[Channel]>0) {
-      Actual[Channel] += Delta[Channel] ;
-      Counter[Channel]-- ;
-    } else {
-      if (Step[Channel]>=20) continue ;
-      Command = GetProgram (Channel,Step[Channel]) ;
-      Step[Channel]++ ;
-      if (Command==0) { // Programm Ende 
-	Step[Channel] = 20 ;
-      } else if	(Command<201) { // DimTo 
-	Counter[Channel] = Command ;
-	Command = GetProgram(Channel,Step[Channel]) ;
-	Step[Channel]++ ;
-	Delta[Channel] = (int16_t)(((((int32_t)Command)<<8)-(int32_t)Actual[Channel])/(int16_t)Counter[Channel]) ;
-	if (Delta[Channel]>0) Delta[Channel]++ ; // Rundungsfehler ausgleichen
-	Actual[Channel] += Delta[Channel] ; // und ersten Schritt ausfuehren
-	Counter[Channel]-- ;
-      } else if (Command<221) { // JumpTo 
-	Step[Channel] = Command-201 ;
-      } else if (Command==221) { // SetTo 
-	Actual[Channel] = ((uint16_t)GetProgram(Channel,Step[Channel]))<<8 ;
-	Step[Channel]++ ;
-      } else if (Command==222) { // Delay 
-	Delta[Channel] = 0 ;
-	Counter[Channel] = GetProgram(Channel,Step[Channel]) ;
-	Step[Channel]++ ;
-      } else { // Unknown command 
-	Step[Channel] = 20 ; // Auf Ende Setzen 
-      } ;
-    } ;
-  } ;
-  if (pwm_sync==0) {
-    pwm_update() ;
-  } else {
-    pwm_updated = 0 ;
-  } ;
-}
-
-
-
-can_t InMessage ;
+// BuildCANId baut aus verschiedenen Elementen (Line & Addresse von Quelle und Ziel 
+// sowie Repeat-Flag und Gruppen-Flag) den CAN Identifier auf
 
 inline uint32_t BuildCANId (uint8_t Prio, uint8_t Repeat, uint8_t FromLine, uint16_t FromAdd, uint8_t ToLine, uint16_t ToAdd, uint8_t Group)
 {
   return (((uint32_t)(Group&0x1))<<1|((uint32_t)ToAdd)<<2|((uint32_t)(ToLine&0xf))<<10|
-	  ((uint32_t)FromAdd)<<14|((uint32_t)(FromLine&0xf))<<22|((uint32_t)(Repeat&0x1))<<26|
-	  ((uint32_t)(Prio&0x3))<<27) ;
+	  ((uint32_t)FromAdd)<<14|((uint32_t)(FromLine&0xf))<<22|
+	  ((uint32_t)(Repeat&0x1))<<26|((uint32_t)(Prio&0x3))<<27) ;
 }
 
+// GetSourceAddress bestimmt aus dem CAN-Identifier der eingehenden Nachricht 
+// die Line & Addresse
 
 inline void GetSourceAddress (uint32_t CANId, uint8_t *FromLine, uint16_t *FromAdd)
 {
@@ -387,45 +83,201 @@ inline void GetSourceAddress (uint32_t CANId, uint8_t *FromLine, uint16_t *FromA
   *FromAdd = (uint16_t) ((CANId>>14)&0xfff) ;
 }
 
+// GetTargetAddress liefert die Addresse aus dem CAN-Identifier
+
 inline uint8_t GetTargetAddress (uint32_t CANId)
 {
   return((uint8_t)((CANId>>2)&0xff));
+}
+
+// Alle Filter des 2515 auf die eigene Board-Addresse setzen
+
+void SetFilter(uint8_t BoardLine,uint16_t BoardAdd)
+{
+  can_filter_t filter ;
+  filter.id = ((uint32_t)BoardAdd)<<2|((uint32_t)BoardLine)<<10 ;
+  filter.mask = 0x3FE2 ;
+  mcp2515_set_filter(0, &filter) ;
+  mcp2515_set_filter(1, &filter) ;
+  mcp2515_set_filter(2, &filter) ;
+  mcp2515_set_filter(3, &filter) ;
+  mcp2515_set_filter(4, &filter) ;
+  filter.id = ((uint32_t)0xff)<<2|((uint32_t)BoardLine)<<10 ;
+  mcp2515_set_filter(5, &filter) ;
+}
+
+// Message fuer das zuruecksenden vorbereiten (Quelle als Ziel eintragen und 
+// Boardaddresse als Quelle)
+
+uint8_t SetOutMessage (uint8_t BoardLine, uint16_t BoardAdd)
+{
+  uint8_t SendLine ;
+  uint16_t SendAdd ;
+  uint8_t LED ;
+  
+  GetSourceAddress(Message.id,&SendLine,&SendAdd) ;
+  LED = (GetTargetAddress(Message.id)&0x7) ;
+  Message.id = BuildCANId (0,0,BoardLine,BoardAdd+LED,SendLine,SendAdd,0) ;
+  Message.data[0] = Message.data[0]|SUCCESSFULL_RESPONSE ;
+  Message.length = 1 ;
+  
+  return (LED) ;
+}
+
+
+uint8_t GetProgram(uint8_t Channel, uint8_t PStep)
+{
+  uint8_t *Da ;
+
+  if (Channel>22) return(0) ;  
+  if (PStep>=20) return (0) ;
+  Da = (uint8_t*) 10 ;
+  Da += Channel*20;
+  Da += PStep ;
+  return (eeprom_read_byte(Da)) ;
+}
+
+inline void StepLight (void)
+{
+  uint8_t Channel ;
+  uint8_t Command ;
+  
+  // Alle Kanaele abarbeiten; wird 25 mal pro sekunde aufgerufen 
+  for (Channel=0;Channel<PWM_CHANNELS;Channel++) {
+    if (Counter[Channel]>0) {
+      LEDV2[Channel] += Delta[Channel] ;
+      Counter[Channel]-- ;
+    } else {
+      if (Step[Channel]>=20) continue ;
+      Command = GetProgram (Channel,Step[Channel]) ;
+      Step[Channel]++ ;
+      if (Command==0) { // Programm Ende  
+	Step[Channel] = 20 ;
+      } else if	(Command<201) { // DimTo 
+	Counter[Channel] = Command ;  
+	Command = GetProgram(Channel,Step[Channel]) ;
+	Step[Channel]++ ;
+	Delta[Channel] = (int16_t)(((((int32_t)Command)<<8)-(int32_t)LEDV2[Channel])/(int16_t)Counter[Channel]) ;
+	if (Delta[Channel]>0) Delta[Channel]++ ; // Rundungsfehler ausgleichen		
+	LEDV2[Channel] += Delta[Channel] ; // und ersten Schritt ausfuehren
+	Counter[Channel]-- ;
+      } else if (Command<221) { // JumpTo 
+	Step[Channel] = Command-201 ;
+      } else if (Command==221) { // SetTo 
+	LEDV2[Channel] = ((uint16_t)GetProgram(Channel,Step[Channel]))<<8 ;
+	Step[Channel]++ ;
+      } else if (Command==222) { // Delay 
+	Delta[Channel] = 0 ;
+	Counter[Channel] = GetProgram(Channel,Step[Channel]) ;
+	Step[Channel]++ ;
+      } else if (Command==223) { // Random Delay 
+	Delta[Channel] = 0 ;
+	Counter[Channel] = (uint8_t)(TCNT1&0xff) ;
+	Step[Channel]++ ;
+      } else if (Command==224) {
+	// nop
+      } else { // Unknown command 
+	Step[Channel] = 20 ; // Auf Ende Setzen 
+      } ;
+    } ;
+    // Uebertragen auf die LED-Ausgabe
+    LEDVal[Channel] = (uint8_t)(LEDV2[Channel]>>8) ;
+  } ;
+}
+
+ISR( TIMER0_OVF_vect )                           
+{
+  static int CC=0 ;
+  
+  TCNT0 = (uint8_t)TIMER_PRESET;  // preload for 10ms
+  
+  if (Timers>0) Timers-- ;
+  CC++ ;
+  if (CC>=4) {
+    StepLight();
+    CC = 0 ;
+  }
+  
+  if (Heartbeat<250) Heartbeat++ ;
 }
 
 uint8_t LastCommand ;
 
 void SetLED (uint8_t Num, uint8_t R, uint8_t G, uint8_t B, uint8_t W)
 {
-  uint8_t i1,i2;
+  uint8_t i1;
+  uint8_t RChan,GChan,BChan ;
   
-  i2 = 0 ;
-  if (Num>99) { i2 = 1 ; Num -=100 ; } ;
+  if (Num>99) Num -=100 ;
   if (Num>7) return ;
   
   if (Num==7) { /* Alle LEDs setzen, rekursiv */
     for (i1=0;i1<7;i1++) SetLED(i1+100,R,G,B,W) ;
-    if(pwm_sync==0) {
-      pwm_update() ;
-    } else {
-      pwm_updated=0 ;
-    } ;
     return ;
   } ;
-  Actual[pgm_read_word(&(LED_TO_R[Num]))] = ((uint16_t)R)<<8 ;
-  Actual[pgm_read_word(&(LED_TO_G[Num]))] = ((uint16_t)G)<<8 ;
-  Actual[pgm_read_word(&(LED_TO_B[Num]))] = ((uint16_t)B)<<8 ;
-  
+
+  RChan = pgm_read_word(&(LED_TO_R[Num])) ;
+  GChan = pgm_read_word(&(LED_TO_G[Num])) ;
+  BChan = pgm_read_word(&(LED_TO_B[Num])) ;
+
+  LEDVal[RChan] = R ;
+  LEDVal[GChan] = G ;
+  LEDVal[BChan] = B ;
+  LEDV2[RChan] = ((uint16_t) R)<<8 ;
+  LEDV2[GChan] = ((uint16_t) G)<<8 ;
+  LEDV2[BChan] = ((uint16_t) B)<<8;
   if (Num==0) {
-    Actual[17] = ((uint16_t)W)<<8 ;
-  } ;
-  if (i2==0) {
-    if (pwm_sync==0) {
-      pwm_update() ;
-    } else {
-      pwm_updated = 0 ;
-    } ;
+    LEDVal[17] = W ;
+    LEDV2[17] = ((uint16_t) W)<<8 ;
   } ;
 }
+
+void DimLED (uint8_t Num, uint8_t R, uint8_t G, uint8_t B, uint8_t W,uint8_t Timer)
+{
+  uint8_t i1;
+  uint8_t RChan,GChan,BChan ;
+  
+  if (Num>99) Num -=100 ;
+  if (Num>7) return ;
+  
+  if (Num==7) { /* Alle LEDs setzen, rekursiv */
+    for (i1=0;i1<7;i1++) DimLED(i1+100,R,G,B,W,Timer) ;
+    return ;
+  } ;
+
+  RChan = pgm_read_word(&(LED_TO_R[Num])) ;
+  GChan = pgm_read_word(&(LED_TO_G[Num])) ;
+  BChan = pgm_read_word(&(LED_TO_B[Num])) ;
+
+  Counter[RChan] = Timer-1 ;
+  Delta[RChan] = (int16_t)(((((int32_t)R)<<8)-(int32_t)LEDV2[RChan])/(int16_t)Timer) ;
+  if (Delta[RChan]>0) Delta[RChan]++ ; // Rundungsfehler ausgleichen		
+  LEDV2[RChan] += Delta[RChan] ; // und ersten Schritt ausfuehren
+  LEDVal[RChan] = (uint8_t)(LEDV2[RChan]>>8) ;
+
+
+  Counter[GChan] = Timer-1 ;
+  Delta[GChan] = (int16_t)(((((int32_t)R)<<8)-(int32_t)LEDV2[GChan])/(int16_t)Timer) ;
+  if (Delta[GChan]>0) Delta[GChan]++ ; // Rundungsfehler ausgleichen		
+  LEDV2[GChan] += Delta[GChan] ; // und ersten Schritt ausfuehren
+  LEDVal[GChan] = (uint8_t)(LEDV2[GChan]>>8) ;
+
+  Counter[BChan] = Timer-1 ;
+  Delta[BChan] = (int16_t)(((((int32_t)R)<<8)-(int32_t)LEDV2[BChan])/(int16_t)Timer) ;
+  if (Delta[BChan]>0) Delta[BChan]++ ; // Rundungsfehler ausgleichen		
+  LEDV2[BChan] += Delta[BChan] ; // und ersten Schritt ausfuehren
+  LEDVal[BChan] = (uint8_t)(LEDV2[BChan]>>8) ;
+
+  if (Num==0) {
+    Counter[17] = Timer-1 ;
+    Delta[17] = (int16_t)(((((int32_t)W)<<8)-(int32_t)LEDV2[17])/(int16_t)Timer) ;
+    if (Delta[17]>0) Delta[17]++ ; // Rundungsfehler ausgleichen		
+    LEDV2[17] += Delta[17] ; // und ersten Schritt ausfuehren
+    LEDVal[17] = (uint8_t)(LEDV2[17]>>8); 
+  } ;
+}
+
+
 
 void hsv_to_rgb (unsigned char h, unsigned char s, unsigned char v,unsigned char *r, unsigned char *g, unsigned char *b)
 {
@@ -464,44 +316,16 @@ void StoreProgram(uint8_t Offset)
   uint8_t *Da ;
   Da = (uint8_t*)10 ;
   Da += Offset ;
-  Da += InMessage.data[1]*20 ;
-  eeprom_write_byte(Da++,InMessage.data[2]) ;
-  eeprom_write_byte(Da++,InMessage.data[3]) ;
+  Da += Message.data[1]*20 ;
+  eeprom_write_byte(Da++,Message.data[2]) ;
+  eeprom_write_byte(Da++,Message.data[3]) ;
   if (Offset<18) {
-    eeprom_write_byte(Da++,InMessage.data[4]) ;
-    eeprom_write_byte(Da++,InMessage.data[5]) ;
-    eeprom_write_byte(Da++,InMessage.data[6]) ;
-    eeprom_write_byte(Da++,InMessage.data[7]) ;
+    eeprom_write_byte(Da++,Message.data[4]) ;
+    eeprom_write_byte(Da++,Message.data[5]) ;
+    eeprom_write_byte(Da++,Message.data[6]) ;
+    eeprom_write_byte(Da++,Message.data[7]) ;
   } ;
 } 
-
-void SetFilter(uint16_t BoardAdd, uint8_t BoardLine)
-{
-  can_filter_t filter ;
-  filter.id = ((uint32_t)BoardAdd)<<2|((uint32_t)BoardLine)<<10 ;
-  filter.mask = 0x3FE2 ;
-  mcp2515_set_filter(0, &filter) ;
-  mcp2515_set_filter(1, &filter) ;
-  mcp2515_set_filter(2, &filter) ;
-  mcp2515_set_filter(3, &filter) ;
-  mcp2515_set_filter(4, &filter) ;
-  mcp2515_set_filter(5, &filter) ;
-}
-
-uint8_t SetOutMessage (uint16_t BoardAdd, uint8_t BoardLine)
-{
-  uint8_t SendLine ;
-  uint16_t SendAdd ;
-  uint8_t LED ;
-  
-  GetSourceAddress(InMessage.id,&SendLine,&SendAdd) ;
-  LED = (GetTargetAddress(InMessage.id)&0x7) ;
-  InMessage.id = BuildCANId (0,0,BoardLine,BoardAdd+LED,SendLine,SendAdd,0) ;
-  InMessage.data[0] = InMessage.data[0]|SUCCESSFULL_RESPONSE ;
-  InMessage.length = 1 ;
-  return (LED) ;
-}
-
 
 int main(void) 
 {
@@ -514,11 +338,13 @@ int main(void)
   BoardAdd = 16 ;
   BoardLine = 1 ;
   
-  PWM_PORT1 = 0x00;         // Port als Sink
-  PWM_PORT2 = 0x00;         // Port als Sink
-  PWM_PORT3 &= 0x94;
-  PWM_PORT4 &= 0xF8;         // Port als Sink
-  
+  for (r=0;r<PWM_CHANNELS;r++) {
+    Step[r] = 22 ;
+    Counter[r] = 0 ;
+    LEDVal[r] = 0 ;
+    LEDV2[r] = 0 ;
+  } ;
+
   r = eeprom_read_byte((uint8_t*)0) ;
   if (r==0xba) {
     r = eeprom_read_byte((uint8_t*)1) ;
@@ -529,49 +355,47 @@ int main(void)
     } ;
   } ;
   
-  for (r=0;r<22;r++) Step[r] = 20 ; // EndProgram setzen
-  
   mcp2515_init();
   
   SetFilter(BoardAdd,BoardLine) ;
   
+  MasterVal = 255 ;
   
   /* Filter muss hier gesetzt werden */
   
+  // Timer 0 als 10 ms-Timer verwenden
+  TCCR0B = (1<<CS02)|(1<<CS00);  // divide by 1024
+  TCNT0 = (uint8_t)TIMER_PRESET; // preload for 10ms
+  TIMSK0 |= 1<<TOIE0;            // enable timer interrupt
   
-  // Timer 1 OCRA1, als variablem Timer nutzen
-  TCCR1B = 2;             // Timer läuft mit Prescaler 8
-  TCNT1 = 0;
-  TIMSK1 |= (1 << OCIE1A);  // Interrupt freischalten
+  InitBCM () ;
   
   sei();                  // Interrupts gloabl einschalten
   
   while(1) {
     // Warte auf die nächste CAN-Message
-    while ((LastCommand=mcp2515_get_message(&InMessage)) == NO_MESSAGE) {
-      if ((pwm_sync==0)&&(pwm_updated==0)) pwm_update() ;
-      if (Timer>3) {
-	Timer = 0 ;
-	StepLight() ;
-      } ;
+    while ((LastCommand=mcp2515_get_message(&Message)) == NO_MESSAGE) {
     };
+
     // Sende-Addresse zusammenstöpseln
-    r = InMessage.data[0] ;
+    r = Message.data[0] ;
     LED = SetOutMessage(BoardLine,BoardAdd) ;
-    
-    //		if ((pwm_sync==0)&&(pwm_updated==0)) pwm_update() ;
     
     switch (r) {
     case SEND_STATUS:
+      Message.data[1] = 0 ;
+      Message.data[2] = 0 ;
+      Message.length = 3 ;
+      mcp2515_send_message(&Message) ;				
       break ;
     case READ_CONFIG:
-      InMessage.data[1] = 0xba ;
-      InMessage.data[2] = 0xca ;
-      InMessage.data[3] = (uint8_t)(BoardAdd&0xff) ;
-      InMessage.data[4] = (uint8_t)(BoardAdd>>8) ;
-      InMessage.data[5] = BoardLine ;
+      Message.data[1] = eeprom_read_byte((uint8_t*)0) ;
+      Message.data[2] = eeprom_read_byte((uint8_t*)1) ;
+      Message.data[3] = eeprom_read_byte((uint8_t*)2) ;
+      Message.data[4] = eeprom_read_byte((uint8_t*)3) ;
+      Message.data[5] = eeprom_read_byte((uint8_t*)4) ;
       InMessage.length = 6 ;
-      mcp2515_send_message(&InMessage) ;
+      mcp2515_send_message(&Message) ;
       break ;
     case WRITE_CONFIG:
       if ((InMessage.data[1] == 0xba)&&(InMessage.data[2]==0xca)) {	
@@ -580,12 +404,20 @@ int main(void)
 	eeprom_write_byte((uint8_t*)4,InMessage.data[5]) ;	
       } ;
       break ;
-    case SET_VAR:
-      if (InMessage.data[1] > 1) {
-	eeprom_write_byte((uint8_t*)(uint16_t)InMessage.data[1],InMessage.data[2]) ;
-      } ;
-      
+    case READ_VAR:
+      Addr = ((uint16_t)Message.data[1])+(((uint16_t)Message.data[2])<<8) ;
+      Message.data[3]=eeprom_read_byte((uint8_t*)Addr) ;
+      Message.length = 4 ;
+      mcp2515_send_message(&Message) ;
       break ;
+
+    case SET_VAR:
+      Addr = ((uint16_t)Message.data[1])+(((uint16_t)Message.data[2])<<8) ;
+      eeprom_write_byte((uint8_t*)Addr,Message.data[3]) ;
+	  Message.length=4 ;
+      mcp2515_send_message(&Message) ; // Empfang bestaetigen
+      break ;
+
     case START_BOOT:
       wdt_enable(WDTO_250MS) ;
       while(1) ;
@@ -594,40 +426,39 @@ int main(void)
       break ;
     case LED_OFF:
       SetLED (LED,0,0,0,0) ;
-      mcp2515_send_message(&InMessage) ;
+      mcp2515_send_message(&Message) ;
       break ;
     case LED_ON:
       SetLED (LED,255,255,255,255) ;
-      mcp2515_send_message(&InMessage) ;
+      mcp2515_send_message(&Message) ;
       break ;
     case SET_TO:
-      SetLED (LED,InMessage.data[1],InMessage.data[2],InMessage.data[3],InMessage.data[4]) ;
-      //				mcp2515_send_message(&InMessage) ;
+      SetLED (LED,Message.data[1],Message.data[2],Message.data[3],Message.data[4]) ;
       break ;
     case HSET_TO:
-      hsv_to_rgb(InMessage.data[1],InMessage.data[2],InMessage.data[3],&r,&g,&b) ;
-      SetLED (LED,r,g,b,InMessage.data[4]) ;
-      mcp2515_send_message(&InMessage) ;
+      hsv_to_rgb(Message.data[1],Message.data[2],Message.data[3],&r,&g,&b) ;
+      SetLED (LED,r,g,b,Message.data[4]) ;
+      mcp2515_send_message(&Message) ;
       break ;
     case L_AND_S:
       StoreProgram(0) ;
       break ;
     case SET_TO_G1:
-      SetLED (1,InMessage.data[1],InMessage.data[2],InMessage.data[3],0) ;
-      SetLED (2,InMessage.data[4],InMessage.data[5],InMessage.data[6],0) ;
+      SetLED (1,Message.data[1],Message.data[2],Message.data[3],0) ;
+      SetLED (2,Message.data[4],Message.data[5],Message.data[6],0) ;
       break ;
     case SET_TO_G2:
-      SetLED (3,InMessage.data[1],InMessage.data[2],InMessage.data[3],0) ;
-      SetLED (4,InMessage.data[4],InMessage.data[5],InMessage.data[6],0) ;
+      SetLED (3,Message.data[1],Message.data[2],Message.data[3],0) ;
+      SetLED (4,Message.data[4],Message.data[5],Message.data[6],0) ;
       break ;
     case SET_TO_G3:
-      SetLED (5,InMessage.data[1],InMessage.data[2],InMessage.data[3],0) ;
-      SetLED (6,InMessage.data[4],InMessage.data[5],InMessage.data[6],0) ;
+      SetLED (5,Message.data[1],Message.data[2],Message.data[3],0) ;
+      SetLED (6,Message.data[4],Message.data[5],Message.data[6],0) ;
       break ;
     case LOAD_LOW:
-      if (InMessage.data[1]>=PWM_CHANNELS) {
+      if (Message.data[1]>=PWM_CHANNELS) {
 	for (r=0;r<PWM_CHANNELS;r++) {
-	  InMessage.data[1] = r ;
+	  Message.data[1] = r ;
 	  StoreProgram (0) ;
 	} ;
       } else {
@@ -635,9 +466,9 @@ int main(void)
       } ;
       break ;
     case LOAD_MID1:
-      if (InMessage.data[1]>=PWM_CHANNELS) {
+      if (Message.data[1]>=PWM_CHANNELS) {
 	for (r=0;r<PWM_CHANNELS;r++) {
-	  InMessage.data[1] = r ;
+	  Message.data[1] = r ;
 	  StoreProgram (6) ;
 	} ;
       } else {
@@ -645,9 +476,9 @@ int main(void)
       } ;
       break ;
     case LOAD_MID2:
-      if (InMessage.data[1]>=PWM_CHANNELS) {
+      if (Message.data[1]>=PWM_CHANNELS) {
 	for (r=0;r<PWM_CHANNELS;r++) {
-	  InMessage.data[1] = r ;
+	  Message.data[1] = r ;
 	  StoreProgram (12) ;
 	} ;
       } else {
@@ -655,9 +486,9 @@ int main(void)
       }
       break ;
     case LOAD_HIGH:
-      if (InMessage.data[1]>=PWM_CHANNELS) {
+      if (Message.data[1]>=PWM_CHANNELS) {
 	for (r=0;r<PWM_CHANNELS;r++) {
-	  InMessage.data[1] = r ;
+	  Message.data[1] = r ;
 	  StoreProgram (18) ;
 	} ;
       } else {
@@ -665,28 +496,40 @@ int main(void)
       } ;
       break ;
     case START_PROG:
-      if (InMessage.data[1]>=PWM_CHANNELS) {
+      if (Message.data[1]>=PWM_CHANNELS) {
 	for (r=0;r<PWM_CHANNELS;r++) {
 	  Step[r] = 0 ;
 	  Counter[r] = 0 ;
 	} ;
       } else {
-	r = InMessage.data[1] ;
+	r = Message.data[1] ;
 	Step[r] = 0 ;
 	Counter[r] = 0 ; 
       } ;
       break ;
     case STOP_PROG:
-      if (InMessage.data[1]>=PWM_CHANNELS) {
+      if (Message.data[1]>=PWM_CHANNELS) {
 	for (r=0;r<PWM_CHANNELS;r++) {
 	  Step[r] = 22 ;
 	  Counter[r] = 0 ;
+	  LEDVal[r] = 0 ;
+	  LEDV2[r] = 0 ;
 	} ;
       } else {
-	r = InMessage.data[1] ;
+	r = Message.data[1] ;
 	Step[r] = 22 ;
 	Counter[r] = 0 ; 
+	LEDVal[r] = 0 ; 
+	LEDV2[r] = 0 ;
       } ;
+      break ;
+    case DIM_TO:
+      DimLED (LED,Message.data[1],Message.data[2],Message.data[3],Message.data[4],Message.data[5]) ;
+      break ;
+    case HDIM_TO:
+      hsv_to_rgb(Message.data[1],Message.data[2],Message.data[3],&r,&g,&b) ;
+      DimLED (LED,r,g,b,Message.data[4],Message.data[5]) ;
+      mcp2515_send_message(&Message) ;
       break ;
     case CHANNEL_ON:
     case CHANNEL_OFF:
