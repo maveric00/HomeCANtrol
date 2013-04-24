@@ -81,9 +81,9 @@ OBJDIR = .
 
 # List C source files here. (C dependencies are automatically generated.)
 SRC = LED.c 
-SRC += simple_mcp2515.c
-SRC += mcp2515_set_dyn_filter.c
-SRC += spi.c
+SRC += ../Common/mcp2515.c
+SRC += ../Common/mcp2515_filter.c
+SRC += ../Common/spi.c
 
 
 # List C++ source files here. (C dependencies are automatically generated.)
@@ -97,7 +97,7 @@ CPPSRC =
 #     Even though the DOS/Win* filesystem matches both .s and .S the same,
 #     it will preserve the spelling of the filenames, and gcc itself does
 #     care about how the name is spelled on its command-line.
-ASRC = 
+ASRC = BCM.S
 
 # Optimization level, can be [0, 1, 2, 3, s]. 
 #     0 = turn off optimization. s = optimize for size.
@@ -149,16 +149,17 @@ CPPDEFS = -DF_CPU=$(F_CPU)UL
 #  -Wall...:     warning level
 #  -Wa,...:      tell GCC to pass this to the assembler.
 #    -adhlns...: create assembler listing
-CFLAGS = -g$(DEBUG)
+CFLAGS = # -g$(DEBUG)
 CFLAGS += $(CDEFS)
 CFLAGS += -O$(OPT)
 CFLAGS += -funsigned-char
 CFLAGS += -funsigned-bitfields
 CFLAGS += -fpack-struct
-CFLAGS += -fshort-enums
+CFLAGS += -fshort-enums -Wl,--relax
 CFLAGS += -Wall
 CFLAGS += -Wstrict-prototypes
-#CFLAGS += -mshort-calls
+CFLAGS += -mshort-calls -mcall-prologues
+CFLAGS += -fdata-sections -ffunction-sections -Wl,-gc-sections
 #CFLAGS += -fno-unit-at-a-time
 #CFLAGS += -Wundef
 #CFLAGS += -Wunreachable-code
@@ -263,6 +264,7 @@ EXTMEMOPTS =
 #    --cref:    add cross reference to  map file
 LDFLAGS = -Wl,-Map=$(TARGET).map,--cref
 LDFLAGS += $(EXTMEMOPTS)
+LDFLAGS += -mrelax
 LDFLAGS += $(patsubst %,-L%,$(EXTRALIBDIRS))
 LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
 #LDFLAGS += -T linker_script.x

@@ -16,7 +16,7 @@
 #include <avr/eeprom.h>
 #include <avr/wdt.h>
 #include <util/delay.h>
-#include "simple_mcp2515.h"
+#include "..\Common\mcp2515.h"
 
 
 /* EEProm-Belegung vom Boot-Loader:
@@ -137,6 +137,15 @@ uint8_t GetProgram(uint8_t Channel, uint8_t PStep)
   return (eeprom_read_byte(Da)) ;
 }
 
+uint16_t CalcDelta (int32_t New,int32_t Old,int16_t Time)
+{
+  int16_t Delta ;
+  Delta = (int16_t)(((((int32_t)New)<<8)-(int32_t)Old)/(int16_t)Time) ;
+  if (Delta>0) Delta++ ; // Rundungsfehler ausgleichen		
+  return (Delta) ;
+}
+
+
 inline void StepLight (void)
 {
   uint8_t Channel ;
@@ -157,8 +166,7 @@ inline void StepLight (void)
 	Counter[Channel] = Command ;  
 	Command = GetProgram(Channel,Step[Channel]) ;
 	Step[Channel]++ ;
-	Delta[Channel] = (int16_t)(((((int32_t)Command)<<8)-(int32_t)LEDV2[Channel])/(int16_t)Counter[Channel]) ;
-	if (Delta[Channel]>0) Delta[Channel]++ ; // Rundungsfehler ausgleichen		
+	Delta[Channel] = CalcDelta(Command,LEDV2[Channel],Counter[Channel]) ;
 	LEDV2[Channel] += Delta[Channel] ; // und ersten Schritt ausfuehren
 	Counter[Channel]-- ;
       } else if (Command<221) { // JumpTo 
@@ -232,6 +240,7 @@ void SetLED (uint8_t Num, uint8_t R, uint8_t G, uint8_t B, uint8_t W)
   } ;
 }
 
+
 void DimLED (uint8_t Num, uint8_t R, uint8_t G, uint8_t B, uint8_t W,uint8_t Timer)
 {
   uint8_t i1;
@@ -250,28 +259,24 @@ void DimLED (uint8_t Num, uint8_t R, uint8_t G, uint8_t B, uint8_t W,uint8_t Tim
   BChan = pgm_read_word(&(LED_TO_B[Num])) ;
 
   Counter[RChan] = Timer-1 ;
-  Delta[RChan] = (int16_t)(((((int32_t)R)<<8)-(int32_t)LEDV2[RChan])/(int16_t)Timer) ;
-  if (Delta[RChan]>0) Delta[RChan]++ ; // Rundungsfehler ausgleichen		
+  Delta[RChan] = CalcDelta(R,LEDV2[RChan],Timer) ;
   LEDV2[RChan] += Delta[RChan] ; // und ersten Schritt ausfuehren
   LEDVal[RChan] = (uint8_t)(LEDV2[RChan]>>8) ;
 
 
   Counter[GChan] = Timer-1 ;
-  Delta[GChan] = (int16_t)(((((int32_t)R)<<8)-(int32_t)LEDV2[GChan])/(int16_t)Timer) ;
-  if (Delta[GChan]>0) Delta[GChan]++ ; // Rundungsfehler ausgleichen		
+  Delta[GChan] = CalcDelta(G,LEDV2[GChan],Timer) ;
   LEDV2[GChan] += Delta[GChan] ; // und ersten Schritt ausfuehren
   LEDVal[GChan] = (uint8_t)(LEDV2[GChan]>>8) ;
 
   Counter[BChan] = Timer-1 ;
-  Delta[BChan] = (int16_t)(((((int32_t)R)<<8)-(int32_t)LEDV2[BChan])/(int16_t)Timer) ;
-  if (Delta[BChan]>0) Delta[BChan]++ ; // Rundungsfehler ausgleichen		
+  Delta[BChan] = CalcDelta(B,LEDV2[BChan],Timer) ;
   LEDV2[BChan] += Delta[BChan] ; // und ersten Schritt ausfuehren
   LEDVal[BChan] = (uint8_t)(LEDV2[BChan]>>8) ;
 
   if (Num==0) {
     Counter[17] = Timer-1 ;
-    Delta[17] = (int16_t)(((((int32_t)W)<<8)-(int32_t)LEDV2[17])/(int16_t)Timer) ;
-    if (Delta[17]>0) Delta[17]++ ; // Rundungsfehler ausgleichen		
+    Delta[17] = CalcDelta(W,LEDV2[17],Timer) ;		
     LEDV2[17] += Delta[17] ; // und ersten Schritt ausfuehren
     LEDVal[17] = (uint8_t)(LEDV2[17]>>8); 
   } ;
@@ -334,6 +339,7 @@ int main(void)
   uint8_t BoardLine ;
   uint16_t BoardAdd ;
   uint8_t LED ;
+  uint16_t Addr ;
   
   BoardAdd = 16 ;
   BoardLine = 1 ;
@@ -394,14 +400,14 @@ int main(void)
       Message.data[3] = eeprom_read_byte((uint8_t*)2) ;
       Message.data[4] = eeprom_read_byte((uint8_t*)3) ;
       Message.data[5] = eeprom_read_byte((uint8_t*)4) ;
-      InMessage.length = 6 ;
+      Message.length = 6 ;
       mcp2515_send_message(&Message) ;
       break ;
     case WRITE_CONFIG:
-      if ((InMessage.data[1] == 0xba)&&(InMessage.data[2]==0xca)) {	
-	eeprom_write_byte((uint8_t*)2,InMessage.data[3]) ;	
-	eeprom_write_byte((uint8_t*)3,InMessage.data[4]) ;	
-	eeprom_write_byte((uint8_t*)4,InMessage.data[5]) ;	
+      if ((Message.data[1] == 0xba)&&(Message.data[2]==0xca)) {	
+	eeprom_write_byte((uint8_t*)2,Message.data[3]) ;	
+	eeprom_write_byte((uint8_t*)3,Message.data[4]) ;	
+	eeprom_write_byte((uint8_t*)4,Message.data[5]) ;	
       } ;
       break ;
     case READ_VAR:
