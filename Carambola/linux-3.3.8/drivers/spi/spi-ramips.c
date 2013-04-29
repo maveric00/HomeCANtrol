@@ -7,6 +7,10 @@
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
+ *
+ * The MCP2515 modifications have been copied from http://lnxpps.de/can2udpe/smallest-rocrail-server-ever/#spi_module
+ * by Gerhard Bertelsmann
+ *
  */
 
 //#define DEBUG 1
@@ -242,7 +246,7 @@ ramips_spi_write_read(struct spi_device *spi, struct spi_transfer *xfer)
 		  (tx != NULL) ? "tx" : "  ",
 		  (rx != NULL) ? "rx" : "  ");
 
-	/* Ramips 3xxx half duplex workaround for mcp2515*/
+	/* Ramips 3xxx half duplex workaround for mcp2515 by Gerhard Bertelsmann*/
 	if (tx && rx) {
 	  mcp2515_command = tx[0];
 	  for (count = 0; count < xfer->len; count++) {
