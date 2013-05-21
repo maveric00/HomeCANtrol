@@ -5,6 +5,7 @@
 #include <expat.h>
 #include <string.h>
 #include <locale.h>
+#include <ctype.h>
 #include "libwebsocket/libwebsockets.h"
 #include "ConfigNodes.h"
 #include "XMLConfig.h"

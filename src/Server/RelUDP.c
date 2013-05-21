@@ -262,8 +262,8 @@ int relrecvfrom (int Socket,unsigned char *Buffer, size_t Bufferlen, int flag, s
 #endif
       } else {
 	if (RelCmpMessage(Host,Buf,numbytes)) { // we already received it 
-	  int h ;
 #ifdef DEBUG
+	  int h ;
 	  printf ("Already got it from %s: ",Host->IP) ;
 	  for (h=0;h<15;h++) printf("%d ",Buf[h]) ;
 	  printf ("\n") ;

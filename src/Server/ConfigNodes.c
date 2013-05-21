@@ -276,7 +276,6 @@ void MakeLEDConfig (struct Node *Node, struct EEPROM *EEprom)
   int i,j ;
   int L1,K1,P1 ;
   struct Node *Action ;
-  struct EEPromSensFunc *Func ;
 
   GetNodeAdress(Node,&L1,&K1,&P1) ;
 
