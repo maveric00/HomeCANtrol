@@ -49,6 +49,7 @@ typedef enum {
   N_PROGRAM = 24,
   N_SEQUENCE = 25,
   N_WAITFOR = 26,
+  N_LED = 27,
   S_SIMPLE = 100,
   S_SHORTLONG = 101,
   S_SHADE_SHORTLONG = 102,
@@ -71,7 +72,14 @@ typedef enum {
   A_SEND_VAL = 208,
   A_HEARTBEAT = 209,
   A_CALL = 210,
-  A_SEQUENCE = 211
+  A_SEQUENCE = 211,
+  A_LEDSET = 212,
+  A_LEDHSET = 213,
+  A_LEDDIM = 214,
+  A_LEDHDIM = 215,
+  A_STARTLED = 216,
+  A_STOPLED = 217,
+  A_PROGLED = 218
 } NodeType ;
 
 typedef enum {
@@ -100,6 +108,11 @@ struct Aktion {
   char UnitName[NAMELEN*4] ;
   struct Node *Unit ;
   char Sequence[NAMELEN] ;
+  unsigned char R ;
+  unsigned char G ;
+  unsigned char B ;
+  unsigned char W ;
+  unsigned char Delay ;
 } ;
 
 struct Werte {

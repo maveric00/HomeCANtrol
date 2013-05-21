@@ -83,20 +83,13 @@ inline void GetSourceAddress (uint32_t CANId, uint8_t *FromLine, uint16_t *FromA
   *FromAdd = (uint16_t) ((CANId>>14)&0xfff) ;
 }
 
-// GetTargetAddress liefert die Addresse aus dem CAN-Identifier
-
-inline uint8_t GetTargetAddress (uint32_t CANId)
-{
-  return((uint8_t)((CANId>>2)&0xff));
-}
-
 // Alle Filter des 2515 auf die eigene Board-Addresse setzen
 
 void SetFilter(uint8_t BoardLine,uint16_t BoardAdd)
 {
   can_filter_t filter ;
   filter.id = ((uint32_t)BoardAdd)<<2|((uint32_t)BoardLine)<<10 ;
-  filter.mask = 0x3FE2 ;
+  filter.mask = 0x3FFC ;
   mcp2515_set_filter(0, &filter) ;
   mcp2515_set_filter(1, &filter) ;
   mcp2515_set_filter(2, &filter) ;
@@ -109,19 +102,15 @@ void SetFilter(uint8_t BoardLine,uint16_t BoardAdd)
 // Message fuer das zuruecksenden vorbereiten (Quelle als Ziel eintragen und 
 // Boardaddresse als Quelle)
 
-uint8_t SetOutMessage (uint8_t BoardLine, uint16_t BoardAdd)
+void SetOutMessage (uint8_t BoardLine, uint16_t BoardAdd)
 {
   uint8_t SendLine ;
   uint16_t SendAdd ;
-  uint8_t LED ;
   
   GetSourceAddress(Message.id,&SendLine,&SendAdd) ;
-  LED = (GetTargetAddress(Message.id)&0x7) ;
-  Message.id = BuildCANId (0,0,BoardLine,BoardAdd+LED,SendLine,SendAdd,0) ;
+  Message.id = BuildCANId (0,0,BoardLine,BoardAdd,SendLine,SendAdd,0) ;
   Message.data[0] = Message.data[0]|SUCCESSFULL_RESPONSE ;
   Message.length = 1 ;
-  
-  return (LED) ;
 }
 
 
@@ -137,11 +126,12 @@ uint8_t GetProgram(uint8_t Channel, uint8_t PStep)
   return (eeprom_read_byte(Da)) ;
 }
 
-uint16_t CalcDelta (int32_t New,int32_t Old,int16_t Time)
+uint16_t CalcDelta (uint8_t Chan, int32_t New,int16_t Time)
 {
   int16_t Delta ;
-  Delta = (int16_t)(((((int32_t)New)<<8)-(int32_t)Old)/(int16_t)Time) ;
-  if (Delta>0) Delta++ ; // Rundungsfehler ausgleichen		
+  Delta = (int16_t)(((((int32_t)New)<<8)-(int32_t)LEDV2[Chan])/(int16_t)Time) ;
+  if (Delta>0) Delta++ ; // Rundungsfehler ausgleichen	
+  LEDV2[Chan]+=Delta ;
   return (Delta) ;
 }
 
@@ -166,8 +156,7 @@ inline void StepLight (void)
 	Counter[Channel] = Command ;  
 	Command = GetProgram(Channel,Step[Channel]) ;
 	Step[Channel]++ ;
-	Delta[Channel] = CalcDelta(Command,LEDV2[Channel],Counter[Channel]) ;
-	LEDV2[Channel] += Delta[Channel] ; // und ersten Schritt ausfuehren
+	Delta[Channel] = CalcDelta(Channel,Command,Counter[Channel]) ;
 	Counter[Channel]-- ;
       } else if (Command<221) { // JumpTo 
 	Step[Channel] = Command-201 ;
@@ -211,7 +200,7 @@ ISR( TIMER0_OVF_vect )
 
 uint8_t LastCommand ;
 
-void SetLED (uint8_t Num, uint8_t R, uint8_t G, uint8_t B, uint8_t W)
+void SetLED (uint8_t Num, uint8_t R, uint8_t G, uint8_t B, uint8_t W, uint8_t Inv)
 {
   uint8_t i1;
   uint8_t RChan,GChan,BChan ;
@@ -220,7 +209,7 @@ void SetLED (uint8_t Num, uint8_t R, uint8_t G, uint8_t B, uint8_t W)
   if (Num>7) return ;
   
   if (Num==7) { /* Alle LEDs setzen, rekursiv */
-    for (i1=0;i1<7;i1++) SetLED(i1+100,R,G,B,W) ;
+    for (i1=0;i1<7;i1++) SetLED(i1+100,R,G,B,W,Inv) ;
     return ;
   } ;
 
@@ -228,6 +217,11 @@ void SetLED (uint8_t Num, uint8_t R, uint8_t G, uint8_t B, uint8_t W)
   GChan = pgm_read_word(&(LED_TO_G[Num])) ;
   BChan = pgm_read_word(&(LED_TO_B[Num])) ;
 
+  if (Inv==1) {
+    R = R-LEDVal[RChan] ;
+    G = G-LEDVal[GChan] ;
+    B = B-LEDVal[BChan] ;
+  } ;
   LEDVal[RChan] = R ;
   LEDVal[GChan] = G ;
   LEDVal[BChan] = B ;
@@ -259,25 +253,21 @@ void DimLED (uint8_t Num, uint8_t R, uint8_t G, uint8_t B, uint8_t W,uint8_t Tim
   BChan = pgm_read_word(&(LED_TO_B[Num])) ;
 
   Counter[RChan] = Timer-1 ;
-  Delta[RChan] = CalcDelta(R,LEDV2[RChan],Timer) ;
-  LEDV2[RChan] += Delta[RChan] ; // und ersten Schritt ausfuehren
+  Delta[RChan] = CalcDelta(RChan,R,Timer) ;
   LEDVal[RChan] = (uint8_t)(LEDV2[RChan]>>8) ;
 
 
   Counter[GChan] = Timer-1 ;
-  Delta[GChan] = CalcDelta(G,LEDV2[GChan],Timer) ;
-  LEDV2[GChan] += Delta[GChan] ; // und ersten Schritt ausfuehren
+  Delta[GChan] = CalcDelta(GChan,G,Timer) ;
   LEDVal[GChan] = (uint8_t)(LEDV2[GChan]>>8) ;
 
   Counter[BChan] = Timer-1 ;
-  Delta[BChan] = CalcDelta(B,LEDV2[BChan],Timer) ;
-  LEDV2[BChan] += Delta[BChan] ; // und ersten Schritt ausfuehren
+  Delta[BChan] = CalcDelta(BChan,B,Timer) ;
   LEDVal[BChan] = (uint8_t)(LEDV2[BChan]>>8) ;
 
   if (Num==0) {
     Counter[17] = Timer-1 ;
-    Delta[17] = CalcDelta(W,LEDV2[17],Timer) ;		
-    LEDV2[17] += Delta[17] ; // und ersten Schritt ausfuehren
+    Delta[17] = CalcDelta(17,W,Timer) ;		
     LEDVal[17] = (uint8_t)(LEDV2[17]>>8); 
   } ;
 }
@@ -316,20 +306,22 @@ void hsv_to_rgb (unsigned char h, unsigned char s, unsigned char v,unsigned char
     }
 }
 
-void StoreProgram(uint8_t Offset)
+void StoreProgram(void)
 {
   uint8_t *Da ;
+  uint8_t Offset ;
+  Offset = Message.data[2] ;
+  if (Offset>15) return ; // Illegal Offset
+  
   Da = (uint8_t*)10 ;
   Da += Offset ;
   Da += Message.data[1]*20 ;
-  eeprom_write_byte(Da++,Message.data[2]) ;
+  
   eeprom_write_byte(Da++,Message.data[3]) ;
-  if (Offset<18) {
-    eeprom_write_byte(Da++,Message.data[4]) ;
-    eeprom_write_byte(Da++,Message.data[5]) ;
-    eeprom_write_byte(Da++,Message.data[6]) ;
-    eeprom_write_byte(Da++,Message.data[7]) ;
-  } ;
+  eeprom_write_byte(Da++,Message.data[4]) ;
+  eeprom_write_byte(Da++,Message.data[5]) ;
+  eeprom_write_byte(Da++,Message.data[6]) ;
+  eeprom_write_byte(Da++,Message.data[7]) ;
 } 
 
 int main(void) 
@@ -385,7 +377,8 @@ int main(void)
 
     // Sende-Addresse zusammenstöpseln
     r = Message.data[0] ;
-    LED = SetOutMessage(BoardLine,BoardAdd) ;
+    LED = Message.data[1] ;
+    SetOutMessage(BoardLine,BoardAdd) ;
     
     switch (r) {
     case SEND_STATUS:
@@ -416,89 +409,65 @@ int main(void)
       Message.length = 4 ;
       mcp2515_send_message(&Message) ;
       break ;
-
     case SET_VAR:
       Addr = ((uint16_t)Message.data[1])+(((uint16_t)Message.data[2])<<8) ;
       eeprom_write_byte((uint8_t*)Addr,Message.data[3]) ;
-	  Message.length=4 ;
+      Message.length=4 ;
       mcp2515_send_message(&Message) ; // Empfang bestaetigen
       break ;
-
     case START_BOOT:
       wdt_enable(WDTO_250MS) ;
       while(1) ;
       break ;
     case TIME:
       break ;
-    case LED_OFF:
-      SetLED (LED,0,0,0,0) ;
+
+
+    case CHANNEL_OFF:
+      SetLED (LED,0,0,0,0,0) ;
       mcp2515_send_message(&Message) ;
       break ;
-    case LED_ON:
-      SetLED (LED,255,255,255,255) ;
+    case CHANNEL_ON:
+      SetLED (LED,255,255,255,255,0) ;
       mcp2515_send_message(&Message) ;
       break ;
+    case CHANNEL_TOGGLE:
+      SetLED (LED,255,255,255,255,1) ;
+      mcp2515_send_message(&Message) ;
+      break ;
+
+      // LED Specific
     case SET_TO:
-      SetLED (LED,Message.data[1],Message.data[2],Message.data[3],Message.data[4]) ;
+      SetLED (LED,Message.data[2],Message.data[3],Message.data[4],Message.data[5],0) ;
       break ;
     case HSET_TO:
-      hsv_to_rgb(Message.data[1],Message.data[2],Message.data[3],&r,&g,&b) ;
-      SetLED (LED,r,g,b,Message.data[4]) ;
+      hsv_to_rgb(Message.data[2],Message.data[3],Message.data[4],&r,&g,&b) ;
+      SetLED (LED,r,g,b,Message.data[5],0) ;
       mcp2515_send_message(&Message) ;
       break ;
     case L_AND_S:
       StoreProgram(0) ;
       break ;
     case SET_TO_G1:
-      SetLED (1,Message.data[1],Message.data[2],Message.data[3],0) ;
-      SetLED (2,Message.data[4],Message.data[5],Message.data[6],0) ;
+      SetLED (1,Message.data[2],Message.data[3],Message.data[4],0,0) ;
+      SetLED (2,Message.data[5],Message.data[6],Message.data[7],0,0) ;
       break ;
     case SET_TO_G2:
-      SetLED (3,Message.data[1],Message.data[2],Message.data[3],0) ;
-      SetLED (4,Message.data[4],Message.data[5],Message.data[6],0) ;
+      SetLED (3,Message.data[2],Message.data[3],Message.data[4],0,0) ;
+      SetLED (4,Message.data[5],Message.data[6],Message.data[7],0,0) ;
       break ;
     case SET_TO_G3:
-      SetLED (5,Message.data[1],Message.data[2],Message.data[3],0) ;
-      SetLED (6,Message.data[4],Message.data[5],Message.data[6],0) ;
+      SetLED (5,Message.data[2],Message.data[3],Message.data[4],0,0) ;
+      SetLED (6,Message.data[5],Message.data[6],Message.data[7],0,0) ;
       break ;
-    case LOAD_LOW:
+    case LOAD_PROG:
       if (Message.data[1]>=PWM_CHANNELS) {
 	for (r=0;r<PWM_CHANNELS;r++) {
 	  Message.data[1] = r ;
-	  StoreProgram (0) ;
+	  StoreProgram () ;
 	} ;
       } else {
-	StoreProgram(0) ;
-      } ;
-      break ;
-    case LOAD_MID1:
-      if (Message.data[1]>=PWM_CHANNELS) {
-	for (r=0;r<PWM_CHANNELS;r++) {
-	  Message.data[1] = r ;
-	  StoreProgram (6) ;
-	} ;
-      } else {
-	StoreProgram(6) ;
-      } ;
-      break ;
-    case LOAD_MID2:
-      if (Message.data[1]>=PWM_CHANNELS) {
-	for (r=0;r<PWM_CHANNELS;r++) {
-	  Message.data[1] = r ;
-	  StoreProgram (12) ;
-	} ;
-      } else {
-	StoreProgram(12) ;
-      }
-      break ;
-    case LOAD_HIGH:
-      if (Message.data[1]>=PWM_CHANNELS) {
-	for (r=0;r<PWM_CHANNELS;r++) {
-	  Message.data[1] = r ;
-	  StoreProgram (18) ;
-	} ;
-      } else {
-	StoreProgram(18) ;
+	StoreProgram() ;
       } ;
       break ;
     case START_PROG:
@@ -530,16 +499,12 @@ int main(void)
       } ;
       break ;
     case DIM_TO:
-      DimLED (LED,Message.data[1],Message.data[2],Message.data[3],Message.data[4],Message.data[5]) ;
+      DimLED (LED,Message.data[2],Message.data[3],Message.data[4],Message.data[5],Message.data[6]) ;
       break ;
     case HDIM_TO:
-      hsv_to_rgb(Message.data[1],Message.data[2],Message.data[3],&r,&g,&b) ;
-      DimLED (LED,r,g,b,Message.data[4],Message.data[5]) ;
-      mcp2515_send_message(&Message) ;
+      hsv_to_rgb(Message.data[2],Message.data[3],Message.data[4],&r,&g,&b) ;
+      DimLED (LED,r,g,b,Message.data[5],Message.data[6]) ;
       break ;
-    case CHANNEL_ON:
-    case CHANNEL_OFF:
-    case CHANNEL_TOGGLE:
     case SHADE_UP_FULL:
     case SHADE_DOWN_FULL:
     case SHADE_UP_SHORT:

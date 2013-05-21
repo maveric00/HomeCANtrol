@@ -437,6 +437,7 @@ void SendAction (struct Node *Action)
   unsigned char Data[8]; 
   char Len ;
   int Linie,Knoten,Port ;
+  int i ;
 
   if (Action->Data.Aktion.Type==A_SEQUENCE) {
     ExecuteSeq(Action) ;
@@ -484,6 +485,36 @@ void SendAction (struct Node *Action)
     Data[0] = Command ;
     Data[1] = (char)Port ;
     Len=2 ;
+    break ;
+  case N_LED:
+    if (Action->Data.Aktion.Type==A_LEDON) { Command = CHANNEL_ON ; Action->Data.Aktion.Unit->Value=1 ; } ;
+    if (Action->Data.Aktion.Type==A_LEDOFF) { Command = CHANNEL_OFF ; Action->Data.Aktion.Unit->Value=0 ; } ;
+    if (Action->Data.Aktion.Type==A_TOGGLE) { Command = CHANNEL_TOGGLE ; Action->Data.Aktion.Unit->Value=1-Action->Data.Aktion.Unit->Value ; } ;
+    if (Action->Data.Aktion.Type==A_LEDSET) { Command = SET_TO ; Action->Data.Aktion.Unit->Value=1 ; } ;
+    if (Action->Data.Aktion.Type==A_LEDHSET) { Command = HSET_TO ; Action->Data.Aktion.Unit->Value=1 ; } ;
+    if (Action->Data.Aktion.Type==A_LEDDIM) { Command = DIM_TO ; Action->Data.Aktion.Unit->Value=1 ; } ;
+    if (Action->Data.Aktion.Type==A_LEDHDIM) { Command = HDIM_TO ; Action->Data.Aktion.Unit->Value=1 ; } ;
+    if (Action->Data.Aktion.Type==A_STARTLED) { Command = START_PROG ; Action->Data.Aktion.Unit->Value=1 ; } ;
+    if (Action->Data.Aktion.Type==A_STOPLED) { Command = STOP_PROG ; Action->Data.Aktion.Unit->Value=1 ; } ;
+    if (Action->Data.Aktion.Type==A_PROGLED) { Command = LOAD_PROG ; Action->Data.Aktion.Unit->Value=1 ; } ;
+    if (GetNodeAdress(Action->Data.Aktion.Unit,&Linie,&Knoten,&Port)!=0) break ;
+    for (i=0;(Action->Data.Aktion.UnitName[i]!='\0')&&(Action->Data.Aktion.UnitName[i]!=':');i++) ;
+    if (Action->Data.Aktion.UnitName[i]==':') {
+      sscanf(&(Action->Data.Aktion.UnitName[i+1]),"%d",&Port) ;
+    } ;
+    CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
+    Data[0] = Command ;
+    Data[1] = (char)Port ;
+    if ((Command==SET_TO)||(Command==HSET_TO)||(Command==DIM_TO)||(Command==HDIM_TO)) {
+      Data[2] = Action->Data.Aktion.R ;
+      Data[3] = Action->Data.Aktion.G ;
+      Data[4] = Action->Data.Aktion.B ;
+      Data[5] = Action->Data.Aktion.W ;
+      Data[6] = Action->Data.Aktion.Delay ;
+      Len=6 ;
+    } else {
+      Len=2 ;
+    } ;
     break ;
   default:
     break ;

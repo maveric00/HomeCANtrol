@@ -63,6 +63,7 @@ void ConfigCommand (struct Node *Node, struct Node *Action, struct EEPromSensFun
 {
   int L1,K1,P1 ;
   int Command ;
+  int i ;
 
   // Adresse setzen
 
@@ -73,10 +74,15 @@ void ConfigCommand (struct Node *Node, struct Node *Action, struct EEPromSensFun
     return ;
   } ;
 
+  for (i=0;(Action->Data.Aktion.UnitName[i]!='\0')&&(Action->Data.Aktion.UnitName[i]!=':');i++) ;
+  if (Action->Data.Aktion.UnitName[i]==':') {
+    sscanf(&(Action->Data.Aktion.UnitName[i+1]),"%d",&P1) ;
+  } ;
+  
   SF->TargetLine = L1 ;
   SF->TargetAdd[0] = (unsigned char) (K1&0xff) ;
   SF->TargetAdd[1] = (unsigned char) ((K1>>8)&0xff) ;
-
+  
   // Kommando uebersetzen...
 
   Command = 0 ;
@@ -108,6 +114,24 @@ void ConfigCommand (struct Node *Node, struct Node *Action, struct EEPromSensFun
   case A_CALL:
     if (Action->Data.Aktion.Unit->Type==N_MACRO) Command = START_PROG ;
     break ;
+  case A_LEDSET:
+    if (Action->Data.Aktion.Unit->Type==N_LED) Command = SET_TO ;
+    break ;
+  case A_LEDHSET:
+    if (Action->Data.Aktion.Unit->Type==N_LED) Command = HSET_TO ;
+    break ;
+  case A_LEDDIM:
+    if (Action->Data.Aktion.Unit->Type==N_LED) Command = DIM_TO ;
+    break ;
+  case A_LEDHDIM:
+    if (Action->Data.Aktion.Unit->Type==N_LED) Command = HDIM_TO ;
+    break ;
+  case A_STARTLED:
+    if (Action->Data.Aktion.Unit->Type==N_LED) Command = START_PROG ;
+    break ;
+  case A_STOPLED:
+    if (Action->Data.Aktion.Unit->Type==N_LED) Command = STOP_PROG ;
+    break ;
   default:
     break ;
   } ;
@@ -122,7 +146,13 @@ void ConfigCommand (struct Node *Node, struct Node *Action, struct EEPromSensFun
 	     (Command==SHADE_UP_FULL)||(Command==SHADE_DOWN_FULL)) {
     SF->Data[0] = P1 ;
   } else if (Command==START_PROG) {
-    SF->Data[0] = P1 ;
+    SF->Data[0] = P1 ; 
+  } else if ((Command==SET_TO)||(Command==HSET_TO)||(Command==DIM_TO)||(Command==HDIM_TO)) {
+    SF->Data[1] = Action->Data.Aktion.R ;
+    SF->Data[2] = Action->Data.Aktion.G ;
+    SF->Data[3] = Action->Data.Aktion.B ;
+    SF->Data[4] = Action->Data.Aktion.W ;
+    SF->Data[5] = Action->Data.Aktion.Delay ;
   } else {
     // Kommando wurde nicht gesetzt
     SF->Command = UNDEFINED_COMMAND ;
@@ -241,6 +271,28 @@ void MakeBadConfig (struct Node *Node, struct EEPROM *EEprom)
   }
 }
 
+void MakeLEDConfig (struct Node *Node, struct EEPROM *EEprom)
+{
+  int i,j ;
+  int L1,K1,P1 ;
+  struct Node *Action ;
+  struct EEPromSensFunc *Func ;
+
+  GetNodeAdress(Node,&L1,&K1,&P1) ;
+
+  // Konfiguration uebersetzen
+  for (Action=Node->Child;Action!=NULL;Action=Action->Next) {
+    if (Action->Type==N_PROGRAM){
+      j = Action->Data.Program.Port-1 ;
+      if ((j<0)||(j>22)) continue ;
+      for (i=0;i<20;i++) {
+	EEprom->Data.LED.Program[j][i]=Action->Data.Program.Data[i] ;
+      } ;
+    } else {
+    } ;
+  }
+}
+
 void MakeRolloConfig (struct Node *Node, struct EEPROM *EEprom)
 {
   int L1,K1,P1 ;
@@ -316,6 +368,17 @@ int MakeConfig (int Linie, int Knoten, struct EEPROM *EEprom)
 	};
       } ;
       MakeBadConfig(ANodes[i],EEprom) ;
+      break ;
+    case N_LED:
+      if (EEprom->BoardType==0xFF) {
+	EEprom->BoardType = 0 ;
+      } else {
+	if (EEprom->BoardType!=0) {
+	  fprintf (stderr,"Inconsistent board L:%d, K:%d definition for sensor %s\n",Linie,Knoten,ANodes[i]->Name) ;
+	  return (0) ;
+	};
+      } ;
+      MakeLEDConfig(ANodes[i],EEprom) ;
       break ;
     case N_SHADE:
       if (EEprom->BoardType==0xFF) {
@@ -498,6 +561,9 @@ void SendFirmware(char Linie, USHORT Knoten)
     break ;
   case N_BAD:
     TypCode = 1 ;
+    break ;
+  case N_LED:
+    TypCode = 0 ;
     break ;
   default:
     TypCode = 255 ;

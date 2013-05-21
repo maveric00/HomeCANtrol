@@ -37,6 +37,7 @@ struct TypSel Types[] = {
   {"Sensor",N_SENSOR},
   {"Bad",N_BAD},
   {"Bath",N_BAD},
+  {"LED",N_LED},
   {"Aktion",N_ACTION},
   {"Action",N_ACTION},
   {"Makro",N_MACRO},
@@ -110,6 +111,16 @@ struct TypSel Types[] = {
   {"Call",A_CALL},
   {"Sequenz",A_SEQUENCE},
   {"Sequence",A_SEQUENCE},
+  {"RGBLED",A_LEDSET},
+  {"HSVLED",A_LEDHSET},
+  {"DIMRGB",A_LEDDIM},
+  {"DIMHSV",A_LEDHDIM},
+  {"StarteLED",A_STARTLED},
+  {"LEDStart",A_STARTLED},
+  {"StoppLED",A_STOPLED},
+  {"LEDStop",A_STOPLED},
+  {"LEDProgramm",A_PROGLED},
+  {"ProgramLED",A_PROGLED},
   {NULL,0} 
 } ;
 
@@ -178,6 +189,21 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       } ;
       if ((strcmp(attr[i],"kurz")==0)||(strcmp(attr[i],"short")==0)) {
 	sscanf(attr[i+1],"%d",&(Current->Data.Aktion.Short)) ;
+      } ;
+      if ((strcmp(attr[i],"R")==0)||(strcmp(attr[i],"H")==0)) {
+	sscanf(attr[i+1],"%hhi",&(Current->Data.Aktion.R)) ;
+      } ;
+      if ((strcmp(attr[i],"G")==0)||(strcmp(attr[i],"S")==0)) {
+	sscanf(attr[i+1],"%hhi",&(Current->Data.Aktion.G)) ;
+      } ;
+      if ((strcmp(attr[i],"B")==0)||(strcmp(attr[i],"V")==0)) {
+	sscanf(attr[i+1],"%hhi",&(Current->Data.Aktion.B)) ;
+      } ;
+      if (strcmp(attr[i],"W")==0) {
+	sscanf(attr[i+1],"%hhi",&(Current->Data.Aktion.W)) ;
+      } ;
+      if ((strcmp(attr[i],"dauer")==0)||(strcmp(attr[i],"time")==0)) {
+	sscanf(attr[i+1],"%hhi",&(Current->Data.Aktion.Delay)) ;
       } ;
       break ;
     case N_SENSOR:
