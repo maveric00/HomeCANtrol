@@ -20,7 +20,7 @@ void mcp2515_spi_init(void)
 
 #if defined (__AVR_AT90PWM3B__)
 	// HW-SPI aktivieren
-	MCUCR |= SPIPS ;
+	MCUCR |= 1<<SPIPS ;
 	SPCR = (1<<SPE)|(1<<MSTR);
 	SPSR = (1<<SPI2X);
 #endif

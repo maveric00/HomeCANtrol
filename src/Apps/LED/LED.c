@@ -446,7 +446,7 @@ int main(void)
       mcp2515_send_message(&Message) ;
       break ;
     case L_AND_S:
-      StoreProgram(0) ;
+      StoreProgram() ;
       break ;
     case SET_TO_G1:
       SetLED (1,Message.data[2],Message.data[3],Message.data[4],0,0) ;

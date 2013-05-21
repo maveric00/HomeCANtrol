@@ -217,6 +217,8 @@ void main(void)
       // check if the message is a request, otherwise reject it
       if ((command & ~COMMAND_MASK) != REQUEST)
 	continue;
+
+		if (command>5) {Counter = 0 ; continue ; } ;
       
       command &= COMMAND_MASK;
       

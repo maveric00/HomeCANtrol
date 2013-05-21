@@ -472,8 +472,6 @@ int main(void)
       // Diese Befehle sind beim Relais nicht bekannt
     case TIME:
       /* LED */
-    case LED_OFF:
-    case LED_ON:
     case SET_TO:
     case HSET_TO:
     case L_AND_S:

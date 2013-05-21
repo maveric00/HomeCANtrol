@@ -10,7 +10,7 @@
 
 
 // MACROS Zeitschleifen
-
+ 
 
 .macro nops82			; Macro Zeitschleife 82 Takte
 	ldi r25,27		; 27 Schleifendurchlaeufe (1 Takt)

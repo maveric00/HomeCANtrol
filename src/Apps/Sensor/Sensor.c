@@ -732,18 +732,13 @@ int main(void)
       break ;
       // Diese Befehle sind beim Sensor nicht bekannt
       // LED
-    case LED_OFF:
-    case LED_ON:
     case SET_TO:
     case HSET_TO:
     case L_AND_S:
     case SET_TO_G1:
     case SET_TO_G2:
     case SET_TO_G3:
-    case LOAD_LOW:
-    case LOAD_MID1:
-    case LOAD_MID2:
-    case LOAD_HIGH:
+    case LOAD_PROG:
     case START_PROG:
     case STOP_PROG:
       break ;
