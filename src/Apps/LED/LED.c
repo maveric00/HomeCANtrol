@@ -99,6 +99,7 @@ void SetFilter(uint8_t BoardLine,uint16_t BoardAdd)
   mcp2515_set_filter(5, &filter) ;
 }
 
+
 // Message fuer das zuruecksenden vorbereiten (Quelle als Ziel eintragen und 
 // Boardaddresse als Quelle)
 
@@ -205,11 +206,10 @@ void SetLED (uint8_t Num, uint8_t R, uint8_t G, uint8_t B, uint8_t W, uint8_t In
   uint8_t i1;
   uint8_t RChan,GChan,BChan ;
   
-  if (Num>99) Num -=100 ;
   if (Num>7) return ;
   
   if (Num==7) { /* Alle LEDs setzen, rekursiv */
-    for (i1=0;i1<7;i1++) SetLED(i1+100,R,G,B,W,Inv) ;
+    for (i1=0;i1<7;i1++) SetLED(i1,R,G,B,W,Inv) ;
     return ;
   } ;
 
@@ -355,7 +355,7 @@ int main(void)
   
   mcp2515_init();
   
-  SetFilter(BoardAdd,BoardLine) ;
+ SetFilter(BoardLine,BoardAdd) ;
   
   MasterVal = 255 ;
   
@@ -366,14 +366,18 @@ int main(void)
   TCNT0 = (uint8_t)TIMER_PRESET; // preload for 10ms
   TIMSK0 |= 1<<TOIE0;            // enable timer interrupt
   
-  InitBCM () ;
+  InitBCM () ; 
   
   sei();                  // Interrupts gloabl einschalten
   
+ 
   while(1) {
-    // Warte auf die nächste CAN-Message
+	// Warte auf die nächste CAN-Message
     while ((LastCommand=mcp2515_get_message(&Message)) == NO_MESSAGE) {
+
     };
+
+	
 
     // Sende-Addresse zusammenstöpseln
     r = Message.data[0] ;

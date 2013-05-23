@@ -285,6 +285,7 @@ uint8_t mcp2515_get_message(can_t *msg)
 void mcp2515_init(void)
 {
 	mcp2515_spi_init() ;
+	SET_INPUT_WITH_PULLUP(MCP2515_INT);
 	
 	// Aktivieren des SPI Master Interfaces
 	
