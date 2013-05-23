@@ -90,12 +90,15 @@ void ConfigCommand (struct Node *Node, struct Node *Action, struct EEPromSensFun
   switch (Action->Data.Aktion.Type) {
   case A_ON: 
     if (Action->Data.Aktion.Unit->Type==N_ONOFF) Command = CHANNEL_ON ;
+    if (Action->Data.Aktion.Unit->Type==N_LED) Command = CHANNEL_ON ;
     break ;
   case A_OFF: 
     if (Action->Data.Aktion.Unit->Type==N_ONOFF) Command = CHANNEL_OFF ;
+    if (Action->Data.Aktion.Unit->Type==N_LED) Command = CHANNEL_OFF ;
     break ;
   case A_TOGGLE: 
     if (Action->Data.Aktion.Unit->Type==N_ONOFF) Command = CHANNEL_TOGGLE ;
+    if (Action->Data.Aktion.Unit->Type==N_LED) Command = CHANNEL_TOGGLE ;
     break ;
   case A_SHADE_UP_FULL: 
     if (Action->Data.Aktion.Unit->Type==N_SHADE) Command = SHADE_UP_FULL ;
