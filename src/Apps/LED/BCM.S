@@ -38,10 +38,10 @@ L3\@:				; Schleifenbeginn
 	nop			; 17
 .endm
 
-#define PWMOut1(a) out _SFR_IO_ADDR(PORTB),a
-#define PWMOut2(a) out _SFR_IO_ADDR(PORTC),a
-#define PWMOut3(a) out _SFR_IO_ADDR(PORTD),a
-#define PWMOut4(a) out _SFR_IO_ADDR(PORTE),a
+#define PWMOut1(a) out _SFR_IO_ADDR(DDRB),a
+#define PWMOut2(a) out _SFR_IO_ADDR(DDRC),a
+#define PWMOut3(a) out _SFR_IO_ADDR(DDRD),a
+#define PWMOut4(a) out _SFR_IO_ADDR(DDRE),a
 
 // MACROS Definition der Ausgabeports - die Ports muessen noch separat auf Ausgang gesetzt werden
 
@@ -64,15 +64,15 @@ InitBCM:
 
 // Port A,B,C als Ausgang konfigurieren
     push r24
-	ldi r24,255
-	out _SFR_IO_ADDR(DDRB), r24
-	out _SFR_IO_ADDR(DDRC), r24
-	in  r24,_SFR_IO_ADDR(DDRD)
-	ori r24,0xA1
-	out _SFR_IO_ADDR(DDRD), r24
-	in  r24,_SFR_IO_ADDR(DDRE)
-	ori r24,0x07
-	out _SFR_IO_ADDR(DDRE), r24
+	ldi r24,0
+	out _SFR_IO_ADDR(PORTB), r24
+	out _SFR_IO_ADDR(PORTC), r24
+	in  r24,_SFR_IO_ADDR(PORTD)
+	andi r24,0x5E
+	out _SFR_IO_ADDR(PORTD), r24
+	in  r24,_SFR_IO_ADDR(PORTE)
+	andi r24,0xF8
+	out _SFR_IO_ADDR(PORTE), r24
 	
 // CurrentBit im Ram auf 0 setzen
 	ldi r24,0
@@ -481,16 +481,9 @@ Loop1Weiter:
 	ldi r18,BITCOUNT						; Lade Register mit Schleifenwert (1-3 Byte = 8,16,24Bit)
 //
 Loop3:
-    ld r24,Y
-	com r24
-	st Y,r24
-    ldd r24,Y+1
-	com r24
-	std Y+1,r24
 	ldd r24,Y+2
-	com r24
 	andi r24,127
-	sbrc r24,5		;  Die beiden hoechsten Bits umschaufeln (hoechstes von 0x20 auf 0x80, zweithoechstes von 0x10 auf 0x20)
+	sbrc r24,5	;  Die beiden hoechsten Bits umschaufeln (hoechstes von 0x20 auf 0x80, zweithoechstes von 0x10 auf 0x20)
 	ori r24,128
 	andi r24,223
 	sbrc r24,4
@@ -499,13 +492,13 @@ Loop3:
 	mov r25,r24
 	ror r24
 	andi r24,7
-	in	r19,_SFR_IO_ADDR(PORTE)
+	in	r19,_SFR_IO_ADDR(DDRE)
 	andi r19,0xF8
 	or r24,r19
 	andi r19,0xFE ; RESET ausblenden
 	std Y+3,r24
 	andi r25,0xA1
-	in	r19,_SFR_IO_ADDR(PORTD)
+	in	r19,_SFR_IO_ADDR(DDRD)
 	andi r19,0x5E
 	or r25,r19
 	std Y+2,r25	
