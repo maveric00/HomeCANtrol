@@ -14,7 +14,7 @@ Supply voltage is 12V.
 
 4) A derivative of the LED driver board driving 18 single LEDs and sensing one presence detector.
 
-CAN->Ethernet gateways are currently built on AVR-NetIO boards using OpenMCP as TCP stack and 2 MCP2515 CAN controllers to connect two CAN lines (change/addition to use a Carambola board is ongoing). CAN messages are sent out or received as UDP packets containing the CAN identifier, message length and message data. 
+CAN->Ethernet gateways are build on Carambola boards. Each Gateway contains 2*CAN, 2* Ethernet, 1*RS485, 1*RS232 and WLAN in a 2 units wide DIN-rail case. CAN messages are sent out or received as UDP packets containing the CAN identifier, message length and message data. 
 
 This enables the use of a controller program on a PC connected to the same network.
 
