@@ -160,7 +160,7 @@ void mcp2515_write_id(const uint32_t *id)
 uint8_t mcp2515_send_message(const can_t *msg)
 {
   // Status des MCP2515 auslesen
-  uint8_t status = mcp2515_read_status(SPI_READ_STATUS);
+  uint8_t status;
 	
   /* Statusbyte:
    *
@@ -205,6 +205,7 @@ uint8_t mcp2515_send_message(const can_t *msg)
   SET(MCP2515_CS);
   
   asm volatile ("nop");
+  asm volatile ("nop");
   
   // CAN Nachricht verschicken
   // die letzten drei Bit im RTS Kommando geben an welcher
@@ -237,7 +238,7 @@ uint8_t mcp2515_get_message(can_t *msg)
 {
 	uint8_t addr;
 	
-	if (IS_SET(MCP2515_INT)) return 0x3f ; // Kein Interrupt gesetzt, damit auch keine Nachricht vorhanden...
+	if (IS_SET(MCP2515_INT)) return(NO_MESSAGE); // Kein Interrupt gesetzt, damit auch keine Nachricht vorhanden...
 
 	// read status
 	uint8_t status = mcp2515_read_status(SPI_RX_STATUS);
@@ -252,7 +253,7 @@ uint8_t mcp2515_get_message(can_t *msg)
 	}
 	else {
 		// Error: no message available
-		return 0x3f;
+		return(NO_MESSAGE);
 	}
 	
 	RESET(MCP2515_CS);
@@ -278,7 +279,7 @@ uint8_t mcp2515_get_message(can_t *msg)
 	else
 		mcp2515_bit_modify(CANINTF, (1<<RX1IF), 0);
 	
-	return (status);
+	return (SUCCESSFULL_RESPONSE);
 }
 
 

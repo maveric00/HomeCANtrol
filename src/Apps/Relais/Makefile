@@ -132,7 +132,7 @@ CDEFS = -DF_CPU=$(F_CPU)UL
 
 
 # Place -D or -U options here for ASM sources
-ADEFS = -DF_CPU=$(F_CPU) 
+ADEFS = -DF_CPU=$(F_CPU) -DRELAISBOARD=1
 
 
 # Place -D or -U options here for C++ sources

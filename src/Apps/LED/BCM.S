@@ -395,6 +395,7 @@ Loop2:
 // hier werden die Helligkeitswert 0-255) in 10-16 Bit logarithmische Werte umgewandelt
 // bzw. diese aus der Tabelle geholt
 // Offset (entspricht dem Helligkeitswert 0-255)*(MasterHelligkeit+1(1-256)/256 der Adresse der logarithmischen Tabelle in ZL laden 
+
 	lds r24,MasterVal			; Master Helligkeit
 	ld  r25,Y+				; Led Helligkeit
 	mul r24,r25			; Master * Led
@@ -495,7 +496,7 @@ Loop3:
 	in	r19,_SFR_IO_ADDR(DDRE)
 	andi r19,0xF8
 	or r24,r19
-	andi r19,0xFE ; RESET ausblenden
+	andi r24,0xFE ; RESET ausblenden
 	std Y+3,r24
 	andi r25,0xA1
 	in	r19,_SFR_IO_ADDR(DDRD)

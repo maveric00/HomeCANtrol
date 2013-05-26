@@ -18,7 +18,7 @@ void mcp2515_spi_init(void)
 	SET_OUTPUT(P_MOSI);
 	SET_INPUT(P_MISO);
 
-#if defined (__AVR_AT90PWM3B__)
+#if defined (RELAISBOARD)
 	// HW-SPI aktivieren
 	MCUCR |= 1<<SPIPS ;
 	SPCR = (1<<SPE)|(1<<MSTR);
@@ -31,7 +31,7 @@ void mcp2515_spi_init(void)
 
 uint8_t spi_putc(uint8_t data)
 {
-#if defined (__AVR_AT90PWM3B__)
+#if defined (RELAISBOARD)
   SPDR = data;
   
   // Wartet bis Byte gesendet wurde

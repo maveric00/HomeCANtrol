@@ -314,7 +314,7 @@ void BroadcastStatus(  uint8_t BoardLine, uint16_t BoardAdd )
   uint8_t ChanStat[10] ;
 
   if (!IS_SET(MCP2515_INT)) {
-    BroadcastWaitintg = 1 ;
+    BroadcastWaiting = 1 ;
     return ; // Es wartet eine weitere Nachricht im Empfangsbuffer, also jetzt keinen Status senden...
   } ;
   
@@ -543,18 +543,12 @@ int main(void)
       // Diese Befehle sind beim Relais nicht bekannt
     case TIME:
       /* LED */
-    case LED_OFF:
-    case LED_ON:
     case SET_TO:
     case HSET_TO:
     case L_AND_S:
     case SET_TO_G1:
     case SET_TO_G2:
     case SET_TO_G3:
-    case LOAD_LOW:
-    case LOAD_MID1:
-    case LOAD_MID2:
-    case LOAD_HIGH:
     case START_PROG:
     case STOP_PROG:
       /* Sensor */

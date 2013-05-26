@@ -55,10 +55,8 @@ can_t Message ;
 uint8_t  BoardLine ;
 uint16_t BoardAdd ;
 
-uint8_t  LastCommand ;
 volatile uint8_t  Heartbeat ;
 volatile uint16_t Timers ;
-uint8_t  TimerStatus ;
 
 const uint16_t LED_TO_R [] PROGMEM = { 0,9,1,18,12,4,7} ;
 const uint16_t LED_TO_G [] PROGMEM = { 8,10,2,19,13,5,15} ;
@@ -199,8 +197,6 @@ ISR( TIMER0_OVF_vect )
   if (Heartbeat<250) Heartbeat++ ;
 }
 
-uint8_t LastCommand ;
-
 void SetLED (uint8_t Num, uint8_t R, uint8_t G, uint8_t B, uint8_t W, uint8_t Inv)
 {
   uint8_t i1;
@@ -240,11 +236,10 @@ void DimLED (uint8_t Num, uint8_t R, uint8_t G, uint8_t B, uint8_t W,uint8_t Tim
   uint8_t i1;
   uint8_t RChan,GChan,BChan ;
   
-  if (Num>99) Num -=100 ;
   if (Num>7) return ;
   
   if (Num==7) { /* Alle LEDs setzen, rekursiv */
-    for (i1=0;i1<7;i1++) DimLED(i1+100,R,G,B,W,Timer) ;
+    for (i1=0;i1<7;i1++) DimLED(i1,R,G,B,W,Timer) ;
     return ;
   } ;
 
@@ -279,19 +274,18 @@ void hsv_to_rgb (unsigned char h, unsigned char s, unsigned char v,unsigned char
   unsigned char i, f;
   unsigned int p, q, t;
   
-  if( s == 0 ) 
-    {	*r = *g = *b = v;
-    }
-  else
-    {	i=h/43;
-      f=h%43;
-      p = (v * (255 - s))/256;
-      q = (v * ((10710 - (s * f))/42))/256;
-      t = (v * ((10710 - (s * (42 - f)))/42))/256;
+  if(s==0) {	
+	*r = *g = *b = v;
+  } else {	
+    i=h/43;
+    f=h%43;
+    p = (v * (255 - s))/256;
+    q = (v * ((10710 - (s * f))/42))/256;
+    t = (v * ((10710 - (s * (42 - f)))/42))/256;
       
-      switch( i )
-	{	case 0:
-	    *r = v; *g = t; *b = p; break;
+    switch( i ) {	
+	case 0:
+	  *r = v; *g = t; *b = p; break;
 	case 1:
 	  *r = q; *g = v; *b = p; break;
 	case 2:
@@ -303,7 +297,7 @@ void hsv_to_rgb (unsigned char h, unsigned char s, unsigned char v,unsigned char
 	case 5:
 	  *r = v; *g = p; *b = q; break;
 	}
-    }
+  }
 }
 
 void StoreProgram(void)
@@ -332,6 +326,8 @@ int main(void)
   uint16_t BoardAdd ;
   uint8_t LED ;
   uint16_t Addr ;
+  uint8_t  LastCommand ;
+
   
   BoardAdd = 16 ;
   BoardLine = 1 ;
@@ -355,7 +351,7 @@ int main(void)
   
   mcp2515_init();
   
- SetFilter(BoardLine,BoardAdd) ;
+  SetFilter(BoardLine,BoardAdd) ;
   
   MasterVal = 255 ;
   
@@ -372,13 +368,14 @@ int main(void)
   
  
   while(1) {
+  
+    Message.data[0] = 0 ; // Kommando loeschen
+
 	// Warte auf die nächste CAN-Message
     while ((LastCommand=mcp2515_get_message(&Message)) == NO_MESSAGE) {
 
     };
-
 	
-
     // Sende-Addresse zusammenstöpseln
     r = Message.data[0] ;
     LED = Message.data[1] ;
@@ -402,9 +399,9 @@ int main(void)
       break ;
     case WRITE_CONFIG:
       if ((Message.data[1] == 0xba)&&(Message.data[2]==0xca)) {	
-	eeprom_write_byte((uint8_t*)2,Message.data[3]) ;	
-	eeprom_write_byte((uint8_t*)3,Message.data[4]) ;	
-	eeprom_write_byte((uint8_t*)4,Message.data[5]) ;	
+	    eeprom_write_byte((uint8_t*)2,Message.data[3]) ;	
+	    eeprom_write_byte((uint8_t*)3,Message.data[4]) ;	
+	    eeprom_write_byte((uint8_t*)4,Message.data[5]) ;	
       } ;
       break ;
     case READ_VAR:
@@ -428,15 +425,21 @@ int main(void)
 
 
     case CHANNEL_OFF:
-      SetLED (LED,0,0,0,0,0) ;
+	  //for (g=1;g<7;g++) 
+	  //SetLED (g,0,0,0,0,0) ;
+	  SetLED (7,0,0,0,0,0) ;	  
       mcp2515_send_message(&Message) ;
       break ;
     case CHANNEL_ON:
-      SetLED (LED,255,255,255,255,0) ;
+	  //for (g=1;g<7;g++) 	
+      //SetLED (g,255,255,255,255,0) ;
+      SetLED (7,255,255,255,255,0) ;
       mcp2515_send_message(&Message) ;
       break ;
     case CHANNEL_TOGGLE:
-      SetLED (LED,255,255,255,255,1) ;
+	  //for (g=1;g<7;g++) 
+      //SetLED (g,255,255,255,255,1) ;
+      SetLED (7,255,255,255,255,1) ;
       mcp2515_send_message(&Message) ;
       break ;
 
@@ -476,30 +479,30 @@ int main(void)
       break ;
     case START_PROG:
       if (Message.data[1]>=PWM_CHANNELS) {
-	for (r=0;r<PWM_CHANNELS;r++) {
-	  Step[r] = 0 ;
-	  Counter[r] = 0 ;
-	} ;
+ 	    for (r=0;r<PWM_CHANNELS;r++) {
+	      Step[r] = 0 ;
+	      Counter[r] = 0 ;
+	    } ;
       } else {
-	r = Message.data[1] ;
-	Step[r] = 0 ;
-	Counter[r] = 0 ; 
+	    r = Message.data[1] ;
+        Step[r] = 0 ;
+	    Counter[r] = 0 ; 
       } ;
       break ;
     case STOP_PROG:
       if (Message.data[1]>=PWM_CHANNELS) {
-	for (r=0;r<PWM_CHANNELS;r++) {
-	  Step[r] = 22 ;
-	  Counter[r] = 0 ;
-	  LEDVal[r] = 0 ;
-	  LEDV2[r] = 0 ;
-	} ;
+	    for (r=0;r<PWM_CHANNELS;r++) {
+	      Step[r] = 22 ;
+	      Counter[r] = 0 ;
+	      LEDVal[r] = 0 ;
+	      LEDV2[r] = 0 ;
+	    } ;
       } else {
-	r = Message.data[1] ;
-	Step[r] = 22 ;
-	Counter[r] = 0 ; 
-	LEDVal[r] = 0 ; 
-	LEDV2[r] = 0 ;
+	    r = Message.data[1] ;
+	    Step[r] = 22 ;
+	    Counter[r] = 0 ; 
+	    LEDVal[r] = 0 ; 
+	    LEDV2[r] = 0 ;
       } ;
       break ;
     case DIM_TO:
