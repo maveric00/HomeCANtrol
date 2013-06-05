@@ -128,7 +128,7 @@ CSTANDARD = -std=gnu99 -mtiny-stack
 
 
 # Place -D or -U options here for C sources
-CDEFS = -DF_CPU=$(F_CPU)UL 
+CDEFS = -DF_CPU=$(F_CPU)UL -DRELAISBOARD=1
 
 
 # Place -D or -U options here for ASM sources

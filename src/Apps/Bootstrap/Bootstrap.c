@@ -30,6 +30,7 @@
 7   BootLine
 8   BoardType (0: LED, 0x10: Relais, 0x20: Sensor)  
 9   n/a
+*/
 
 // globale Variablen
 
@@ -110,7 +111,6 @@ int main(void)
   uint16_t BoardAdd ;
   uint16_t Addr ;
   uint8_t r ;
-  uint8_t i,j ;
   uint8_t LastCommand ;
 
   // Default-Werte:
@@ -164,11 +164,8 @@ int main(void)
     switch (r) {
 
     case SEND_STATUS:
-      for (i=0;i<10;i++) ChanStat[i]=(Channel[i]>0)?1:0 ;
-      Message.data[1] = (ChanStat[0])+(ChanStat[1]<<1)+(ChanStat[2]<<2)+(ChanStat[3]<<3)+(ChanStat[4]<<4) ;
-      Message.data[2] = (ChanStat[5])+(ChanStat[6]<<1)+(ChanStat[7]<<2)+(ChanStat[8]<<3)+(ChanStat[9]<<4) ;
-      for (i=0;i<5;i++) Message.data[i+3]=Position[i] ;
-      Message.length = 8 ;
+	  Message.data[1] = 0 ;
+      Message.length = 2 ;
       mcp2515_send_message(&Message) ;				
       break ;
 
