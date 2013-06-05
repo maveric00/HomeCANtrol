@@ -120,11 +120,11 @@ void main(void)
 //  DDRD &=0xfe ;
 
     
-  BoardAdd = 16 ;
-  BoardLine = 1 ;
+  BoardAdd = 0xff ; // um zu kennzeichnen, dass das Board noch nicht 
+  BoardLine = 0xf ; // spezifiziert ist
   BootAdd = 1 ;
   BootLine = 0 ;
-  BoardType = 0 ;
+  BoardType = 0xff ;
   
   Temp = eeprom_read_byte((uint8_t*)0) ;
   if (Temp==0xba) {

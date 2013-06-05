@@ -478,7 +478,6 @@ void HandleCANRequest(void)
 
     if (Data[0]==(SET_VAR|SUCCESSFULL_RESPONSE)) {
       // EEprom write handshake; send out next byte
-
       SendConfigByte (FromLine,FromAdd) ;
     } ;
     
@@ -504,13 +503,14 @@ void HandleCANRequest(void)
   } ;
 }
 
-int HandleCommand (char *Command, char *Answer,int Socket)
+int HandleCommand (char *Command,int Socket)
 {
-  int Line,Add,Port ;
+  int Line,Add,Port,Type ;
   int i ;
   char Makro[NAMELEN*4] ;
   char Com[NAMELEN*4] ;
   char Obj[NAMELEN*4] ;
+  char Answer[NAMELEN] ;
   struct Node *This ;
   struct EEPROM EEprom ;
   static struct Node *MenuCurrent = NULL ;
@@ -520,18 +520,23 @@ int HandleCommand (char *Command, char *Answer,int Socket)
   Obj[0] = '\0' ;
   Com[0] = '\0' ;
 
+  // Convert Command to lower case
+  for (i=0;(Command[i]!=' ')&&(Command[i]!='\0');i++) Command[i]=tolower(Command[i]) ;
+
   sscanf(Command,"%s %s",Com,Obj) ;
   
   // Send current location and available Childs...
   
-  if ((strcmp(Com,"Help")==0)||(strcmp(Com,"Hilfe")==0)) {
+  if ((strcmp(Com,"help")==0)||(strcmp(Com,"hilfe")==0)) {
     sprintf (Answer,"Available Commands:\r\n"
 	     "Help/Hilfe: This help\r\n"
+	     "Add (Line)(Adress):            Update and configure new node\r\n"
 	     "Config (Line)(Adress):         Configure node with parameters\r\n"
 	     "Update (Line)(Adress):         Update node with firmware stored in NodeConf\r\n"
 	     "Reload:                        Reload CANControl configuration\r\n"
 	     "List:                          List all running macros\r\n"
 	     "Exit:                          Exit this communication\r\n"
+	     "TC (Line) (Adress) (Port):     Issue toggle on given adress\r\n"
 	     "An/On [Object]:                Switch on Object or current location\r\n"
 	     "Aus/Off [Object]:              Switch off object or current location\r\n"
 	     "Toggle [Object]:               Toggle object or current location\r\n"
@@ -543,15 +548,14 @@ int HandleCommand (char *Command, char *Answer,int Socket)
 	     "Parent:                        Select parent object\r\n"
 	     "Top:                           Select top level\r\n"); 
     send(Socket,Answer,strlen(Answer),0) ;
-    sprintf (Answer,"Command: ") ;
     return(TRUE) ;
   }
   
-  if (strcmp(Com,"Parent")==0) {
+  if (strcmp(Com,"parent")==0) {
     MenuCurrent = MenuCurrent->Parent!=NULL?MenuCurrent->Parent:MenuCurrent ;
   }
   
-  if (strcmp(Com,"Top")==0) {
+  if (strcmp(Com,"top")==0) {
     MenuCurrent = Haus ;
   }
   
@@ -587,66 +591,76 @@ int HandleCommand (char *Command, char *Answer,int Socket)
   } ;
   sprintf (Answer,"99: One level up\r\n") ;
   send(Socket,Answer,strlen(Answer),0) ;
+  sprintf (Answer,"Help: Available commands\r\n") ;
+  send(Socket,Answer,strlen(Answer),0) ;
   
   if (strlen(Com)==0) {
-    sprintf (Answer,"Command: ") ;
     return (TRUE) ;  
   } ;
   
   Answer[0]='\0' ;
   
-  
-  if (strcmp(Com,"Config")==0) {
-    sscanf (Command,"Config %d %d",&Line,&Add) ;
+  if (strcmp(Com,"add")==0) {
+    sscanf (Command,"add %d %d",&Line,&Add) ;
     if ((Line!=0)&&(Add!=0)) {
+      // Send out Bootstrap firmware
+      SendFirmware(0xF,0xFF) ;
+      // Create Configuration for the Board; bootstrap firmware will ask for it
       MakeConfig (Line,Add,&EEprom) ;
       WriteConfig (&EEprom) ;
-      SendConfig(&EEprom) ;
-      sprintf (Answer,"Update Config\r\n") ;
+      SendConfig(&EEprom,0xF,0xFF) ;
+      // Line up application firmware delivery; board will be reset after configuration
+      // which restarts bootloader requesting firmware.
+      SendFirmware(Line,Add) ;
+      sprintf (Answer,"Adding Node\r\n") ;
       send(Socket,Answer,strlen(Answer),0) ;
-      sprintf (Answer,"Command: ") ;
       return (TRUE); 
     } ;
   } ;
   
-  if (strcmp(Com,"Update")==0) {
-    printf ("Update command\n") ;
-    sscanf (Command,"Update %d %d",&Line,&Add) ;
+  if (strcmp(Com,"config")==0) {
+    sscanf (Command,"config %d %d",&Line,&Add) ;
+    if ((Line!=0)&&(Add!=0)) {
+      MakeConfig (Line,Add,&EEprom) ;
+      WriteConfig (&EEprom) ;
+      SendConfig(&EEprom,Line,Add) ;
+      sprintf (Answer,"Update Config\r\n") ;
+      send(Socket,Answer,strlen(Answer),0) ;
+      return (TRUE); 
+    } ;
+  } ;
+  
+  if (strcmp(Com,"update")==0) {
+    sscanf (Command,"update %d %d",&Line,&Add) ;
     if ((Line!=0)&&(Add!=0)) {
       printf ("Line %d, Add %d\n",Line,Add) ;
       SendFirmware(Line,Add) ;
       sprintf (Answer,"Update Firmware\r\n") ;
       send(Socket,Answer,strlen(Answer),0) ;
-      sprintf (Answer,"Command: ") ;
       return (TRUE); 
     } ;
-    printf ("No Add read\n") ;
   } ;
 
-  if (strcmp(Com,"TC")==0) {
-    printf ("Toggle command\n") ;
-    sscanf (Command,"TC %d %d %d",&Line,&Add,&Port) ;
+  if (strcmp(Com,"tc")==0) {
+    sscanf (Command,"tc %d %d %d",&Line,&Add,&Port) ;
     if ((Line!=0)&&(Add!=0)) {
       SendCommand(CHANNEL_TOGGLE,Line,Add,Port) ;
       return (TRUE); 
     } ;
-    printf ("No Add read\n") ;
   } ;
   
-  if (strcmp(Com,"Reload")==0) {
+  if (strcmp(Com,"reload")==0) {
     if (ReadConfig()!=0) {
       sprintf (Answer,"Error in Configuration\r\n") ;
       send(Socket,Answer,strlen(Answer),0) ;
-      sprintf (Answer,"Command: ") ;
       return(TRUE) ;
     } ;
     sprintf (Answer,"Updated Configuration\r\n") ;
     send(Socket,Answer,strlen(Answer),0) ;
-    sprintf (Answer,"Command: ") ;
     return (TRUE); 
   } ;
   
-  if (strcmp(Com,"List")==0) {
+  if (strcmp(Com,"list")==0) {
     // List all active macros
     for (i=0;i<MAX_ACTIVEMACROS;i++) {
       if (ActiveMacros[i].Macro!=NULL) {
@@ -656,11 +670,10 @@ int HandleCommand (char *Command, char *Answer,int Socket)
 	send(Socket,Answer,strlen(Answer),0) ;
       } ;
     } ;
-    sprintf (Answer,"Command: ") ;
     return (TRUE); 
   } ;
   
-  if (strcmp(Com,"Exit")==0) {
+  if (strcmp(Com,"exit")==0) {
     return (FALSE) ;
   } ;
 
@@ -669,43 +682,41 @@ int HandleCommand (char *Command, char *Answer,int Socket)
     if (This==NULL) {
       strcpy(Answer,"Object not found\r\n") ;
       send(Socket,Answer,strlen(Answer),0) ;
-      sprintf (Answer,"Command: ") ;
       return(TRUE) ;
     } ;
   } else {
     This = MenuCurrent ;
   } ;
   
-  if ((strcmp(Com,"Action")==0)||(strcmp(Com,"Aktion")==0)) {  
+  if ((strcmp(Com,"action")==0)||(strcmp(Com,"aktion")==0)) {  
     ExecuteMakro (This) ;
     sprintf (Answer,"Macro %s executed\r\n",This->Name) ;
   } ;
   
   if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
     sprintf (Answer,"%s: %s\r\n",Com,This->Name) ;
-    if ((strcmp(Com,"An")==0)||(strcmp(Com,"On")==0)) {
+    if ((strcmp(Com,"an")==0)||(strcmp(Com,"on")==0)) {
       SendCommand(CHANNEL_ON,Line,Add,Port) ;
-    } else if ((strcmp(Com,"Aus")==0)||(strcmp(Com,"Off")==0)) {
+    } else if ((strcmp(Com,"aus")==0)||(strcmp(Com,"off")==0)) {
       SendCommand(CHANNEL_OFF,Line,Add,Port) ;
-    } else if (strcmp(Com,"Toggle")==0) {
+    } else if (strcmp(Com,"toggle")==0) {
       SendCommand(CHANNEL_TOGGLE,Line,Add,Port) ;
-    } else if ((strcmp(Com,"Hoch")==0)||(strcmp(Com,"Up")==0)) {
+    } else if ((strcmp(Com,"hoch")==0)||(strcmp(Com,"up")==0)) {
       SendCommand(SHADE_UP_FULL,Line,Add,Port) ;
-    } else if ((strcmp(Com,"Runter")==0)||(strcmp(Com,"Down")==0)) {
+    } else if ((strcmp(Com,"runter")==0)||(strcmp(Com,"down")==0)) {
       SendCommand(SHADE_DOWN_FULL,Line,Add,Port) ;
-    } else if ((strcmp(Com,"KurzHoch")==0)||(strcmp(Com,"ShortUp")==0)) {
+    } else if ((strcmp(Com,"kurzhoch")==0)||(strcmp(Com,"shortup")==0)) {
       SendCommand(SHADE_UP_SHORT,Line,Add,Port) ;
-    } else if ((strcmp(Com,"KurzRunter")==0)||(strcmp(Com,"ShortDown")==0)) {
+    } else if ((strcmp(Com,"kurzrunter")==0)||(strcmp(Com,"shortdown")==0)) {
       SendCommand(SHADE_DOWN_SHORT,Line,Add,Port) ;
     } else {
       sprintf (Answer,"Unknown command: %s\r\n",Com) ;
     }
   } else {
-    // sprintf (Answer,"%s does not have an adress\r\n",Obj) ;
+    sprintf (Answer,"Unknown object: %s\r\n",Obj) ;
   } ;    
 
   send(Socket,Answer,strlen(Answer),0) ;
-  sprintf (Answer,"Command: ") ;
   return (TRUE) ;
 }
 

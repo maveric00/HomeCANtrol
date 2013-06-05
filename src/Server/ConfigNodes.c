@@ -162,14 +162,28 @@ void ConfigCommand (struct Node *Node, struct Node *Action, struct EEPromSensFun
   }
 }
 
-void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom)
+void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom,int Large)
 {
   int i ;
   int L1,K1,P1 ;
   struct Node *Action ;
   struct EEPromSensFunc *Func ;
+  struct EEPromSensConf *Conf ;
 
   GetNodeAdress(Node,&L1,&K1,&P1) ;
+  if (Large==0) {
+    if (P1>6) {
+      fprintf (stderr,"Sensor with too high port %d at L:%d, K:%d\n",P1,L1,K1) ;
+      return ;
+    } ;
+    Conf = &(EEprom->Data.Sensor.Config[0]);
+  } else {
+    if (P1>8) {
+      fprintf (stderr,"Button with too high port %d at L:%d, K:%d\n",P1,L1,K1) ;
+      return ;
+    } ;
+    Conf = &(EEprom->Data.Taster.Config[0]);
+  } ;
 
   // Konfiguration uebersetzen
   switch (Node->Data.Sensor.SensorTyp) {
@@ -209,16 +223,21 @@ void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom)
   } ;
 
   // Konfiguration eintragen
-  EEprom->Data.Sensor.Config[P1-1].Config = i ;
+  Conf[P1-1].Config = i ;
   if (i==2) {
-    EEprom->Data.Sensor.REPEAT_START = Node->Data.Sensor.Lang ;
-    EEprom->Data.Sensor.REPEAT_END = Node->Data.Sensor.Ende ;
+    if (Large==0) {
+      EEprom->Data.Sensor.REPEAT_START = Node->Data.Sensor.Lang ;
+      EEprom->Data.Sensor.REPEAT_END = Node->Data.Sensor.Ende ;
+    } else {
+      EEprom->Data.Taster.REPEAT_START = Node->Data.Sensor.Lang ;
+      EEprom->Data.Taster.REPEAT_END = Node->Data.Sensor.Ende ;
+    } ;
   } ;
   if ((i==3)||(i==4)||(i==5)||(i==6)) {
-    EEprom->Data.Sensor.Config[P1-1].Data = Node->Data.Sensor.Intervall ;
+    Conf[P1-1].Data = Node->Data.Sensor.Intervall ;
   }  ;
   if (i==10) {
-    EEprom->Data.Sensor.Config[P1-1].Data = Node->Data.Sensor.Reset ;
+    Conf[P1-1].Data = Node->Data.Sensor.Reset ;
   } ;
 
   for (Action=Node->Child;Action!=NULL;Action=Action->Next) {
@@ -227,10 +246,17 @@ void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom)
     // Bestimmen, welche Funktion konfiguriert werden soll
     if ((Node->Data.Sensor.SensorTyp==S_SIMPLE)||(Node->Data.Sensor.SensorTyp==S_SHADE_SHORTLONG)
 	||(Node->Data.Sensor.SensorTyp==S_ANALOG)) Action->Data.Aktion.Short = 1 ; // Fuer die gibt es nur "Kurze" Konfigurationen
-    if ((Action->Data.Aktion.StandAlone==1)&&(Action->Data.Aktion.Short==1)) Func=&(EEprom->Data.Sensor.Pin[P1-1].ShortAuto) ;
-    if ((Action->Data.Aktion.StandAlone==1)&&(Action->Data.Aktion.Short==0)) Func=&(EEprom->Data.Sensor.Pin[P1-1].LongAuto) ;
-    if ((Action->Data.Aktion.StandAlone==0)&&(Action->Data.Aktion.Short==1)) Func=&(EEprom->Data.Sensor.Pin[P1-1].ShortMaster) ;
-    if ((Action->Data.Aktion.StandAlone==0)&&(Action->Data.Aktion.Short==0)) Func=&(EEprom->Data.Sensor.Pin[P1-1].LongMaster) ;
+    if (Large==0) {
+      if ((Action->Data.Aktion.StandAlone==1)&&(Action->Data.Aktion.Short==1)) Func=&(EEprom->Data.Sensor.Pin[P1-1].ShortAuto) ;
+      if ((Action->Data.Aktion.StandAlone==1)&&(Action->Data.Aktion.Short==0)) Func=&(EEprom->Data.Sensor.Pin[P1-1].LongAuto) ;
+      if ((Action->Data.Aktion.StandAlone==0)&&(Action->Data.Aktion.Short==1)) Func=&(EEprom->Data.Sensor.Pin[P1-1].ShortMaster) ;
+      if ((Action->Data.Aktion.StandAlone==0)&&(Action->Data.Aktion.Short==0)) Func=&(EEprom->Data.Sensor.Pin[P1-1].LongMaster) ;
+    } else {
+      if ((Action->Data.Aktion.StandAlone==1)&&(Action->Data.Aktion.Short==1)) Func=&(EEprom->Data.Taster.Pin[P1-1].ShortAuto) ;
+      if ((Action->Data.Aktion.StandAlone==1)&&(Action->Data.Aktion.Short==0)) Func=&(EEprom->Data.Taster.Pin[P1-1].LongAuto) ;
+      if ((Action->Data.Aktion.StandAlone==0)&&(Action->Data.Aktion.Short==1)) Func=&(EEprom->Data.Taster.Pin[P1-1].ShortMaster) ;
+      if ((Action->Data.Aktion.StandAlone==0)&&(Action->Data.Aktion.Short==0)) Func=&(EEprom->Data.Taster.Pin[P1-1].LongMaster) ;
+    } ;
     if (Node->Data.Sensor.SensorTyp==S_SHADE_SHORTLONG) {
       ConfigShade(Node,Action,Func) ;
     } else if ((Node->Data.Sensor.SensorTyp==S_SIMPLE)||(Node->Data.Sensor.SensorTyp==S_SHORTLONG)||
@@ -358,7 +384,18 @@ int MakeConfig (int Linie, int Knoten, struct EEPROM *EEprom)
 	  return (0) ;
 	};
       } ;
-      MakeSensorConfig(ANodes[i],EEprom) ;
+      MakeSensorConfig(ANodes[i],EEprom,0) ;
+      break ;
+    case N_SENS2:
+      if (EEprom->BoardType==0xFF) {
+	EEprom->BoardType = 48 ;
+      } else {
+	if (EEprom->BoardType!=48) {
+	  fprintf (stderr,"Inconsistent board L:%d, K:%d definition for sensor %s\n",Linie,Knoten,ANodes[i]->Name) ;
+	  return (0) ;
+	};
+      } ;
+      MakeSensorConfig(ANodes[i],EEprom,1) ;
       break ;
     case N_BAD:
       if (EEprom->BoardType==0xFF) {
@@ -500,20 +537,14 @@ void SendConfigByte (char Linie, USHORT Knoten)
   Config->Counter++ ;
 }
 
-void SendConfig(struct EEPROM *EEprom)
+void SendConfig(struct EEPROM *EEprom, char Linie, USHORT Knoten)
 {
   struct ListItem *Config ;
-  USHORT K1 ;
-  char L1 ;
-  
-  L1 = EEprom->BoardLine ;
-  K1 = (EEprom->BoardAdd[1]<<8)+EEprom->BoardAdd[0] ;
   
   Config = CreateItem(ConfigList) ;
   if (ConfigList==NULL) ConfigList = Config ;
 
-  // Die ersten zehn Bytes sind die Adress-Informationen, diese nicht aendern...
-  Config->Counter = 10 ;
+  Config->Counter = 0 ;
   Config->Data.EEprom = *EEprom ;
 
 #ifdef DEBUG
@@ -521,7 +552,7 @@ void SendConfig(struct EEPROM *EEprom)
 #endif
 
   // Das erste Byte senden, dieses triggert dann alle weiteren
-  SendConfigByte(L1,K1) ;
+  SendConfigByte(Linie,Knoten) ;
 }
 
 void SendFirmware(char Linie, USHORT Knoten)
@@ -543,33 +574,42 @@ void SendFirmware(char Linie, USHORT Knoten)
   Firmware = CreateItem(FirmwareList) ;
   if (FirmwareList==NULL) FirmwareList = Firmware ;
 
-  // Typnummer des Knotens ermitteln
-  ANumber = 0 ;
-  CollectAdress(Haus,Linie,Knoten,ANodes,&ANumber) ;
-  
-  TypCode = 0 ;
-
-#ifdef DEBUG
-  fprintf (stderr,"Type of Firmware %d\n",ANodes[0]->Type) ;
-#endif
-
-  switch (ANodes[0]->Type) {
-  case N_ONOFF:
-  case N_SHADE:
-    TypCode = 16 ;
-    break ;
-  case N_SENSOR:
-    TypCode = 32 ;
-    break ;
-  case N_BAD:
-    TypCode = 1 ;
-    break ;
-  case N_LED:
+  if ((Linie!=0xF)||(Knoten!=0xFF)) {
+    // Normaler Firmware-Request
+    // Typnummer des Knotens ermitteln
+    ANumber = 0 ;
+    CollectAdress(Haus,Linie,Knoten,ANodes,&ANumber) ;
+    
     TypCode = 0 ;
-    break ;
-  default:
-    TypCode = 255 ;
-  } ;
+    
+#ifdef DEBUG
+    fprintf (stderr,"Type of Firmware %d\n",ANodes[0]->Type) ;
+#endif
+    
+    switch (ANodes[0]->Type) {
+    case N_ONOFF:
+    case N_SHADE:
+      TypCode = 16 ;
+      break ;
+    case N_SENSOR:
+      TypCode = 32 ;
+      break ;
+    case N_SENS2:
+      TypCode = 48 ;
+      break ;
+    case N_BAD:
+      TypCode = 1 ;
+      break ;
+    case N_LED:
+      TypCode = 0 ;
+      break ;
+    default:
+      TypCode = 255 ;
+    } ;
+  } else {
+    // Initial Boot Request
+    TypCode = 0xFF ;
+  }
 
   FNumber = 0 ;
   // Alle Firmwaren suchen
@@ -581,12 +621,14 @@ void SendFirmware(char Linie, USHORT Knoten)
 
   for (i=0;i<FNumber;i++) if (FNodes[i]->Value==TypCode) break ;
   
-
   if (i==FNumber) {
 #ifdef DEBUG
   fprintf (stderr,"No matching firmware\n") ;
 #endif
     // Fuer den Typ gibt es keine Firmware
+    if (Firmware==FirmwareList) FirmwareList=Firmware->Next ;
+    // Geladene Firmware freigeben
+    FreeItem(Firmware) ;
     return ;
   } ;
 
@@ -598,6 +640,9 @@ void SendFirmware(char Linie, USHORT Knoten)
   FileSize = LoadIHexFile(FNodes[i]->Name,0) ;
   if (FileSize<=0) {
     // Fuer den Typ gibt es keine Firmware
+    if (Firmware==FirmwareList) FirmwareList=Firmware->Next ;
+    // Geladene Firmware freigeben
+    FreeItem(Firmware) ;
     return ;
   }
 

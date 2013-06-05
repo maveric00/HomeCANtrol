@@ -317,7 +317,6 @@ int CheckNetwork(int * error,int timeOut) // milliseconds
   char buf[NAMELEN*5] ;
   int nbytes ;
   struct ListItem *Connect ;
-  char Answer[NAMELEN*4] ;
   int ToBeClosed ; 
   
   localReadSet = socketReadSet ;
@@ -357,6 +356,8 @@ int CheckNetwork(int * error,int timeOut) // milliseconds
 	  Connect = CreateItem(Connections) ;
 	  if (Connections==NULL) Connections = Connect ;
 	  Connect->Number = newfd ;
+	  HandleCommand("",newfd) ;
+	  send(newfd,"Command (\"Help\" for list): ",strlen("Command (\"Help\" for list): "),0); 
 	}
       } else {
 	ToBeClosed = 0 ;
@@ -377,8 +378,8 @@ int CheckNetwork(int * error,int timeOut) // milliseconds
 	    strcat ((char*)Connect->Data.Command,buf) ; // Concatenate Command
 	    if (strstr((char*)Connect->Data.Command,"\n")!=NULL) {
 	      // Execute Command
-	      if (HandleCommand ((char*)Connect->Data.Command,Answer,i)) {
-		send (i,Answer,strlen(Answer),0);
+	      if (HandleCommand ((char*)Connect->Data.Command,i)) {
+		send (i,"Command: ",strlen("Command: "),0);
 	      } else {
 		ToBeClosed = i ;
 	      } ;

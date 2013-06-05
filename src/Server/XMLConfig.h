@@ -50,6 +50,7 @@ typedef enum {
   N_SEQUENCE = 25,
   N_WAITFOR = 26,
   N_LED = 27,
+  N_SENS2 = 28,
   S_SIMPLE = 100,
   S_SHORTLONG = 101,
   S_SHADE_SHORTLONG = 102,
@@ -235,4 +236,4 @@ void ReadSequence (char *Name, char *FileName) ;
 // Server.c-Definitionen
 void ExecuteMakro (struct Node *Makro);
 void ExecuteSeq (struct Node *Action) ;
-int HandleCommand (char *Command, char *Answer,int Socket) ;
+int HandleCommand (char *Command,int Socket) ;

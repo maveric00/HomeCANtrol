@@ -39,6 +39,8 @@ struct TypSel Types[] = {
   {"Bad",N_BAD},
   {"Bath",N_BAD},
   {"LED",N_LED},
+  {"Taster",N_SENS2},
+  {"Button",N_SENS2},
   {"Aktion",N_ACTION},
   {"Action",N_ACTION},
   {"Makro",N_MACRO},
@@ -208,6 +210,7 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       } ;
       break ;
     case N_SENSOR:
+    case N_SENS2:
       if ((strcmp(attr[i],"typ")==0)||(strcmp(attr[i],"type")==0)) {
 	Current->Data.Sensor.SensorTyp = FillType(attr[i+1]);
       } ;

@@ -27,6 +27,15 @@ struct EEPromSens {
   unsigned char PAD2 [198] ;
 } ;
 
+struct EEPromTast {
+  struct EEPromSensPin Pin[8] ;
+  unsigned char PAD [20] ;
+  struct EEPromSensConf Config[8] ;
+  unsigned char REPEAT_START ;
+  unsigned char REPEAT_END ;
+  unsigned char PAD2 [164] ;
+} ;
+
 struct EEPromRelais {
   unsigned char RTFull[5] ;
   unsigned char PAD1[5] ;
@@ -55,6 +64,7 @@ struct EEPROM {
   unsigned char PAD ;
   union {
     struct EEPromSens Sensor ;
+    struct EEPromTast Taster ;
     struct EEPromRelais Relais ;
     struct EEPromBad Bad ;
     struct EEPromLED LED ;
@@ -65,7 +75,7 @@ struct EEPROM {
 extern int MakeConfig (int Linie, int Knoten, struct EEPROM *EEprom) ;
 extern int WriteConfig(struct EEPROM *EEprom) ;
 extern void SendConfigByte (char Linie, unsigned short Knoten) ;
-void SendConfig(struct EEPROM *EEprom) ;
+void SendConfig(struct EEPROM *EEprom, char Linie, unsigned short Knoten) ;
 void SendFirmware(char Linie, unsigned short Knoten) ;
 void SendFirmwareByte (char Linie, unsigned short Knoten,unsigned char *Response, char ResponseLen);
 
