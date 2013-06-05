@@ -505,7 +505,7 @@ void HandleCANRequest(void)
 
 int HandleCommand (char *Command,int Socket)
 {
-  int Line,Add,Port,Type ;
+  int Line,Add,Port ;
   int i ;
   char Makro[NAMELEN*4] ;
   char Com[NAMELEN*4] ;
@@ -528,25 +528,43 @@ int HandleCommand (char *Command,int Socket)
   // Send current location and available Childs...
   
   if ((strcmp(Com,"help")==0)||(strcmp(Com,"hilfe")==0)) {
-    sprintf (Answer,"Available Commands:\r\n"
-	     "Help/Hilfe: This help\r\n"
-	     "Add (Line)(Adress):            Update and configure new node\r\n"
-	     "Config (Line)(Adress):         Configure node with parameters\r\n"
-	     "Update (Line)(Adress):         Update node with firmware stored in NodeConf\r\n"
-	     "Reload:                        Reload CANControl configuration\r\n"
-	     "List:                          List all running macros\r\n"
-	     "Exit:                          Exit this communication\r\n"
-	     "TC (Line) (Adress) (Port):     Issue toggle on given adress\r\n"
-	     "An/On [Object]:                Switch on Object or current location\r\n"
-	     "Aus/Off [Object]:              Switch off object or current location\r\n"
-	     "Toggle [Object]:               Toggle object or current location\r\n"
-	     "Hoch/Up [Object]:              Open shades completely\r\n"
-             "Runter/Down [Object]:          Close shades completely\r\n"
-	     "KurzHoch/ShortUp [Object]:     Open shades slightly\r\n"
-	     "KurzRunter/ShortDown [Object]: Close shades slightly\r\n\r\n"
-	     "[Number]:                      Select child object\r\n"
-	     "Parent:                        Select parent object\r\n"
-	     "Top:                           Select top level\r\n"); 
+    sprintf (Answer,"Available Commands:\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"Help/Hilfe: This help\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"Add (Line)(Adress):            Update and configure new node\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"Config (Line)(Adress):         Configure node with parameters\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"Update (Line)(Adress):         Update node with firmware stored in NodeConf\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"Reload:                        Reload CANControl configuration\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"List:                          List all running macros\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"Exit:                          Exit this communication\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"TC (Line) (Adress) (Port):     Issue toggle on given adress\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"An/On [Object]:                Switch on Object or current location\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"Aus/Off [Object]:              Switch off object or current location\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"Toggle [Object]:               Toggle object or current location\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"Hoch/Up [Object]:              Open shades completely\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"Runter/Down [Object]:          Close shades completely\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"KurzHoch/ShortUp [Object]:     Open shades slightly\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"KurzRunter/ShortDown [Object]: Close shades slightly\r\n\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"[Number]:                      Select child object\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"Parent:                        Select parent object\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"Top:                           Select top level\r\n\r\n"); 
     send(Socket,Answer,strlen(Answer),0) ;
     return(TRUE) ;
   }
@@ -591,10 +609,8 @@ int HandleCommand (char *Command,int Socket)
   } ;
   sprintf (Answer,"99: One level up\r\n") ;
   send(Socket,Answer,strlen(Answer),0) ;
-  sprintf (Answer,"Help: Available commands\r\n") ;
-  send(Socket,Answer,strlen(Answer),0) ;
   
-  if (strlen(Com)==0) {
+  if ((strlen(Com)==0)||(isdigit(Com[0]))) {
     return (TRUE) ;  
   } ;
   
