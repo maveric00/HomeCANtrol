@@ -489,7 +489,7 @@ void SendConfigByte (char Linie, USHORT Knoten)
   unsigned char Data[8]; 
   char Len ;
 #ifdef DEBUG
-  int Count = 0 ;
+  static int Count = 0 ;
 #endif
 
   // Configuration suchen
@@ -623,7 +623,7 @@ void SendFirmware(char Linie, USHORT Knoten)
   
   if (i==FNumber) {
 #ifdef DEBUG
-  fprintf (stderr,"No matching firmware\n") ;
+    fprintf (stderr,"No matching firmware\n") ;
 #endif
     // Fuer den Typ gibt es keine Firmware
     if (Firmware==FirmwareList) FirmwareList=Firmware->Next ;
@@ -691,7 +691,7 @@ void SendFirmwareByte (char Linie, USHORT Knoten,unsigned char *Response, char R
   int PageSize ;
   char Len ;
 #ifdef DEBUG
-  int Count = 0 ;
+  static int Count = 0 ;
 #endif
   
   // Den entsprechenden Update-Buffer suchen
@@ -777,7 +777,7 @@ void SendFirmwareByte (char Linie, USHORT Knoten,unsigned char *Response, char R
     Len = 2 ;
     SendCANMessage(CANID,Len,Data) ;
 #ifdef DEBUG
-    fprintf (stderr,"\nFirmware %d bytes transferred, reboot node\n",Firmware->Counter) ;
+    fprintf (stderr,"\nFirmware %d bytes transferred, starting application\n",Firmware->Counter) ;
 #endif
     Firmware->State=4 ;
     return ;

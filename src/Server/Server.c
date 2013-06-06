@@ -432,21 +432,19 @@ void HandleCANRequest(void)
       } ;
     } ;
   } else {
-
     if (Data[0]==START_PROG) {
       // Starte Makro auf dem Server
-
+      
       Port = Data[1] ;
       This = FindNodeAdress(Haus,ToLine,ToAdd,Port,NULL) ;
       ExecuteMakro (This) ;
-    } ;
-
-    if (Data[0]==(SEND_STATUS|SUCCESSFULL_RESPONSE)) {
+    } else if (Data[0]==(SEND_STATUS|SUCCESSFULL_RESPONSE)) {
       // Status-Informationen empfangen, hier auswerten
 
       This=FindNodeAdress(Haus,FromLine,FromAdd,255,NULL) ;
       if ((This->Type==N_ONOFF)||(This->Type==N_SHADE)) {
 	// Es ist ein Relais-Knoten, also die Informationen eintragen...
+
 	Mask = 1 ;
 	MaskIndex = 1 ;
 	for (Port=1;Port<=10;Port++) {
@@ -472,34 +470,19 @@ void HandleCANRequest(void)
 	  } ;
 	} ;
       } ;
-    } ;
-    
-
-
-    if (Data[0]==(SET_VAR|SUCCESSFULL_RESPONSE)) {
+    } else if (Data[0]==(SET_VAR|SUCCESSFULL_RESPONSE)) {
       // EEprom write handshake; send out next byte
+
       SendConfigByte (FromLine,FromAdd) ;
-    } ;
-    
-
-    if ((Data[0]==UPDATE_REQ)||(Data[0]==WRONG_NUMBER_RESPONSE)||
-	(Data[0]==(SUCCESSFULL_RESPONSE|IDENTIFY))||
-	(Data[0]==(ERROR_RESPONSE|IDENTIFY))||
-	(Data[0]==IDENTIFY)||
-	(Data[0]==(SUCCESSFULL_RESPONSE|SET_ADDRESS))||
-	(Data[0]==(ERROR_RESPONSE|SET_ADDRESS))||
-	(Data[0]==SET_ADDRESS)||
-	(Data[0]==(SUCCESSFULL_RESPONSE|DATA))||
-	(Data[0]==(ERROR_RESPONSE|DATA))||
-	(Data[0]==DATA)||
-	(Data[0]==(SUCCESSFULL_RESPONSE|START_APP))||
-	(Data[0]==(ERROR_RESPONSE|START_APP))||
-	(Data[0]==START_APP)) {
+    } else if ((Data[0]==UPDATE_REQ)||(Data[0]==WRONG_NUMBER_RESPONSE)||
+	((Data[0]&COMMAND_MASK)==IDENTIFY)||
+	((Data[0]&COMMAND_MASK)==SET_ADDRESS)||
+	((Data[0]&COMMAND_MASK)==DATA)||
+	((Data[0]&COMMAND_MASK)==START_APP)) {
       // Firmware-Update; send out next data
-
+      
       SendFirmwareByte(FromLine,FromAdd,Data,Len) ;
     } ;
-    
   } ;
 }
 
