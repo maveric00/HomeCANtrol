@@ -804,8 +804,9 @@ int main (int argc, char*argv[])
     if (strstr("-noroute",argv[i])!=NULL) NoRoute = 1 ;
     if ((strstr("-?",argv[i])!=NULL)||
 	(strstr("--help",argv[i])!=NULL)) {
-      printf ("Usage: %s [-v] [-noroute] [--help] [-?]\n\n",argv[0]) ;
+      printf ("Usage: %s [-v] [-t] [-noroute] [--help] [-?]\n\n",argv[0]) ;
       printf ("       -v: Verbose\n") ;
+      printf ("       -t: dont display time messages\n") ;
       printf ("       -noroute: Do not route messages\n") ;
       printf ("       -?, --help: display this message\n") ;
       exit(0) ;

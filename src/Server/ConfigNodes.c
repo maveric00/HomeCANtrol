@@ -494,8 +494,8 @@ void SendConfigByte (char Linie, USHORT Knoten)
 
   // Configuration suchen
   for (Config = ConfigList;Config!=NULL;Config=Config->Next) {
-    L1 = Config->Data.EEprom.BoardLine ;
-    K1 = (Config->Data.EEprom.BoardAdd[1]<<8)+Config->Data.EEprom.BoardAdd[0] ;
+    L1 = Config->Linie ;
+    K1 = Config->Knoten ;
     if ((L1==Linie)&&(K1==Knoten)) break ;
   } ;
 
@@ -545,6 +545,8 @@ void SendConfig(struct EEPROM *EEprom, char Linie, USHORT Knoten)
   if (ConfigList==NULL) ConfigList = Config ;
 
   Config->Counter = 0 ;
+  Config->Linie = Linie ;
+  Config->Knoten = Knoten ;
   Config->Data.EEprom = *EEprom ;
 
 #ifdef DEBUG
@@ -643,6 +645,9 @@ void SendFirmware(char Linie, USHORT Knoten)
     if (Firmware==FirmwareList) FirmwareList=Firmware->Next ;
     // Geladene Firmware freigeben
     FreeItem(Firmware) ;
+#ifdef DEBUG
+  fprintf (stderr,"Sending Firmware %s\n",FNodes[i]->Name) ;
+#endif
     return ;
   }
 
