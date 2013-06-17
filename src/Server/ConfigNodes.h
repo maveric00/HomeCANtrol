@@ -78,4 +78,5 @@ extern void SendConfigByte (char Linie, unsigned short Knoten) ;
 void SendConfig(struct EEPROM *EEprom, char Linie, unsigned short Knoten) ;
 void SendFirmware(char Linie, unsigned short Knoten) ;
 void SendFirmwareByte (char Linie, unsigned short Knoten,unsigned char *Response, char ResponseLen);
-
+void ReadConfigByte (char Linie, USHORT Knoten, unsigned char Value) ;
+void ReadConfig(char Linie, USHORT Knoten) ;

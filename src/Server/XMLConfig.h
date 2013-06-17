@@ -51,6 +51,7 @@ typedef enum {
   N_WAITFOR = 26,
   N_LED = 27,
   N_SENS2 = 28,
+  N_REACT = 29,
   S_SIMPLE = 100,
   S_SHORTLONG = 101,
   S_SHADE_SHORTLONG = 102,
@@ -141,6 +142,15 @@ struct Rollo {
   int Swap ;
 } ;
 
+struct Reaction {
+  struct AdInfo From ;
+  struct AdInfo FromMask ;
+  struct AdInfo To ;
+  struct AdInfo ToMask ;
+  unsigned char Data[8] ;
+  unsigned char DataMask[8] ;
+}
+
 struct Node {
   struct Node *Parent ;
   struct Node *Next ;
@@ -162,6 +172,7 @@ struct Node {
     char UnitName[NAMELEN*4] ;
     char PAD[NAMELEN*5] ;
     struct Werte Wert ;
+    struct Reaction Reaction ;
   } Data ;
 } ;
 
@@ -190,6 +201,11 @@ struct MacroList {
   } Delay ;
 } ;
 
+struct NodeList {
+  struct NodeList *Next ;
+  struct Node *Node ;
+} ;
+
 struct Sequence {
   struct Sequence *Next ;
   int LineNumber ;
@@ -216,6 +232,7 @@ struct SeqList {
 
 extern struct Node *Haus ;
 extern struct SeqList *Sequences ;
+extern struct NodeList *Reactions ;
 // Node.c-Definitionen
 struct Node *CreateNode (void);
 void FreeNode (struct Node *This) ;

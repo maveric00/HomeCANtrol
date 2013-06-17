@@ -18,6 +18,7 @@
 struct Node *Haus=NULL ;
 struct Node *Current=NULL ;
 struct SeqList *Sequences=NULL ;
+struct NodeList *Reactions=NULL ;
 
 int MakroNummer;
 int Depth;
@@ -45,6 +46,8 @@ struct TypSel Types[] = {
   {"Action",N_ACTION},
   {"Makro",N_MACRO},
   {"Macro",N_MACRO},
+  {"Reaction",N_REACT},
+  {"Reaktion",N_REACT},
   {"Warte",N_DELAY},
   {"Wait",N_DELAY},
   {"Timer",N_TIMER},
@@ -143,6 +146,7 @@ void XMLCALL start(void *data, const char *el, const char **attr)
   int i,j,Time;
   char Val[5] ;
   struct Node *This ;
+  struct NodeList *NL ;
 
 
   if (Current==NULL) {
@@ -155,6 +159,20 @@ void XMLCALL start(void *data, const char *el, const char **attr)
   strncpy (Current->TypeDef,el,NAMELEN) ;
   Current->Type = FillType (Current->TypeDef) ;
 
+  if (Current->Type==N_REACT) {
+    // In die Liste der Reactions einhängen
+    if (Reactions==NULL) {
+      Reactions = malloc (sizeof (NodeList)) ;
+      Reactions->Next = NULL ;
+      Reactions->Node = Current ;
+    } else {
+      for (NL=Reactions;NL->Next!=NULL;NL=NL->Next) ;
+      NL->Next = malloc (sizeof(NodeList)) ;
+      NL = NL->Next ;
+      NL->Next = NULL ;
+      NL->Node = Current ;
+    } ;
+  } ;
 
   
   for (i = 0; attr[i]; i += 2) {
@@ -350,10 +368,43 @@ void XMLCALL start(void *data, const char *el, const char **attr)
 	} ;
       }; 
       break ;
+    case N_REACT:
+      if ((strcmp(attr[i],"von")==0)||(strcmp(attr[i],"from")==0)) {
+	sscanf(attr[i+1],"%i.%i",&(Current->Data.Reaction.From.Linie),
+	       &(Current->Data.Reaction.From.Knoten)) ;
+      } ;
+      if ((strcmp(attr[i],"von_maske")==0)||(strcmp(attr[i],"from_mask")==0)) {
+	sscanf(attr[i+1],"%i.%i",&(Current->Data.Reaction.FromMask.Linie),
+	       &(Current->Data.Reaction.FromMask.Knoten)) ;
+      } ;
+      if ((strcmp(attr[i],"nach")==0)||(strcmp(attr[i],"to")==0)) {
+	sscanf(attr[i+1],"%i.%i",&(Current->Data.Reaction.To.Linie),
+	       &(Current->Data.Reaction.To.Knoten)) ;
+      } ;
+      if ((strcmp(attr[i],"nach_maske")==0)||(strcmp(attr[i],"to_mask")==0)) {
+	sscanf(attr[i+1],"%i.%i",&(Current->Data.Reaction.ToMask.Linie),
+	       &(Current->Data.Reaction.ToMask.Knoten)) ;
+      } ;
+      if ((strcmp(attr[i],"daten")==0)||(strcmp(attr[i],"data")==0)) {
+	for (j=0;j<8;j++) Current->Data.Reaction.Data[j] = 0  ;
+	sscanf(attr[i+1],"%i %i %i %i %i %i %i %i",
+	       &(Current->Data.Reaction.Data[0]),&(Current->Data.Reaction.Data[1]),
+	       &(Current->Data.Reaction.Data[2]),&(Current->Data.Reaction.Data[3]),
+	       &(Current->Data.Reaction.Data[4]),&(Current->Data.Reaction.Data[5]),
+	       &(Current->Data.Reaction.Data[6]),&(Current->Data.Reaction.Data[7])) ;
+      } ;	
+      if ((strcmp(attr[i],"daten_maske")==0)||(strcmp(attr[i],"data_mask")==0)) {
+	for (j=0;j<8;j++) Current->Data.Reaction.DataMask[j] = 0  ;
+	sscanf(attr[i+1],"%i %i %i %i %i %i %i %i",
+	       &(Current->Data.Reaction.DataMask[0]),&(Current->Data.Reaction.DataMask[1]),
+	       &(Current->Data.Reaction.DataMask[2]),&(Current->Data.Reaction.DataMask[3]),
+	       &(Current->Data.Reaction.DataMask[4]),&(Current->Data.Reaction.DataMask[5]),
+	       &(Current->Data.Reaction.DataMask[6]),&(Current->Data.Reaction.DataMask[7])) ;
+      } ;	
+      break ;
     default:
       break ;
     } ;
-
   }
   // Ueberpruefen auf Semantik
   // Namensgleichheit

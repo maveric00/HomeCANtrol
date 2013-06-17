@@ -44,7 +44,7 @@ void ExecuteMakro (struct Node *Makro)
 
   if (Makro==NULL) return ;
 
-  if (Makro->Type!=N_MACRO) return ;
+  if ((Makro->Type!=N_MACRO)&&(Makro->Type!=N_REACT)) return ;
 
   for (This=Makro->Child;This!=NULL;This=This->Next) 
     if (IsMakro(This)) break ;
@@ -403,6 +403,8 @@ void HandleCANRequest(void)
   unsigned char websocket_buf[LWS_SEND_BUFFER_PRE_PADDING + NAMELEN*4 + LWS_SEND_BUFFER_POST_PADDING];
   char Temp[NAMELEN]; 
   char* p ;
+  int i ;
+  struct NodeList *NL ;
 
   ReceiveCANMessage(&CANID,&Len,Data) ;
   
@@ -412,6 +414,28 @@ void HandleCANRequest(void)
 
   GetSourceAddress(CANID,&FromLine,&FromAdd) ;
   GetDestinationAddress(CANID,&ToLine,&ToAdd) ;
+  
+  // Nachsehen, ob auf diese Kommando eine Reaktion folgen soll
+  for (NL=Reactions; NL!=NULL;NL=NL->Next) {
+    if (((NL->Node->Data.Reaction.From.Linie&NL->Node->Data.Reaction.FromMask.Linie)==
+	 (FromLine&NL->Node->Data.Reaction.FromMask.Linie)) &&
+	((NL->Node->Data.Reaction.From.Knoten&NL->Node->Data.Reaction.FromMask.Knoten)==
+	 (FromAdd&NL->Node->Data.Reaction.FromMask.Knoten)) &&
+	((NL->Node->Data.Reaction.To.Linie&NL->Node->Data.Reaction.ToMask.Linie)==
+	 (ToLine&NL->Node->Data.Reaction.ToMask.Linie)) &&
+	((NL->Node->Data.Reaction.To.Knoten&NL->Node->Data.Reaction.ToMask.Knoten)==
+	 (ToAdd&NL->Node->Data.Reaction.ToMask.Knoten))) {
+      // Adressen stimmen ueberein, nun noch den Datenbereich ueberpruefen
+      for (i=0;i<8;i++) {
+	if (((NL->Node->Data.Reaction.Data[i]&NL->Node->Data.Reaction.DataMask[i])!=
+	     (Data[i]&NL->Node->Data.Reaction.DataMask[i]))) break ;
+      } ;
+      if (i==8) { // alles war gleich
+	ExecuteMakro (NL->Node) ;
+      } ;
+    } ;
+  } ;
+  
   if (ToLine!=0) {
     // Server ist nicht Ziel
     if ((Data[0]==CHANNEL_ON)||(Data[0]==CHANNEL_OFF)||(Data[0]==CHANNEL_TOGGLE)||
@@ -474,6 +498,10 @@ void HandleCANRequest(void)
       // EEprom write handshake; send out next byte
 
       SendConfigByte (FromLine,FromAdd) ;
+    } else if (Data[0]==(READ_VAR|SUCCESSFULL_RESPONSE)) {
+      // EEprom write handshake; send out next byte
+
+      ReadConfigByte (FromLine,FromAdd,Data[3]) ;
     } else if ((Data[0]==UPDATE_REQ)||(Data[0]==WRONG_NUMBER_RESPONSE)||
 	((Data[0]&COMMAND_MASK)==IDENTIFY)||
 	((Data[0]&COMMAND_MASK)==SET_ADDRESS)||
@@ -628,11 +656,20 @@ int HandleCommand (char *Command,int Socket)
       return (TRUE); 
     } ;
   } ;
+
+  if (strcmp(Com,"readconfig")==0) {
+    sscanf (Command,"readconfig %d %d",&Line,&Add) ;
+    if ((Line!=0)&&(Add!=0)) {
+      ReadConfig(Line,Add) ;
+      sprintf (Answer,"Update Config\r\n") ;
+      send(Socket,Answer,strlen(Answer),0) ;
+      return (TRUE); 
+    } ;
+  } ;
   
   if (strcmp(Com,"update")==0) {
     sscanf (Command,"update %d %d",&Line,&Add) ;
     if ((Line!=0)&&(Add!=0)) {
-      printf ("Line %d, Add %d\n",Line,Add) ;
       SendFirmware(Line,Add) ;
       sprintf (Answer,"Update Firmware\r\n") ;
       send(Socket,Answer,strlen(Answer),0) ;

@@ -505,13 +505,14 @@ void SendConfigByte (char Linie, USHORT Knoten)
   } ;
 
   if (Config->Counter>=sizeof(struct EEPROM)) {
-    // das letzte Byte wurde bestätigt, nun noch den Knoten zurücksetzen um die Konfiguration zu laden.
+    // das letzte Byte wurde bestätigt, nun noch den Knoten zurücksetzen um die Konfiguration zu laden.
     CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
     Data[0] = START_BOOT ;
     Data[1] = 0 ;
     Len = 1 ;
     SendCANMessage(CANID,Len,Data) ;
     // aus der Liste der abzuarbeitenden Sachen entfernen
+    free(Config->EEprom) ;
     if (Config==ConfigList) ConfigList=Config->Next ;
     FreeItem(Config) ;
     return ;
@@ -547,7 +548,7 @@ void SendConfig(struct EEPROM *EEprom, char Linie, USHORT Knoten)
   Config->Counter = 0 ;
   Config->Linie = Linie ;
   Config->Knoten = Knoten ;
-  Config->Data.EEprom = *EEprom ;
+  memcpy (&(Config->Data.EEprom),EEprom,sizeof(struct EEProm)) ;
 
 #ifdef DEBUG
   fprintf (stderr,"Sending Config: ") ;
@@ -555,6 +556,90 @@ void SendConfig(struct EEPROM *EEprom, char Linie, USHORT Knoten)
 
   // Das erste Byte senden, dieses triggert dann alle weiteren
   SendConfigByte(Linie,Knoten) ;
+}
+
+void ReadConfigByte (char Linie, USHORT Knoten, unsigned char Value)
+{
+  struct ListItem *Config ;
+  USHORT K1 ;
+  char L1 ;
+  ULONG CANID ;
+  unsigned char Data[8]; 
+  char Len ;
+#ifdef DEBUG
+  static int Count = 0 ;
+#endif
+
+  // Configuration suchen
+  for (Config = ConfigList;Config!=NULL;Config=Config->Next) {
+    L1 = Config->Linie ;
+    K1 = Config->Knoten ;
+    if ((L1==Linie)&&(K1==Knoten)) break ;
+  } ;
+
+  if (Config==NULL) {
+    fprintf (stderr,"Read config byte acknowledged from Line:%d, Node:%d, without beeing sent!\n",Linie,Knoten) ;
+    return ;
+  } ;
+
+  Config->Data.Command[Config->Counter] = Value ;
+
+  if (Config->Counter>=sizeof(struct EEPROM)-1) {
+    // das letzte Byte wurde bestaetigt, nun noch die Konfig abspeichern
+
+    WriteConfig(Config->EEprom) ;
+
+    // aus der Liste der abzuarbeitenden Sachen entfernen
+    free(Config->EEprom) ;
+    if (Config==ConfigList) ConfigList=Config->Next ;
+    FreeItem(Config) ;
+    return ;
+  } ;
+
+  // Naechstes Byte anfragen
+  CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
+  Data[0] = READ_VAR ;
+  Data[1] = (unsigned char)(Config->Counter&0xFF) ;
+  Data[2] = (unsigned char)(Config->Counter>>8) ;
+  Len=3 ;
+  SendCANMessage(CANID,Len,Data) ;
+ #ifdef DEBUG
+  if ((Count++)>10) {
+    Count = 0 ;
+    fprintf (stderr,".") ;
+    fflush (stderr) ;
+  } ;
+#endif
+  
+  // Auf naechstes Byte setzen
+  Config->Counter++ ;
+}
+
+void ReadConfig(char Linie, USHORT Knoten)
+{
+  struct ListItem *Config ;
+  ULONG CANID ;
+  unsigned char Data[8]; 
+  char Len ;
+  
+  Config = CreateItem(ConfigList) ;
+  if (ConfigList==NULL) ConfigList = Config ;
+
+  Config->Counter = 0 ;
+  Config->Linie = Linie ;
+  Config->Knoten = Knoten ;  
+
+#ifdef DEBUG
+  fprintf (stderr,"Reading Config: ") ;
+#endif
+
+  // Das erste Byte senden, dieses triggert dann alle weiteren
+  CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
+  Data[0] = READ_VAR ;
+  Data[1] = (unsigned char)(Config->Counter&0xFF) ;
+  Data[2] = (unsigned char)(Config->Counter>>8) ;
+  Len=3 ;
+  SendCANMessage(CANID,Len,Data) ;
 }
 
 void SendFirmware(char Linie, USHORT Knoten)
