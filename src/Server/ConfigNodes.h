@@ -33,7 +33,7 @@ struct EEPromTast {
   struct EEPromSensConf Config[8] ;
   unsigned char REPEAT_START ;
   unsigned char REPEAT_END ;
-  unsigned char PAD2 [164] ;
+  unsigned char PAD2 [144] ;
 } ;
 
 struct EEPromRelais {
@@ -78,5 +78,6 @@ extern void SendConfigByte (char Linie, unsigned short Knoten) ;
 void SendConfig(struct EEPROM *EEprom, char Linie, unsigned short Knoten) ;
 void SendFirmware(char Linie, unsigned short Knoten) ;
 void SendFirmwareByte (char Linie, unsigned short Knoten,unsigned char *Response, char ResponseLen);
-void ReadConfigByte (char Linie, USHORT Knoten, unsigned char Value) ;
-void ReadConfig(char Linie, USHORT Knoten) ;
+void ReadConfigByte (char Linie, unsigned short Knoten, unsigned char Value) ;
+void ReadConfigStart(char Linie, unsigned short Knoten) ;
+void ChangeAdress(char FromLinie, unsigned short FromKnoten,char ToLine, unsigned short ToKnoten) ;

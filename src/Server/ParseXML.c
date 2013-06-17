@@ -162,12 +162,12 @@ void XMLCALL start(void *data, const char *el, const char **attr)
   if (Current->Type==N_REACT) {
     // In die Liste der Reactions einhängen
     if (Reactions==NULL) {
-      Reactions = malloc (sizeof (NodeList)) ;
+      Reactions = malloc (sizeof (struct NodeList)) ;
       Reactions->Next = NULL ;
       Reactions->Node = Current ;
     } else {
       for (NL=Reactions;NL->Next!=NULL;NL=NL->Next) ;
-      NL->Next = malloc (sizeof(NodeList)) ;
+      NL->Next = malloc (sizeof(struct NodeList)) ;
       NL = NL->Next ;
       NL->Next = NULL ;
       NL->Node = Current ;
@@ -387,7 +387,7 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       } ;
       if ((strcmp(attr[i],"daten")==0)||(strcmp(attr[i],"data")==0)) {
 	for (j=0;j<8;j++) Current->Data.Reaction.Data[j] = 0  ;
-	sscanf(attr[i+1],"%i %i %i %i %i %i %i %i",
+	sscanf(attr[i+1],"%hhi %hhi %hhi %hhi %hhi %hhi %hhi %hhi",
 	       &(Current->Data.Reaction.Data[0]),&(Current->Data.Reaction.Data[1]),
 	       &(Current->Data.Reaction.Data[2]),&(Current->Data.Reaction.Data[3]),
 	       &(Current->Data.Reaction.Data[4]),&(Current->Data.Reaction.Data[5]),
@@ -395,7 +395,7 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       } ;	
       if ((strcmp(attr[i],"daten_maske")==0)||(strcmp(attr[i],"data_mask")==0)) {
 	for (j=0;j<8;j++) Current->Data.Reaction.DataMask[j] = 0  ;
-	sscanf(attr[i+1],"%i %i %i %i %i %i %i %i",
+	sscanf(attr[i+1],"%hhi %hhi %hhi %hhi %hhi %hhi %hhi %hhi",
 	       &(Current->Data.Reaction.DataMask[0]),&(Current->Data.Reaction.DataMask[1]),
 	       &(Current->Data.Reaction.DataMask[2]),&(Current->Data.Reaction.DataMask[3]),
 	       &(Current->Data.Reaction.DataMask[4]),&(Current->Data.Reaction.DataMask[5]),

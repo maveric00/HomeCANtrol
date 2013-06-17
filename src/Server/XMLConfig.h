@@ -149,7 +149,7 @@ struct Reaction {
   struct AdInfo ToMask ;
   unsigned char Data[8] ;
   unsigned char DataMask[8] ;
-}
+} ;
 
 struct Node {
   struct Node *Parent ;

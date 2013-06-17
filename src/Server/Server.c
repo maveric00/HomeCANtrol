@@ -517,6 +517,7 @@ void HandleCANRequest(void)
 int HandleCommand (char *Command,int Socket)
 {
   int Line,Add,Port ;
+  int ToLine,ToAdd ;
   int i ;
   char Makro[NAMELEN*4] ;
   char Com[NAMELEN*4] ;
@@ -660,8 +661,18 @@ int HandleCommand (char *Command,int Socket)
   if (strcmp(Com,"readconfig")==0) {
     sscanf (Command,"readconfig %d %d",&Line,&Add) ;
     if ((Line!=0)&&(Add!=0)) {
-      ReadConfig(Line,Add) ;
-      sprintf (Answer,"Update Config\r\n") ;
+      ReadConfigStart(Line,Add) ;
+      sprintf (Answer,"Reading Config\r\n") ;
+      send(Socket,Answer,strlen(Answer),0) ;
+      return (TRUE); 
+    } ;
+  } ;
+
+  if (strcmp(Com,"changeadress")==0) {
+    sscanf (Command,"changeadress %d %d to %d %d",&Line,&Add,&ToLine,&ToAdd) ;
+    if ((Line!=0)&&(Add!=0)) {
+      ChangeAdress(Line,Add,ToLine,ToAdd) ;
+      sprintf (Answer,"Changing Adress\r\n") ;
       send(Socket,Answer,strlen(Answer),0) ;
       return (TRUE); 
     } ;

@@ -504,7 +504,8 @@ void SendConfigByte (char Linie, USHORT Knoten)
     return ;
   } ;
 
-  if (Config->Counter>=sizeof(struct EEPROM)) {
+  if (((Config->Package==0)&&(Config->Counter>=sizeof(struct EEPROM)))||
+      ((Config->Package==1)&&(Config->Counter>=10))) {
     // das letzte Byte wurde bestätigt, nun noch den Knoten zurücksetzen um die Konfiguration zu laden.
     CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
     Data[0] = START_BOOT ;
@@ -512,7 +513,6 @@ void SendConfigByte (char Linie, USHORT Knoten)
     Len = 1 ;
     SendCANMessage(CANID,Len,Data) ;
     // aus der Liste der abzuarbeitenden Sachen entfernen
-    free(Config->EEprom) ;
     if (Config==ConfigList) ConfigList=Config->Next ;
     FreeItem(Config) ;
     return ;
@@ -548,7 +548,8 @@ void SendConfig(struct EEPROM *EEprom, char Linie, USHORT Knoten)
   Config->Counter = 0 ;
   Config->Linie = Linie ;
   Config->Knoten = Knoten ;
-  memcpy (&(Config->Data.EEprom),EEprom,sizeof(struct EEProm)) ;
+  Config->Package = 0 ;
+  memcpy (&(Config->Data.EEprom),EEprom,sizeof(struct EEPROM)) ;
 
 #ifdef DEBUG
   fprintf (stderr,"Sending Config: ") ;
@@ -556,6 +557,35 @@ void SendConfig(struct EEPROM *EEprom, char Linie, USHORT Knoten)
 
   // Das erste Byte senden, dieses triggert dann alle weiteren
   SendConfigByte(Linie,Knoten) ;
+}
+
+void ChangeAdress(char FromLinie, USHORT FromKnoten,char ToLinie, USHORT ToKnoten)
+{
+  struct ListItem *Config ;
+  
+  Config = CreateItem(ConfigList) ;
+  if (ConfigList==NULL) ConfigList = Config ;
+
+  Config->Counter = 0 ;
+  Config->Linie = FromLinie ;
+  Config->Knoten = FromKnoten ;
+  Config->Package = 1 ;
+  Config->Data.EEprom.Magic[0] = 0xBA ;
+  Config->Data.EEprom.Magic[1] = 0xCA ;
+  Config->Data.EEprom.BoardAdd[0] = (unsigned char) (ToKnoten&0xff) ;
+  Config->Data.EEprom.BoardAdd[1] = (unsigned char) ((ToKnoten>>8)&0xff) ;
+  Config->Data.EEprom.BoardLine = ToLinie; 
+  Config->Data.EEprom.BootAdd[0] = 0x01 ;
+  Config->Data.EEprom.BootAdd[1] = 0x00 ;
+  Config->Data.EEprom.BootLine = 0x00 ;
+  Config->Data.EEprom.PAD = 0xFF ;
+
+#ifdef DEBUG
+  fprintf (stderr,"Change Node Adress ") ;
+#endif
+
+  // Das erste Byte senden, dieses triggert dann alle weiteren
+  SendConfigByte(FromLinie,FromKnoten) ;
 }
 
 void ReadConfigByte (char Linie, USHORT Knoten, unsigned char Value)
@@ -583,14 +613,14 @@ void ReadConfigByte (char Linie, USHORT Knoten, unsigned char Value)
   } ;
 
   Config->Data.Command[Config->Counter] = Value ;
+  Config->Counter++ ;
 
-  if (Config->Counter>=sizeof(struct EEPROM)-1) {
+  if (Config->Counter>=sizeof(struct EEPROM)) {
     // das letzte Byte wurde bestaetigt, nun noch die Konfig abspeichern
 
-    WriteConfig(Config->EEprom) ;
+    WriteConfig(&(Config->Data.EEprom)) ;
 
     // aus der Liste der abzuarbeitenden Sachen entfernen
-    free(Config->EEprom) ;
     if (Config==ConfigList) ConfigList=Config->Next ;
     FreeItem(Config) ;
     return ;
@@ -612,10 +642,9 @@ void ReadConfigByte (char Linie, USHORT Knoten, unsigned char Value)
 #endif
   
   // Auf naechstes Byte setzen
-  Config->Counter++ ;
 }
 
-void ReadConfig(char Linie, USHORT Knoten)
+void ReadConfigStart(char Linie, USHORT Knoten)
 {
   struct ListItem *Config ;
   ULONG CANID ;
