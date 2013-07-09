@@ -33,7 +33,7 @@
 #include <stdio.h>
 
 #include "artnet.h"
-#include "artnet/packets.h"
+#include "packets.h"
 #include "misc.h"
 #include <ifaddrs.h>
 #include <linux/types.h> // required by if_packet
