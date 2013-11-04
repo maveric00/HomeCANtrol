@@ -330,6 +330,8 @@ void StepSeq (void)
 	ActiveSeq[i]->Data[j] = Current->Data[k] ;
       } ;
 
+      if (j>ActiveSeq[i]->DataLen) ActiveSeq[i]->DataLen = j ;
+
       // Output Elements
       if (GetNodeAdress(ActiveSeq[i]->Action->Data.Aktion.Unit,&Linie,&Knoten,&Port)==0) {
 	CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
@@ -558,6 +560,8 @@ int HandleCommand (char *Command,int Socket)
     send(Socket,Answer,strlen(Answer),0) ;
     sprintf (Answer,"TC (Line) (Adress) (Port):     Issue toggle on given adress\r\n") ;
     send(Socket,Answer,strlen(Answer),0) ;
+    sprintf (Answer,"SC (Line) (Adress) (Command) (Data1) (Data2) (Data3): Issue command on given adress\r\n") ;
+    send(Socket,Answer,strlen(Answer),0) ;
     sprintf (Answer,"An/On [Object]:                Switch on Object or current location\r\n") ;
     send(Socket,Answer,strlen(Answer),0) ;
     sprintf (Answer,"Aus/Off [Object]:              Switch off object or current location\r\n") ;
@@ -692,6 +696,35 @@ int HandleCommand (char *Command,int Socket)
     sscanf (Command,"tc %d %d %d",&Line,&Add,&Port) ;
     if ((Line!=0)&&(Add!=0)) {
       SendCommand(CHANNEL_TOGGLE,Line,Add,Port) ;
+      return (TRUE); 
+    } ;
+  } ;
+
+  if (strcmp(Com,"led")==0) {
+    int LED,r,g,b,w ;
+    sscanf (Command,"led %d %d %d %d %d %d %d",&Line,&Add,&LED,&r,&g,&b,&w) ;
+    if ((Line!=0)&&(Add!=0)) {
+      SendLEDCommand(SET_TO,Line,Add,LED,r,g,b,w) ;
+      return (TRUE); 
+    } ;
+  } ;
+
+  if (strcmp(Com,"hled")==0) {
+    int LED,r,g,b,w ;
+    sscanf (Command,"hled %d %d %d %d %d %d %d",&Line,&Add,&LED,&r,&g,&b,&w) ;
+    if ((Line!=0)&&(Add!=0)) {
+      SendLEDCommand(HSET_TO,Line,Add,LED,r,g,b,w) ;
+      return (TRUE); 
+    } ;
+  } ;
+
+  if (strcmp(Com,"hws")==0) {
+    int LED,r,g,b,w ;
+    sscanf (Command,"hws %d %d %d %d %d %d",&Line,&Add,&LED,&r,&g,&b) ;
+    hsv_to_rgb(r,g,b,&r,&g,&b) ;
+    if ((Line!=0)&&(Add!=0)) {
+      SendLEDCommand(LOAD_LED,Line,Add,LED,r,g,b,0) ;
+      SendLEDCommand(OUT_LED,Line,Add,LED,0,0,0,0) ;
       return (TRUE); 
     } ;
   } ;

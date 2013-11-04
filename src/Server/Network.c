@@ -431,6 +431,24 @@ void SendCommand(tCommand Command, unsigned char Linie, unsigned short Knoten, u
   SendCANMessage(CANID,Len,Data) ;
 }
 
+void SendLEDCommand(tCommand Command, unsigned char Linie, unsigned short Knoten, unsigned char LED, unsigned char r,
+		    unsigned char g, unsigned char b, unsigned char w)
+{
+  ULONG CANID ;
+  unsigned char Data[8]; 
+  char Len ;
+  
+  CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
+  Data[0] = Command ;
+  Data[1] = (char)LED ;
+  Data[2] = (char)r ;
+  Data[3] = (char)g ;
+  Data[4] = (char)b ;
+  Data[5] = (char)w ;
+  Len=6 ;
+  SendCANMessage(CANID,Len,Data) ;
+}
+
 void SendAction (struct Node *Action)
 {
   tCommand Command ;

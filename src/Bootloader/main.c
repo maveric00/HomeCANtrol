@@ -59,7 +59,7 @@ static BOOTLOADER_FUNCTIONS bootloader_functions =
 // ----------------------------------------------------------------------------
 // globale Variablen
 
-static uint16_t flashpage = 0;
+static uint8_t flashpage = 0;
 static uint8_t page_buffer_pos = 0;
 static uint8_t page_buffer[SPM_PAGESIZE];
 uint8_t message_number;
@@ -170,7 +170,7 @@ void main(void)
   mcp2515_register_map[2] = 	((BoardLine) << 2)|((BoardAdd>>6)&0x3) ;
   mcp2515_register_map[3] = 	((BoardAdd&0x3f)<<2) ;
   
-  OutMessage.id = ((uint32_t)BootAdd)<<2|((uint32_t)BootLine)<<10|((uint32_t)BoardAdd)<<14|((uint32_t)BoardLine)<<22 ;
+  OutMessage.id = ((uint16_t)BootAdd)<<2|((uint16_t)BootLine)<<10|((uint32_t)BoardAdd)<<14|((uint32_t)BoardLine)<<22 ;
   OutMessage.flags.extended = 1 ;
   OutMessage.length = 0 ;
   
@@ -184,7 +184,7 @@ void main(void)
   while (1)
     {
       uint8_t command;
-      uint16_t page;
+      uint8_t page;
       
       
       // wait until we receive a new message
@@ -258,7 +258,8 @@ void main(void)
 	  // set the current address in the page buffer
 	  
 	case SET_ADDRESS:
-	  page = (InMessage.data[2] << 8) | InMessage.data[3];
+	  //	  page = (InMessage.data[2] << 8) | InMessage.data[3];
+	  page = InMessage.data[3];
 	  
 	  if (InMessage.length == 6 && 
 	      InMessage.data[5] < (SPM_PAGESIZE/4) &&
@@ -309,14 +310,16 @@ void main(void)
 			goto error_response;
 	      }
 	      
-	      boot_program_page( flashpage*SPM_PAGESIZE, (uint16_t*) page_buffer,SPM_PAGESIZE );
+	      boot_program_page( ((uint16_t)flashpage)*SPM_PAGESIZE, (uint16_t*) page_buffer,SPM_PAGESIZE );
 	      page_buffer_pos = 0;
 	      flashpage += 1;
 	      OutMessage.data[4] = 1 ;
 	    }
 	  OutMessage.data[0] =  DATA | SUCCESSFULL_RESPONSE ;
-	  OutMessage.data[2] = flashpage >> 8;
-	  OutMessage.data[3] = flashpage & 0xff;
+	  //	  OutMessage.data[2] = flashpage >> 8;
+	  OutMessage.data[2] = 0;
+	  //	  OutMessage.data[3] = flashpage & 0xff;
+	  OutMessage.data[3] = flashpage ;
 	  OutMessage.length = 5 ;
 	  mcp2515_send_message(&OutMessage) ;
 	  

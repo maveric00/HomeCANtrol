@@ -15,8 +15,8 @@
 #include <avr/eeprom.h>
 #include <avr/wdt.h>
 #include <util/delay.h>
-#include "..\Common\mcp2515.h"
-#include "..\Common\utils.h"
+#include "../Common/mcp2515.h"
+#include "../Common/utils.h"
 
 /* EEProm-Belegung vom Boot-Loader:
    0   0xba
@@ -99,6 +99,7 @@
 #define I_RETRIG    4
 #define I_ANALOG    5
 #define I_BWM       6
+#define I_BWM2      7
 #define O_ONOFF    10
 #define O_PWM      11
 #define O_WSCLOCK  20
@@ -643,7 +644,10 @@ int main(void)
 	  } ;
 	  break ;
   	case I_BWM: // Nachstellbares Monoflop als Bewegungsmelder
-	  if (!get_key_stat(1<<i)) {
+	case I_BWM2:
+	  r=get_key_stat(1<<i) ;
+	  //	  if (Type[i]==I_BWM2) r=r?FALSE:TRUE ;
+	  if (r) {
 	    if (Timers[i]==0) {
 	      SendPinMessage(i,0,0) ;
 	    } ;
@@ -760,6 +764,10 @@ int main(void)
     case LOAD_LED:
       r = Message.data[1] ;
       if ((r+1)>MAX_LEDS) break; // Zu hohe LED-Nummer
+      if (TimerLED>0) {
+	for (i=0;i<NumLED*3;i++) START_WS[i] = SOLL_WS[i] ;
+	TimerLED = -1 ;
+      }
       NumLED = (r+1)>NumLED?(r+1):NumLED ; // Set Max used LED
       SOLL_WS[r*3] = Message.data[2] ;
       SOLL_WS[r*3+1] = Message.data[3] ;

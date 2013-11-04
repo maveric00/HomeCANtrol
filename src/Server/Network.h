@@ -72,6 +72,11 @@ void GetDestinationAddress (ULONG CANId, char *ToLine, USHORT *ToAdd) ;
 
 void SendCommand(tCommand Command, unsigned char Linie, unsigned short Knoten, unsigned char Port) ;
 
+/* Sendet ein LED-Setzkommando an die Adresse */
+
+void SendLEDCommand(tCommand Command, unsigned char Linie, unsigned short Knoten, unsigned char LED, unsigned char r,
+		    unsigned char g, unsigned char b, unsigned char w) ;
+
 /* Netzwerk-Interface initialisieren */
 
 int InitNetwork(void) ;

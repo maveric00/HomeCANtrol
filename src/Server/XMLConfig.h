@@ -63,6 +63,7 @@ typedef enum {
   S_WSDATA = 108,
   S_WSCLOCK = 109,
   S_BWM = 110,
+  S_BWM2 = 111,
   A_ON = 200,
   A_OFF = 201,
   A_TOGGLE = 202,

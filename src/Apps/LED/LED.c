@@ -399,9 +399,9 @@ int main(void)
       break ;
     case WRITE_CONFIG:
       if ((Message.data[1] == 0xba)&&(Message.data[2]==0xca)) {	
-	    eeprom_write_byte((uint8_t*)2,Message.data[3]) ;	
-	    eeprom_write_byte((uint8_t*)3,Message.data[4]) ;	
-	    eeprom_write_byte((uint8_t*)4,Message.data[5]) ;	
+	eeprom_write_byte((uint8_t*)2,Message.data[3]) ;	
+	eeprom_write_byte((uint8_t*)3,Message.data[4]) ;	
+	eeprom_write_byte((uint8_t*)4,Message.data[5]) ;	
       } ;
       break ;
     case READ_VAR:
@@ -423,21 +423,20 @@ int main(void)
     case TIME:
       break ;
 
-
     case CHANNEL_OFF:
-	  //for (g=1;g<7;g++) 
-	  //SetLED (g,0,0,0,0,0) ;
-	  SetLED (7,0,0,0,0,0) ;	  
+      //for (g=1;g<7;g++) 
+      //SetLED (g,0,0,0,0,0) ;
+      SetLED (7,0,0,0,0,0) ;	  
       mcp2515_send_message(&Message) ;
       break ;
     case CHANNEL_ON:
-	  //for (g=1;g<7;g++) 	
+      //for (g=1;g<7;g++) 	
       //SetLED (g,255,255,255,255,0) ;
       SetLED (7,255,255,255,255,0) ;
       mcp2515_send_message(&Message) ;
       break ;
     case CHANNEL_TOGGLE:
-	  //for (g=1;g<7;g++) 
+      //for (g=1;g<7;g++) 
       //SetLED (g,255,255,255,255,1) ;
       SetLED (7,255,255,255,255,1) ;
       mcp2515_send_message(&Message) ;
@@ -479,30 +478,30 @@ int main(void)
       break ;
     case START_PROG:
       if (Message.data[1]>=PWM_CHANNELS) {
- 	    for (r=0;r<PWM_CHANNELS;r++) {
-	      Step[r] = 0 ;
-	      Counter[r] = 0 ;
-	    } ;
+	for (r=0;r<PWM_CHANNELS;r++) {
+	  Step[r] = 0 ;
+	  Counter[r] = 0 ;
+	} ;
       } else {
-	    r = Message.data[1] ;
+	r = Message.data[1] ;
         Step[r] = 0 ;
-	    Counter[r] = 0 ; 
+	Counter[r] = 0 ; 
       } ;
       break ;
     case STOP_PROG:
       if (Message.data[1]>=PWM_CHANNELS) {
-	    for (r=0;r<PWM_CHANNELS;r++) {
-	      Step[r] = 22 ;
-	      Counter[r] = 0 ;
-	      LEDVal[r] = 0 ;
-	      LEDV2[r] = 0 ;
-	    } ;
+	for (r=0;r<PWM_CHANNELS;r++) {
+	  Step[r] = 22 ;
+	  Counter[r] = 0 ;
+	  LEDVal[r] = 0 ;
+	  LEDV2[r] = 0 ;
+	} ;
       } else {
-	    r = Message.data[1] ;
-	    Step[r] = 22 ;
-	    Counter[r] = 0 ; 
-	    LEDVal[r] = 0 ; 
-	    LEDV2[r] = 0 ;
+	r = Message.data[1] ;
+	Step[r] = 22 ;
+	Counter[r] = 0 ; 
+	LEDVal[r] = 0 ; 
+	LEDV2[r] = 0 ;
       } ;
       break ;
     case DIM_TO:

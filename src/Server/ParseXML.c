@@ -88,8 +88,10 @@ struct TypSel Types[] = {
   {"Rollo_Einfach",S_SHADE_SIMPLE},
   {"Shade_Simple",S_SHADE_SIMPLE},
   {"Monoflop",S_MONO},
-  {"BWM",S_BWM},
-  {"Movement",S_BWM},
+  {"BWM_OC",S_BWM},
+  {"Movement_OC",S_BWM},
+  {"BWM",S_BWM2},
+  {"Movement",S_BWM2},
   {"R_Monoflop",S_RETMONO},
   {"Analog",S_ANALOG},
   {"Ausgang",S_OUTPUT},
@@ -593,35 +595,37 @@ void ReadTrippleVals (char *Line, int InitParas, struct Sequence *This)
 void hsv_to_rgb (unsigned char h, unsigned char s, unsigned char v,unsigned char *r, unsigned char *g, unsigned char *b)
 {
   unsigned char i, f;
+  unsigned char x,y,z ;
   unsigned int p, q, t;
   
+  x = h; y=s ; z=v ;
   if( s == 0 ) {	
-    *r = *g = *b = v;
+    *r = *g = *b = z;
   } else {
-    i=h/43;
-    f=h%43;
-    p = (v * (255 - s))/256;
-    q = (v * ((10710 - (s * f))/42))/256;
-    t = (v * ((10710 - (s * (42 - f)))/42))/256;
+    i=x/43;
+    f=x%43;
+    p = (z * (255 - y))/256;
+    q = (z * ((10710 - (y * f))/42))/256;
+    t = (z * ((10710 - (y * (42 - f)))/42))/256;
     
     switch( i ) {
     case 0:
-      *r = v; *g = t; *b = p; 
+      *r = z; *g = t; *b = p; 
       break;
     case 1:
-      *r = q; *g = v; *b = p; 
+      *r = q; *g = z; *b = p; 
       break;
     case 2:
-      *r = p; *g = v; *b = t; 
+      *r = p; *g = z; *b = t; 
       break;
     case 3:
-      *r = p; *g = q; *b = v; 
+      *r = p; *g = q; *b = z; 
       break;			
     case 4:
-      *r = t; *g = p; *b = v; 
+      *r = t; *g = p; *b = z; 
       break;				
     case 5:
-      *r = v; *g = p; *b = q; 
+      *r = z; *g = p; *b = q; 
       break;
     }
   }

@@ -41,8 +41,8 @@
 
 
 # MCU name
-MCU = at90pwm3b
-#MCU = attiny84
+#MCU = at90pwm3b
+MCU = attiny84
 
 
 # Processor frequency.
@@ -357,7 +357,7 @@ OBJDUMP = avr-objdump
 SIZE = avr-size
 AR = avr-ar rcs
 NM = avr-nm
-AVRDUDE = avrdude
+AVRDUDE = sudo avrdude
 REMOVE = rm -f
 REMOVEDIR = rm -rf
 COPY = cp

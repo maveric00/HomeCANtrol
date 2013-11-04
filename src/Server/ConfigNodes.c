@@ -205,6 +205,9 @@ void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom,int Large)
   case S_BWM:
     i = 6 ;
     break ;
+  case S_BWM2:
+    i = 7 ;
+    break ;
   case S_SHADE_SHORTLONG:
     i = 2 ;
     break ;
@@ -233,7 +236,7 @@ void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom,int Large)
       EEprom->Data.Taster.REPEAT_END = Node->Data.Sensor.Ende ;
     } ;
   } ;
-  if ((i==3)||(i==4)||(i==5)||(i==6)) {
+  if ((i==3)||(i==4)||(i==5)||(i==6)||(i==7)) {
     Conf[P1-1].Data = Node->Data.Sensor.Intervall ;
   }  ;
   if (i==10) {
@@ -261,7 +264,7 @@ void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom,int Large)
       ConfigShade(Node,Action,Func) ;
     } else if ((Node->Data.Sensor.SensorTyp==S_SIMPLE)||(Node->Data.Sensor.SensorTyp==S_SHORTLONG)||
 	       (Node->Data.Sensor.SensorTyp==S_MONO)||(Node->Data.Sensor.SensorTyp==S_RETMONO)||
-	       (Node->Data.Sensor.SensorTyp==S_BWM)) {
+	       (Node->Data.Sensor.SensorTyp==S_BWM)||(Node->Data.Sensor.SensorTyp==S_BWM2)) {
       ConfigCommand(Node,Action,Func) ;
     } else {
       // Analog-Konfiguration einfuegen
