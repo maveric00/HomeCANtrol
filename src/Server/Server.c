@@ -33,7 +33,7 @@ int IsMakro (struct Node *This)
   return ((This->Type==N_ACTION)||(This->Type==N_DELAY)||(This->Type==N_TIMER)||
 	  (This->Type==N_CALL)||(This->Type==N_TASK)||
 	  (This->Type==N_IF)||(This->Type==N_SET)||(This->Type==N_REPEAT)||
-	  (This->Type==N_WAITFOR)) ;
+	  (This->Type==N_ELSE)||(This->Type==N_WAITFOR)) ;
 } ;
 
 
@@ -205,10 +205,19 @@ void StepMakros (void)
 	      This->Data.MakroStep = That ;
 	      // zeigt schon auf neues, nicht mehr hochzaehlen
 	      continue; 
+	    } else {
+	      // Pruefen, ob ein Else-Zweig vorhanden ist...
+	      for (That=That->Child;That!=NULL;That=That->Next) 
+		if (That->Type==N_ELSE) break ;
+	      if ((That!=NULL)&&(That->Next!=NULL)) This->Data.MakroStep = That->Next ;
+	      continue ;
 	    } ;
 	  } else if (That->Type==N_SET) {
 	    Caller = FindNode(Haus->Child,That->Data.Wert.UnitName) ;
 	    Caller->Value = That->Data.Wert.Wert ;
+	  } else if (That->Type==N_ELSE) {
+	    /* Bis zum Ende des Else-Zweiges durchgehen (bis Ende des IF-Blocks) */
+	    for (;That->Next!=NULL;That=That->Next) ;
 	  } ;
 	  // Naechsten Schritt suchen
 	  Caller = That->Parent ;
@@ -229,7 +238,7 @@ void StepMakros (void)
 
 void StepSeq (void)
 {
-  int i,j,k ;
+  int i,j,k,LEDNum ;
   ULONG CANID ;
   unsigned char Data[8]; 
   char Len ;
@@ -286,6 +295,10 @@ void StepSeq (void)
       } ;
       ActiveSeq[i]->Current = This ;
       break ;
+    case S_SETVAR:
+      ActiveSeq[i]->Vars[ActiveSeq[i]->Current->Para] = ActiveSeq[i]->Current->GlobalVar->Value ;
+      ActiveSeq[i]->Current = ActiveSeq[i]->Current->Next ;
+      break ;
     case S_DELAY:
       if (Current->CurrVal==0) {
 	Current->CurrVal=Current->Para*10+1 ; // Para ist Delay in 0,1 Sekunden, diese Routine wird ungefaehr
@@ -303,29 +316,35 @@ void StepSeq (void)
 	CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
 	Data[0] = LOAD_LED ;
 	ActiveSeq[i]->DataLen = Current->DataLen ;
+	for (j=0;j<Current->DataLen;j++) 
+	  if (Current->Var[j]<10) Current->Data[j]=ActiveSeq[i]->Vars[Current->Var[j]] ;
 	for (j=0;j<Current->DataLen;j+=3) {
 	  Data[1] = j/3 ;
 	  Data[2] = ActiveSeq[i]->Data[j] = Current->Data[j]; 
 	  Data[3] = ActiveSeq[i]->Data[j+1] = Current->Data[j+1]; 
 	  Data[4] = ActiveSeq[i]->Data[j+2] = Current->Data[j+2]; 
-	  Len=5 ;
+	  Data[5] = Current->Para ;
+	  Len=6 ;
 	  SendCANMessage(CANID,Len,Data) ;
 	} ;
-	Data[0] = OUT_LED ;
-	Data[1] = Current->Para ;
-	Len = 2 ;
-	SendCANMessage(CANID,Len,Data) ;
       }; 
       ActiveSeq[i]->Current = ActiveSeq[i]->Current->Next ;
       break ;
     case S_SINGLE:
       // Update Data
-      if (Current->LED==-1) {
-	j = (ActiveSeq[i]->Counter-1)*3 ;
+      if (Current->LED<0) {
+	if (Current->LED==-10) {
+	  LEDNum = j = (ActiveSeq[i]->Counter-1)*3 ;
+	} else {
+	  LEDNum = j = (ActiveSeq[i]->Vars[-(Current->LED)]-1)*3 ;
+	} ;
       } else {
-	j = (Current->LED-1)*3 ;
+	LEDNum = j = (Current->LED-1)*3 ;
       } ;
-
+      
+      for (j=0;j<Current->DataLen;j++) 
+	if (Current->Var[j]<10) Current->Data[j]=ActiveSeq[i]->Vars[Current->Var[j]] ;
+      
       for (k=0;(k<Current->DataLen)&&(j<MAX_WSLEDS*3);k++,j++) {
 	ActiveSeq[i]->Data[j] = Current->Data[k] ;
       } ;
@@ -334,18 +353,15 @@ void StepSeq (void)
       if (GetNodeAdress(ActiveSeq[i]->Action->Data.Aktion.Unit,&Linie,&Knoten,&Port)==0) {
 	CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
 	Data[0] = LOAD_LED ;
-	for (j=0;j<ActiveSeq[i]->DataLen;j+=3) {
-	  Data[1] = j/3 ;
-	  Data[2] = ActiveSeq[i]->Data[j]; 
-	  Data[3] = ActiveSeq[i]->Data[j+1]; 
-	  Data[4] = ActiveSeq[i]->Data[j+2]; 
-	  Len=5 ;
+	for (j=0;j<Current->DataLen;j+=3) {
+	  Data[1] = LEDNum+j/3 ;
+	  Data[2] = Current->Data[j]; 
+	  Data[3] = Current->Data[j+1]; 
+	  Data[4] = Current->Data[j+2]; 
+	  Data[5] = Current->Para ;
+	  Len=6 ;
 	  SendCANMessage(CANID,Len,Data) ;
 	} ;
-	Data[0] = OUT_LED ;
-	Data[1] = Current->Para ;
-	Len = 2 ;
-	SendCANMessage(CANID,Len,Data) ;
       }; 
       ActiveSeq[i]->Current = ActiveSeq[i]->Current->Next ;
       break ;

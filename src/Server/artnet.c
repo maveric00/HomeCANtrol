@@ -241,7 +241,7 @@ int artnet_stop(artnet_node vn) {
 int artnet_destroy(artnet_node vn) {
   node n = (node) vn;
   node_entry_private_t *ent, *tmp;
-  int i;
+
 
   check_nullnode(vn);
 
@@ -1403,6 +1403,7 @@ static void add_iface_if_needed(iface_t **head, iface_t **tail,
  * interfaces on this machine
  * @param ift_head the address of the pointer to the head of the list
  */
+
 static int get_ifaces(iface_t **if_head) {
   struct ifaddrs *ifa_list, *ifa_iter;
   iface_t *if_tail, *if_iter;

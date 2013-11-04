@@ -17,7 +17,8 @@ typedef enum {
   S_SINGLE = 4,
   S_COUNTUP = 5,
   S_COUNTDOWN = 6,
-  S_COUNTEND = 7
+  S_COUNTEND = 7,
+  S_SETVAR = 8
 } tSeqCom ;
 
 
@@ -52,6 +53,7 @@ typedef enum {
   N_LED = 27,
   N_SENS2 = 28,
   N_REACT = 29,
+  N_ELSE = 30,
   S_SIMPLE = 100,
   S_SHORTLONG = 101,
   S_SHADE_SHORTLONG = 102,
@@ -214,7 +216,9 @@ struct Sequence {
   int LED ;
   int CurrVal ;
   int DataLen ;
+  struct Node *GlobalVar ;
   unsigned char Data[MAX_WSLEDS*3] ;
+  unsigned char Var[MAX_WSLEDS*3] ;
 } ;
 
 struct SeqList {
@@ -227,6 +231,7 @@ struct SeqList {
   int UpDown ;
   int DataLen ;
   unsigned char Data[MAX_WSLEDS*3] ;
+  unsigned char Vars[10] ;
   char Name[NAMELEN] ;
 } ;
 

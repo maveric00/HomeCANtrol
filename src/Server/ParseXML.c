@@ -62,7 +62,9 @@ struct TypSel Types[] = {
   {"Start",N_STARTUP},
   {"Startup",N_STARTUP},
   {"Wenn",N_IF},
+  {"Sonst",N_ELSE},
   {"If",N_IF},
+  {"Else",N_ELSE},
   {"Variable",N_VAR},
   {"Var",N_VAR},
   {"Setze",N_SET},
@@ -583,9 +585,14 @@ void ReadTrippleVals (char *Line, int InitParas, struct Sequence *This)
   // Werte einlesen
 
   for (i=0;i<strlen(Line);i+=2) {
-    Val[2] = Line[i] ;
-    Val[3] = Line[i+1] ;
-    sscanf (Val,"%hhx",&(This->Data[i/2])) ;
+    if (Line[i]!='$') {
+      Val[2] = Line[i] ;
+      Val[3] = Line[i+1] ;
+      sscanf (Val,"%hhx",&(This->Data[i/2])) ;
+    } else {
+      Val[2] = '0' ;
+      Val[3] = Line[i+1] ;
+      sscanf (Val,"%hhx",&(This->Var[i/2])) ;
   } ;
   This->DataLen = i/2 ;
 }
@@ -634,6 +641,7 @@ void ReadSequence (char *Name, char *FileName)
   struct Sequence *This,*That ;
   char Line[NAMELEN] ;
   char Command[NAMELEN] ;
+  char UnitName[NAMELEN*4] ;
   char Val[10] ;
   int i,j ;
 
@@ -687,7 +695,10 @@ void ReadSequence (char *Name, char *FileName)
     // Initialisiere Sequenz-Schritt
     This->Next = NULL ;
     This->CurrVal = 0 ;
-    for (i=0;i<MAX_WSLEDS*3;i++) This->Data[i]=0 ;
+    for (i=0;i<MAX_WSLEDS*3;i++) {
+      This->Data[i]=0 ;
+      This->Var[i]=10 ;
+    } ;
     
     // Lese Zeilennummer, Kommando und Parameter ein
     sscanf (Line,"%d %s %d",&(This->LineNumber),Command,&(This->Para)) ;
@@ -697,7 +708,12 @@ void ReadSequence (char *Name, char *FileName)
 	This->Command=S_SINGLE ;
 	sscanf (Line,"%d %s %d %s",&(This->LineNumber),Command,&(This->Para),Val) ;
 	if (Val[0]=='$') {
-	  This->LED = -1 ;
+	  if (Val[1] = '$') {
+	    This->LED = -10 ;
+	  } else {
+	    This->LED = -(Val[1]-'0') ;
+	    if ((This->LED<-10)||(This->LED>0)) This->LED=0 ;
+	  } ;
 	} else {
 	  sscanf (Val,"%d",&(This->LED)) ;
 	} ;
@@ -740,6 +756,10 @@ void ReadSequence (char *Name, char *FileName)
       This->Command=S_COUNTDOWN ;
     } else if (strcmp(Command,"COUNT_END")==0) {
       This->Command=S_COUNTEND ;
+    } else if (strcmp(Command,"SET_VAR")==0) {
+      This->Command=S_SETVAR ;
+      sscanf (Line,"%d %s %d %s",&(This->LineNumber),Command,&(This->Para),UnitName) ;
+      This->GlobalVar = FindNode(Haus->Child,UnitName) ;
     } ;
   } ;
 }

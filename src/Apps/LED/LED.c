@@ -16,7 +16,7 @@
 #include <avr/eeprom.h>
 #include <avr/wdt.h>
 #include <util/delay.h>
-#include "..\Common\mcp2515.h"
+#include "../Common/mcp2515.h"
 
 
 /* EEProm-Belegung vom Boot-Loader:
@@ -54,6 +54,9 @@ volatile uint8_t Step[PWM_CHANNELS] ;
 can_t Message ;
 uint8_t  BoardLine ;
 uint16_t BoardAdd ;
+
+uint8_t GlobalTime ;
+uint8_t LastTime[PWM_CHANNELS] ;
 
 volatile uint8_t  Heartbeat ;
 volatile uint16_t Timers ;
@@ -143,8 +146,12 @@ inline void StepLight (void)
   // Alle Kanaele abarbeiten; wird 25 mal pro sekunde aufgerufen 
   for (Channel=0;Channel<PWM_CHANNELS;Channel++) {
     if (Counter[Channel]>0) {
-      LEDV2[Channel] += Delta[Channel] ;
-      Counter[Channel]-- ;
+      if (Delta[Channel]!=0x7FFF) {
+	LEDV2[Channel] += Delta[Channel] ;
+	Counter[Channel]-- ;
+      } else {
+	if (Counter[Channel]==GlobalTime) Counter[Channel]=0 ;
+      } ;
     } else {
       if (Step[Channel]>=20) continue ;
       Command = GetProgram (Channel,Step[Channel]) ;
@@ -172,6 +179,12 @@ inline void StepLight (void)
 	Step[Channel]++ ;
       } else if (Command==224) {
 	// nop
+      } else if (Command==225) {
+	// Wait for timer 
+	Counter[Channel] = LastTime[Channel] + GetProgram(Channel,Step[Channel]) ;
+	LastTime[Channel] = Counter[Channel] ;
+	Delta[Channel] = 0x7FFF ;
+	Step[Channel]++ ;
       } else { // Unknown command 
 	Step[Channel] = 20 ; // Auf Ende Setzen 
       } ;
@@ -421,23 +434,22 @@ int main(void)
       while(1) ;
       break ;
     case TIME:
+      GlobalTime = Message.data[1] ;
       break ;
-
-
     case CHANNEL_OFF:
-	  //for (g=1;g<7;g++) 
-	  //SetLED (g,0,0,0,0,0) ;
-	  SetLED (7,0,0,0,0,0) ;	  
+      //for (g=1;g<7;g++) 
+      //SetLED (g,0,0,0,0,0) ;
+      SetLED (7,0,0,0,0,0) ;	  
       mcp2515_send_message(&Message) ;
       break ;
     case CHANNEL_ON:
-	  //for (g=1;g<7;g++) 	
+      //for (g=1;g<7;g++) 	
       //SetLED (g,255,255,255,255,0) ;
       SetLED (7,255,255,255,255,0) ;
       mcp2515_send_message(&Message) ;
       break ;
     case CHANNEL_TOGGLE:
-	  //for (g=1;g<7;g++) 
+      //for (g=1;g<7;g++) 
       //SetLED (g,255,255,255,255,1) ;
       SetLED (7,255,255,255,255,1) ;
       mcp2515_send_message(&Message) ;
@@ -479,14 +491,18 @@ int main(void)
       break ;
     case START_PROG:
       if (Message.data[1]>=PWM_CHANNELS) {
- 	    for (r=0;r<PWM_CHANNELS;r++) {
-	      Step[r] = 0 ;
-	      Counter[r] = 0 ;
-	    } ;
+	for (r=0;r<PWM_CHANNELS;r++) {
+	  Step[r] = 0 ;
+	  Counter[r] = Message.data[7] ;
+	  LastTime[r] = Counter[r] ;
+	  Delta[Channel]=0x7FFF ;
+	} ;
       } else {
-	    r = Message.data[1] ;
+	r = Message.data[1] ;
         Step[r] = 0 ;
-	    Counter[r] = 0 ; 
+	Counter[r] = Message.data[7] ;
+	LastTime[r] = Counter[r] ;
+	Delta[Channel]=0x7FFF ;
       } ;
       break ;
     case STOP_PROG:

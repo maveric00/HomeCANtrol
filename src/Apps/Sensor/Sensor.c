@@ -15,8 +15,8 @@
 #include <avr/eeprom.h>
 #include <avr/wdt.h>
 #include <util/delay.h>
-#include "..\Common\mcp2515.h"
-#include "..\Common\utils.h"
+#include "../Common/mcp2515.h"
+#include "../Common/utils.h"
 
 /* EEProm-Belegung vom Boot-Loader:
    0   0xba
@@ -99,6 +99,7 @@
 #define I_RETRIG    4
 #define I_ANALOG    5
 #define I_BWM       6
+#define I_BWM2      7
 #define O_ONOFF    10
 #define O_PWM      11
 #define O_WSCLOCK  20
@@ -121,6 +122,7 @@ uint16_t BoardAdd ;
 
 uint8_t  LastCommand ;
 volatile uint16_t  Heartbeat ;
+volatile uint8_t Time ;
 volatile uint16_t Timers[6] ;
 uint8_t  TimerStatus ;
 uint8_t  Type[6] ;
@@ -133,8 +135,9 @@ volatile uint8_t  PWMStep ;
 
 uint8_t  SOLL_WS[MAX_LEDS*3] ;
 volatile uint8_t  START_WS[MAX_LEDS*3] ;
-volatile int16_t TimerLED ;
-volatile int16_t DurationLED ;
+volatile int16_t TimerLED[MAX_LEDS] ;
+volatile int16_t DurationLED[MAX_LEDS] ;
+volatile uint8_t ChangedLED ;
 uint8_t  NumLED ;
 
 volatile uint8_t* PIX_Clock ;
@@ -261,7 +264,8 @@ void SendPinMessage (uint8_t Pin, uint8_t Long,uint8_t SendData)
     Message.data[4] = eeprom_read_byte(Data+7) ;
     Message.data[5] = eeprom_read_byte(Data+8) ;
     Message.data[6] = eeprom_read_byte(Data+9) ;
-    Message.length = 7 ;
+    Message.data[7] = Heartbeat>90?Time+1:Time ;
+    Message.length = 8 ;
     mcp2515_send_message(&Message) ;
   } ;
 }
@@ -295,7 +299,7 @@ ISR( TIM0_OVF_vect )
   static uint16_t rpt;
   static uint8_t WSCounter ;
   uint8_t WSByte ;
-  uint8_t i;
+  uint8_t i,j;
  
   TCNT0 = (uint8_t)TIMER_PRESET;  // preload for 10ms
 
@@ -307,22 +311,26 @@ ISR( TIM0_OVF_vect )
     // Nur alle 20 ms updaten (50 Hz Update-Rate reicht); maximale Fading-Zeit liegt bei 25,5 Sekunden mit 0,1 Sekunde Auflösung
     WSCounter = 0 ;
     // Berechnen des Sollwerts und Ausgeben desselben
-    if (TimerLED>0) {
-      TimerLED-- ;
+    for (i=0;i<NumLED;i++) if (TimerLED[i]>0) break ;
+    
+    if (i<NumLED) {
       for (i=0;i<NumLED*3;i++) {
-	WSByte = (uint8_t)(((uint16_t)START_WS[i])+(((int16_t)((int16_t)SOLL_WS[i]-(int16_t)START_WS[i]))*(DurationLED-TimerLED)/DurationLED)) ;
+	j = i/3 ;
+	if (TimerLED[j]>0) TimerLED[j]-- ;
+	WSByte = (uint8_t)(((uint16_t)START_WS[i])+(((int16_t)((int16_t)SOLL_WS[i]-(int16_t)START_WS[i]))*(DurationLED[j]-TimerLED[j])/DurationLED[j])) ;
 	ws2801_writeByte(WSByte) ;
+	if (TimerLED[j]==0) {
+	  DurationLED[j] = 1 ;
+	  START_WS[i] = SOLL_WS[i] ;
+	} ;
+	ChangedLED=1 ;
       } ;
       PIX_Clock[0] &= ~(PIX_CL) ; //Clock Low zum Latchen
-      if (TimerLED==0) {
-	DurationLED = 1 ;
-	for (i=0;i<NumLED*3;i++) START_WS[i] = SOLL_WS[i] ;
-      } ;
     } else {
-      // Noch einmal den letzten Wert ausgeben, damit der Wert übernommen wird (das Pixel übernimmt erst mit
-      // Beginn des nächsten Frames die Werte in die Ausgabe.
-      if (DurationLED>0) {
-	DurationLED-- ;
+      if (ChangedLED==1){
+	ChangedLED=0 ;
+	// Noch einmal den letzten Wert ausgeben, damit der Wert übernommen wird (das Pixel übernimmt erst mit
+	// Beginn des nächsten Frames die Werte in die Ausgabe.
 	for (i=0;i<NumLED*3;i++) {
 	  ws2801_writeByte(START_WS[i]) ;
 	} ;
@@ -643,6 +651,7 @@ int main(void)
 	  } ;
 	  break ;
   	case I_BWM: // Nachstellbares Monoflop als Bewegungsmelder
+	case I_BWM2:
 	  if (!get_key_stat(1<<i)) {
 	    if (Timers[i]==0) {
 	      SendPinMessage(i,0,0) ;
@@ -729,6 +738,7 @@ int main(void)
       break ;
     case TIME:
       Heartbeat = 0 ;
+      Time = Message.data[1] ;
       break ;
       // Diese Befehle sind beim Sensor nicht bekannt
       // LED
@@ -761,13 +771,16 @@ int main(void)
       r = Message.data[1] ;
       if ((r+1)>MAX_LEDS) break; // Zu hohe LED-Nummer
       NumLED = (r+1)>NumLED?(r+1):NumLED ; // Set Max used LED
+      START_WS[r*3] = SOLL_WS[r*3] ;
+      START_WS[r*3+1] = SOLL_WS[r*3+1] ;
+      START_WS[r*3+2] = SOLL_WS[r*3+2] ;
       SOLL_WS[r*3] = Message.data[2] ;
       SOLL_WS[r*3+1] = Message.data[3] ;
       SOLL_WS[r*3+2] = Message.data[4] ;
+      TimerLED[r] = Message.data[5]*5+1 ;
+      DurationLED[r] = TimerLED[r] ;
       break ;
     case OUT_LED:
-      TimerLED = Message.data[1]*5+1 ;
-      DurationLED = TimerLED ;
       break ;
     case START_SENSOR:
       Running[(int)Message.data[1]-1] = 1 ;
