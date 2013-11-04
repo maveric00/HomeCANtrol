@@ -40,6 +40,7 @@ int ComSockFD;
 int SendSockFD;
 int RecAjaxFD ;
 int SendAjaxFD ;
+int GlobalTime ;
 int MaxSock ;
 fd_set socketReadSet;
 struct addrinfo *servinfo, *SendInfo,*gateinfo,*GaInfo ;
@@ -469,8 +470,14 @@ void SendAction (struct Node *Action)
     if (Action->Data.Aktion.Type==A_ON) { Command = CHANNEL_ON ; Action->Data.Aktion.Unit->Value=1 ; } ;
     if (Action->Data.Aktion.Type==A_OFF) { Command = CHANNEL_OFF ; Action->Data.Aktion.Unit->Value=0 ; } ;
     if (Action->Data.Aktion.Type==A_TOGGLE) { Command = CHANNEL_TOGGLE ; Action->Data.Aktion.Unit->Value=1-Action->Data.Aktion.Unit->Value ; } ;
-    if (Action->Data.Aktion.Type==A_HEARTBEAT) Command = TIME ;
     if (GetNodeAdress(Action->Data.Aktion.Unit,&Linie,&Knoten,&Port)!=0) break ;
+    if (Action->Data.Aktion.Type==A_HEARTBEAT) { 
+      Command = TIME ; 
+      Action->Data.Aktion.Unit->Value++ ;
+      Action->Data.Aktion.Unit->Value &=0xFF ;
+      Port = Action->Data.Aktion.Unit->Value ;
+      GlobalTime = Port ;
+    } ;     
     CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
     Data[0] = Command ;
     Data[1] = (char)Port ;
@@ -531,7 +538,10 @@ void SendAction (struct Node *Action)
       Data[5] = Action->Data.Aktion.W ;
       Data[6] = Action->Data.Aktion.Delay ;
       Len=6 ;
-    } else {
+    } else if (Command==START_PROG) {
+      Data[7] = GlobalTime ;
+      Len=8 ;
+    }else {
       Len=2 ;
     } ;
     break ;

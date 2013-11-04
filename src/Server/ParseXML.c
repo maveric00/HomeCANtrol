@@ -15,6 +15,8 @@
 
 #define BUFF_SIZE 10240
 
+#define DEBUG 1
+
 struct Node *Haus=NULL ;
 struct Node *Current=NULL ;
 struct SeqList *Sequences=NULL ;
@@ -62,7 +64,9 @@ struct TypSel Types[] = {
   {"Start",N_STARTUP},
   {"Startup",N_STARTUP},
   {"Wenn",N_IF},
+  {"Sonst",N_ELSE},
   {"If",N_IF},
+  {"Else",N_ELSE},
   {"Variable",N_VAR},
   {"Var",N_VAR},
   {"Setze",N_SET},
@@ -573,9 +577,9 @@ void ReadTrippleVals (char *Line, int InitParas, struct Sequence *This)
     for (;i<strlen(Line)&&Line[i]!=' ';i++) ;
     for (;i<strlen(Line)&&Line[i]==' ';i++) ; // i is on next Parameter
   } ;
-
+  
   // Whitespace und Initialparameter loeschen
-
+  
   for (j=0;i<strlen(Line);i++) {
     Line[j]=Line[i] ;
     if ((Line[i]!=' ')&&(Line[i]!='\t')&&(Line[i]!='\r')&&(Line[i]!='\n')) j++ ;
@@ -583,11 +587,17 @@ void ReadTrippleVals (char *Line, int InitParas, struct Sequence *This)
   Line[j]='\0' ;
   
   // Werte einlesen
-
+  
   for (i=0;i<strlen(Line);i+=2) {
-    Val[2] = Line[i] ;
-    Val[3] = Line[i+1] ;
-    sscanf (Val,"%hhx",&(This->Data[i/2])) ;
+    if (Line[i]!='$') {
+      Val[2] = Line[i] ;
+      Val[3] = Line[i+1] ;
+      sscanf (Val,"%hhx",&(This->Data[i/2])) ;
+    } else {
+      Val[2] = '0' ;
+      Val[3] = Line[i+1] ;
+      sscanf (Val,"%hhx",&(This->Var[i/2])) ;
+    } ;
   } ;
   This->DataLen = i/2 ;
 }
@@ -638,8 +648,13 @@ void ReadSequence (char *Name, char *FileName)
   struct Sequence *This,*That ;
   char Line[NAMELEN] ;
   char Command[NAMELEN] ;
+  char UnitName[NAMELEN*4] ;
   char Val[10] ;
   int i,j ;
+
+#ifdef DEBUG
+  printf ("\n\nNew file: %s\n",FileName) ;
+#endif
 
   InFile = fopen(FileName,"r") ;
   if (InFile==NULL) {
@@ -691,59 +706,111 @@ void ReadSequence (char *Name, char *FileName)
     // Initialisiere Sequenz-Schritt
     This->Next = NULL ;
     This->CurrVal = 0 ;
-    for (i=0;i<MAX_WSLEDS*3;i++) This->Data[i]=0 ;
+    for (i=0;i<MAX_WSLEDS*3;i++) {
+      This->Data[i]=0 ;
+      This->Var[i]=10 ;
+    } ;
     
+#ifdef DEBUG
+    printf ("%s",Line) ;    
+#endif
+
     // Lese Zeilennummer, Kommando und Parameter ein
     sscanf (Line,"%d %s %d",&(This->LineNumber),Command,&(This->Para)) ;
+
     if ((strcmp(Command,"DIM")==0)||(strcmp(Command,"DIM_H")==0)||
-	(strcmp(Command,"SINGLE")==0)||(strcmp(Command,"SINGLE_H")==0)) {
-      if ((strcmp(Command,"SINGLE")==0)||(strcmp(Command,"SINGLE_H")==0)) {
+	(strcmp(Command,"SINGLE")==0)||(strcmp(Command,"SINGLE_H")==0)||
+	(strcmp(Command,"PDIM")==0)||(strcmp(Command,"PDIM_H")==0)||
+	(strcmp(Command,"PSINGLE")==0)||(strcmp(Command,"PSINGLE_H")==0)) {
+      if ((strcmp(Command,"SINGLE")==0)||(strcmp(Command,"SINGLE_H")==0)||
+	  (strcmp(Command,"PSINGLE")==0)||(strcmp(Command,"PSINGLE_H")==0)) {
+
+#ifdef DEBUG
+    	printf ("Single Command\n"); 
+#endif
+
 	This->Command=S_SINGLE ;
 	sscanf (Line,"%d %s %d %s",&(This->LineNumber),Command,&(This->Para),Val) ;
 	if (Val[0]=='$') {
-	  This->LED = -1 ;
+	  if (Val[1] == '$') {
+	    This->LED = -10 ;
+	  } else {
+	    This->LED = -(Val[1]-'0') ;
+	    if ((This->LED<-10)||(This->LED>0)) This->LED=0 ;
+	  } ;
 	} else {
 	  sscanf (Val,"%d",&(This->LED)) ;
 	} ;
 	j = 4 ;
       } else {
+#ifdef DEBUG
+    	printf ("Dim Command\n"); 
+#endif
 	This->Command=S_DIM ;
 	j = 3 ;
       } ;
       
       ReadTrippleVals (Line,j,This) ;
-
+      
       if (This->DataLen%3!=0) {
 	fprintf (stderr,"Data not in RGB format in Sequence %s, Line %d\n",Name,This->LineNumber) ;
       } ;
-
-      if ((strcmp(Command,"DIM_H")==0)||(strcmp(Command,"SINGLE_H")==0)) {
+      
+      if ((strcmp(Command,"DIM_H")==0)||(strcmp(Command,"SINGLE_H")==0)||
+	  (strcmp(Command,"PDIM_H")==0)||(strcmp(Command,"PSINGLE_H")==0)) {
 	// HSV-Werte nach RGB wandeln
 	for (i=0;i<This->DataLen;i+=3) 
 	  hsv_to_rgb (This->Data[i],This->Data[i+1],This->Data[i+2],&(This->Data[i]),&(This->Data[i+1]),&(This->Data[i+2])) ;
       } ;
-
+      
       // Entsprechendes Delay hinzufuegen
-      This->Next = malloc(sizeof(struct Sequence)) ;
-      That=This->Next ;
-      if (That==NULL) {
-	fprintf (stderr,"Out of memory\n") ;
-	exit(0) ;
+      if (Command[0]!='P') {
+#ifdef DEBUG
+    	printf ("Adding Delay\n"); 
+#endif
+	This->Next = malloc(sizeof(struct Sequence)) ;
+	That=This->Next ;
+	if (That==NULL) {
+	  fprintf (stderr,"Out of memory\n") ;
+	  exit(0) ;
+	} ;
+	That->Command=S_DELAY ;
+	That->LineNumber = This->LineNumber ;
+	That->Para = This->Para ;
+	This = That ;
       } ;
-      That->Command=S_DELAY ;
-      That->LineNumber = This->LineNumber ;
-      That->Para = This->Para ;
-      This = That ;
     } else if (strcmp(Command,"DELAY")==0) {
+#ifdef DEBUG
+    	printf ("Delay Command\n"); 
+#endif
       This->Command=S_DELAY ;
     } else if (strcmp(Command,"GOTO")==0) {
+#ifdef DEBUG
+    	printf ("Goto Command\n"); 
+#endif
       This->Command=S_GOTO ;
     } else if (strcmp(Command,"COUNT_UP")==0) {
+#ifdef DEBUG
+    	printf ("Count up Command\n"); 
+#endif
       This->Command=S_COUNTUP ;
     } else if (strcmp(Command,"COUNT_DOWN")==0) {
+#ifdef DEBUG
+    	printf ("Count down Command\n"); 
+#endif
       This->Command=S_COUNTDOWN ;
     } else if (strcmp(Command,"COUNT_END")==0) {
+#ifdef DEBUG
+    	printf ("Count end Command\n"); 
+#endif
       This->Command=S_COUNTEND ;
+    } else if (strcmp(Command,"SET_VAR")==0) {
+#ifdef DEBUG
+    	printf ("Set Var Command\n"); 
+#endif
+      This->Command=S_SETVAR ;
+      sscanf (Line,"%d %s %d %s",&(This->LineNumber),Command,&(This->Para),UnitName) ;
+      This->GlobalVar = FindNode(Haus->Child,UnitName) ;
     } ;
   } ;
 }

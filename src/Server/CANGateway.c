@@ -19,6 +19,10 @@
 #include <linux/can.h>
 #include <linux/can/raw.h>
 #include "RelUDP.h"
+#include "artnet.h"
+#include "packets.h"
+
+artnet_node node1, node2;
 
 char *CommandName[]={
   "Update request",
@@ -92,7 +96,7 @@ char *ToCommand(int Command)
     Type +=2 ;
   } ;
   if ((Command<1)||(Command>54)) {
-    sprintf (CommandNum,"Out of Range: %d(0x%02x)",Command,Command) ;
+    sprintf (CommandNum,"Out of Range: %d (0x%02x)",Command,Command) ;
     return (CommandNum) ;
   } ;
   if (Type==0) {
@@ -131,6 +135,7 @@ int RecSockFD;
 int SendSockFD;
 int Can0SockFD;
 int Can1SockFD;
+int artnetFD;
 
 // Struct for a single CAN-Message, including masking, receiving interface and pointer to modification methods
 
@@ -158,12 +163,58 @@ struct CANCommand {
   struct CANCommand *Exchange ;
 } ;
 
+struct CANToDMX {
+  char Line ;
+  USHORT Add ;
+  char Start ;
+  USHORT Map[6] ;
+} ;
+
+struct CANToDMX CANBuffer[4][ARTNET_DMX_LENGTH] ;
+
 struct CANCommand *FilterList ;
 
 char RouteIF0[255] ;
 char RouteIF1[255] ;
 
 // Read a CANCommand (from, to, length and data) including mask from configuration file
+
+void ReadDMXTable (FILE *Conf, int Univ)
+{
+  char Line[255] ;
+  char *Str ;
+  int i,j ;
+  int L1,A1,S1,S2 ;
+ 
+  for (i=0;i<ARTNET_DMX_LENGTH/2;i++) CANBuffer[Univ][i].High=CANBuffer[Univ][i].Low=ARTNET_DMX_LENGTH ;
+
+  i = 0 ;
+
+  while (TRUE) {
+    while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!='#') break; //Read next line 
+    if (Str==NULL) return ;
+    if (strstr(Line,"End")) return ;
+    if (i<ARTNET_DMX_LENGTH) { // Max 512 per Universe
+      sscanf (Line,"%d: %d %d %d",&j,&L1,&A1,&S2) ;
+      S1 = S2-S2%6 ;
+      for (j=0;j<ARTNET_DMX_LENGTH;j++) 
+	if ((CANBuffer[Univ][j].Line==L1)&&(CANBuffer[Univ][j].Add==A1)&&(CANBuffer[Univ][j].Start==S1)) break ;
+      if (j==ARTNET_DMX_LENGTH) {
+	// Not yet set, find next free
+	for (j=0;j<ARTNET_DMX_LENGTH;j++) if (CANBuffer[Univ][j].Line==0) break ;
+      } ;
+      if (j<ARTNET_DMX_LENGTH) {
+	CANBuffer[Univ][j].Line = L1 ;
+	CANBuffer[Univ][j].Add = A1 ;
+	CANBuffer[Univ][j].Start = S1 ;
+	CANBuffer[Univ][j].Map[S2%6] = i ;
+      } ;
+      i++ ;
+    } ;
+  } ;
+}
+      
+
 
 void ReadCommandBlock(FILE *Conf,struct CANCommand *Command)
 {
@@ -365,6 +416,12 @@ void ReadConfig(void)
 
     if (strstr(Line,"Exchange")) {
       ReadFilter(Conf) ;
+    } ;
+    if (strstr(Line,"DMX Table")) {
+      for (i=0;(Line[i]!='\0')&&(Line[i]!=' ');i++) ;
+      i++ ;
+      sscanf (&(Line[i]),"%d",&j) ;
+      if ((j>=0)&&(j<4)) ReadDMXTable(Conf,j) ;
     } ;
   } ;
 
@@ -787,6 +844,46 @@ void RewriteCommand (struct CANCommand *Command, struct CANCommand *Exchange, st
   } ;
 }
 
+int8_t buff[ARTNET_DMX_LENGTH +1];
+
+int length;
+
+int dmx_callback(artnet_node n, int port, void *d) 
+{
+  uint8_t *data;
+  struct can_frame frame ;
+  ULONG CANID ;
+  int numbytes ;
+  int i,j ;
+  
+  data = artnet_read_dmx(n, port, &length);
+  memset(buff, 0x00, ARTNET_DMX_LENGTH+1);
+  memcpy(buff, data, length);
+
+  // Send out CAN-Data
+  for (i=0;i<ARTNET_DMX_LENGTH/2) {
+    if (CANBuffer[port][i].Line==0) break ; // Finished
+    CANID = BuildCANId(0,0,0,253,CANBuffer[port][i].Line,CANBuffer[port][i].Add,0) ;
+    frame.can_id = CANID|CAN_EFF_FLAG ;
+    frame.can_dlc = 8 ;
+    frame.data[0] = 41; // LOAD_TWO_LED ;
+    frame.data[1] = CANBuffer[port][i].Start/3 ;
+    for (j=0;j<6;j++) frame.data[i+2] = buff[CANBuffer[port][i].Map[j]] ;
+    
+    if (RouteIF0[(int)CANBuffer[port][i].Line]!=0) {
+      if ((numbytes = write(Can0SockFD, &frame, sizeof(struct can_frame))) < 0) {
+	perror("CANGateway: CAN raw socket write");
+      } ;
+    } ;
+    if (RouteIF1[(int)CANBuffer[port][i].Line]!=0) {
+      if ((numbytes = write(Can1SockFD, &frame, sizeof(struct can_frame))) < 0) {
+	perror("CANGateway: CAN raw socket write");
+      } ;
+    } ;
+  } ;
+  return 0;
+}
+
 // main routine
 
 int main (int argc, char*argv[])
@@ -824,6 +921,19 @@ int main (int argc, char*argv[])
   printf ("\n") ;
   
   InitNetwork () ;
+
+  node1 = artnet_new(NULL, Verbose);
+  artnet_set_short_name(node1, "Artnet -> CAN (1)");
+  artnet_set_long_name(node1, "ArtNet to CAN convertor");
+  artnet_set_node_type(node1, ARTNET_NODE);
+  artnet_set_dmx_handler(node1, dmx_callback, NULL);
+  for(i=0; i<4; i++) {
+    artnet_set_port_addr(node1, i, ARTNET_OUTPUT_PORT, i);
+    artnet_set_subnet_addr(node1, 0);
+  } ;
+  artnet_start(node1);
+  artnetFD = artnet_get_sd(node1);
+
   
   // initialisation
   NewCommand.Next = 0 ;
@@ -837,6 +947,7 @@ int main (int argc, char*argv[])
     FD_SET(RecSockFD,&rdfs) ;
     FD_SET(Can0SockFD,&rdfs) ;
     FD_SET(Can1SockFD,&rdfs) ;
+    FD_SET(artnetFD,&rdfs) ;
 
     tv.tv_sec = 0 ;
     tv.tv_usec = 10000 ; // will be deleted by select!
@@ -853,6 +964,8 @@ int main (int argc, char*argv[])
       continue ; // was timeout only
     } ;
     
+    Command.Interface = 0 ; // Delet old communication
+
     if (FD_ISSET(RecSockFD,&rdfs)) {
       ReceiveFromUDP (&Command) ;
       Command.Interface = CIF_NET ;
@@ -863,20 +976,24 @@ int main (int argc, char*argv[])
     } else if (FD_ISSET(Can1SockFD,&rdfs)) {
       ReceiveFromCAN (Can1SockFD,&Command) ;
       Command.Interface = CIF_CAN0 ;
-    } ; 
+    } else if (FD_ISSET(Can1SockFD,&rdfs)) {
+      artnet_read(node1,0); 
+    } ;
 
     usleep(2000) ;
 
-    // Look-up if received Element should be exchanged with other element(s)
-    Exchange = CommandMatch(&Command) ;
-    if (Exchange!=NULL) {
-      for (Exchange=Exchange->Exchange;Exchange!=NULL;Exchange=Exchange->Next) {
-	RewriteCommand(&Command,Exchange,&NewCommand) ;
-	RouteCommand(&NewCommand) ;
+    if (Command.Interface!=0) {
+      // Look-up if received Element should be exchanged with other element(s)
+      Exchange = CommandMatch(&Command) ;
+      if (Exchange!=NULL) {
+	for (Exchange=Exchange->Exchange;Exchange!=NULL;Exchange=Exchange->Next) {
+	  RewriteCommand(&Command,Exchange,&NewCommand) ;
+	  RouteCommand(&NewCommand) ;
+	} ;
+      } else {
+	// no exchange element
+	RouteCommand(&Command) ;
       } ;
-    } else {
-      // no exchange element
-      RouteCommand(&Command) ;
     } ;
   } ;
   
