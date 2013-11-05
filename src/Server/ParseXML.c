@@ -15,7 +15,7 @@
 
 #define BUFF_SIZE 10240
 
-#define DEBUG 1
+//#define DEBUG 1
 
 struct Node *Haus=NULL ;
 struct Node *Current=NULL ;
