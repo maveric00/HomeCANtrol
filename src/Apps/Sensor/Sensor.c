@@ -308,7 +308,7 @@ ISR( TIM0_OVF_vect )
 
   WSCounter++ ;
   if (WSCounter>1) {
-    // Nur alle 20 ms updaten (50 Hz Update-Rate reicht); maximale Fading-Zeit liegt bei 25,5 Sekunden mit 0,1 Sekunde Auflösung
+    // Nur alle 20 ms updaten (50 Hz Update-Rate reicht); maximale Fading-Zeit liegt bei 25,5 Sekunden mit 0,1 Sekunde Aufloesung
     WSCounter = 0 ;
     // Berechnen des Sollwerts und Ausgeben desselben
     for (i=0;i<NumLED;i++) if (TimerLED[i]>0) break ;
@@ -316,7 +316,7 @@ ISR( TIM0_OVF_vect )
     if (i<NumLED) {
       for (i=0;i<NumLED*3;i++) {
 	j = i/3 ;
-	if (TimerLED[j]>0) TimerLED[j]-- ;
+	if ((i%3==0)&&(TimerLED[j]>0)) TimerLED[j]-- ;
 	WSByte = (uint8_t)(((uint16_t)START_WS[i])+(((int16_t)((int16_t)SOLL_WS[i]-(int16_t)START_WS[i]))*(DurationLED[j]-TimerLED[j])/DurationLED[j])) ;
 	ws2801_writeByte(WSByte) ;
 	if (TimerLED[j]==0) {
@@ -653,7 +653,7 @@ int main(void)
   	case I_BWM: // Nachstellbares Monoflop als Bewegungsmelder
 	case I_BWM2:
 	  r=!get_key_stat(1<<i) ;
-	  if (Type[i]==I_BWM2) r=r?FALSE:TRUE ;
+	  if (Type[i]==I_BWM2) r=!r ;
 	  if (r) {
 	    if (Timers[i]==0) {
 	      SendPinMessage(i,0,0) ;
