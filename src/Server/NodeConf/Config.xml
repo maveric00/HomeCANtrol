@@ -404,6 +404,10 @@
       <Variable name="BW1" wert="0"/>
       <Variable name="BW2" wert="0"/>
       <Variable name="BW3" wert="0"/>
+      <Variable name="HueAn" wert="180"/>
+      <Variable name="HueAus" wert="210"/>
+      <Variable name="SatAn" wert="200"/>
+      <Variable name="SatAus" wert="200"/>
       <Makro name="BX1An">
 	<Adresse linie="0" knoten="200" port="47"/>
 	<Setze objekt="Erdgeschoss/Flur/BW1" wert="1"/>

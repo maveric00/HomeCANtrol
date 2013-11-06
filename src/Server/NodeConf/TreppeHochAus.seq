@@ -15,7 +15,9 @@
 %                           COUNT_END INCREMENT: Beendet die Schleife
 %                           DELAY TIME: Wartet Time(*0,1 Sekunden)
 %	
+5 SET_VAR 1 Erdgeschoss/Flur/HueAus
+5 SET_VAR 2 Erdgeschoss/Flur/SatAus
 10 COUNT_DOWN 15
-20 PSINGLE_H 10 $$ D0F020
+20 PSINGLE_H 10 $$ $1$220
 30 DELAY 3
 100 COUNT_END 1

@@ -648,6 +648,7 @@ void ReadSequence (char *Name, char *FileName)
   struct SeqList *List ;
   struct Sequence *This,*That ;
   char Line[NAMELEN] ;
+  char Line2[NAMELEN] ;
   char Command[NAMELEN] ;
   char UnitName[NAMELEN*4] ;
   char Val[10] ;
@@ -683,13 +684,14 @@ void ReadSequence (char *Name, char *FileName)
   strcpy (List->Name,Name) ;
   This = NULL ;
 
-  while (fgets(Line,NAMELEN,InFile)!=NULL) {
+  while (fgets(Line2,NAMELEN,InFile)!=NULL) {
     // Kommentarzeilen ausblenden
-    if (Line[0]=='%') continue ;
+    if (Line2[0]=='%') continue ;
 
     // Ganze Zeile zu Grossbuchstaben wandeln
 
-    for (i=0;i<strlen(Line);i++) Line[i]=toupper(Line[i]); 
+    for (i=0;i<strlen(Line2);i++) Line[i]=toupper(Line2[i]); 
+    Line[i]='\0' ;
 
     // Neuen Sequenzschritt allokieren
     if (This==NULL) {
@@ -730,7 +732,12 @@ void ReadSequence (char *Name, char *FileName)
     	printf ("Single Command\n"); 
 #endif
 
-	This->Command=S_SINGLE ;
+	if ((strcmp(Command,"SINGLE")==0)||(strcmp(Command,"PSINGLE")==0)) {
+	  This->Command=S_SINGLE ;
+	} else {
+	  This->Command=S_SINGLEH ;
+	} ;
+
 	sscanf (Line,"%d %s %d %s",&(This->LineNumber),Command,&(This->Para),Val) ;
 	if (Val[0]=='$') {
 	  if (Val[1] == '$') {
@@ -747,21 +754,18 @@ void ReadSequence (char *Name, char *FileName)
 #ifdef DEBUG
     	printf ("Dim Command\n"); 
 #endif
-	This->Command=S_DIM ;
+	if ((strcmp(Command,"DIM")==0)||(strcmp(Command,"PDIM")==0)) {
+	  This->Command=S_DIM ;
+	} else {
+	  This->Command=S_DIMH ;
+	} ;
 	j = 3 ;
       } ;
       
       ReadTrippleVals (Line,j,This) ;
-      
+
       if (This->DataLen%3!=0) {
 	fprintf (stderr,"Data not in RGB format in Sequence %s, Line %d\n",Name,This->LineNumber) ;
-      } ;
-      
-      if ((strcmp(Command,"DIM_H")==0)||(strcmp(Command,"SINGLE_H")==0)||
-	  (strcmp(Command,"PDIM_H")==0)||(strcmp(Command,"PSINGLE_H")==0)) {
-	// HSV-Werte nach RGB wandeln
-	for (i=0;i<This->DataLen;i+=3) 
-	  hsv_to_rgb (This->Data[i],This->Data[i+1],This->Data[i+2],&(This->Data[i]),&(This->Data[i+1]),&(This->Data[i+2])) ;
       } ;
       
       // Entsprechendes Delay hinzufuegen
@@ -810,8 +814,9 @@ void ReadSequence (char *Name, char *FileName)
     	printf ("Set Var Command\n"); 
 #endif
       This->Command=S_SETVAR ;
-      sscanf (Line,"%d %s %d %s",&(This->LineNumber),Command,&(This->Para),UnitName) ;
+      sscanf (Line2,"%d %s %d %s",&(This->LineNumber),Command,&(This->Para),UnitName) ;
       This->GlobalVar = FindNode(Haus->Child,UnitName) ;
+      if (This->GlobalVar==NULL) printf ("Unknown variable: %s\n",UnitName) ;
     } ;
   } ;
 }

@@ -244,6 +244,7 @@ void StepSeq (void)
   int i,j,k,LEDNum ;
   ULONG CANID ;
   unsigned char Data[8]; 
+  unsigned char Vals[MAX_WSLEDS*3] ;
   char Len ;
   int Linie,Knoten,Port ;  
   struct Sequence *This ;
@@ -299,7 +300,9 @@ void StepSeq (void)
       ActiveSeq[i]->Current = This ;
       break ;
     case S_SETVAR:
-      ActiveSeq[i]->Vars[ActiveSeq[i]->Current->Para] = ActiveSeq[i]->Current->GlobalVar->Value ;
+      if ((ActiveSeq[i]->Current->Para<10)&&(ActiveSeq[i]->Current->GlobalVar!=NULL)) {
+	ActiveSeq[i]->Vars[ActiveSeq[i]->Current->Para] = ActiveSeq[i]->Current->GlobalVar->Value ;
+      } ;
       ActiveSeq[i]->Current = ActiveSeq[i]->Current->Next ;
       break ;
     case S_DELAY:
@@ -314,6 +317,7 @@ void StepSeq (void)
       } ;
       break ;
     case S_DIM:
+    case S_DIMH:
       // Output Elements
       if (GetNodeAdress(ActiveSeq[i]->Action->Data.Aktion.Unit,&Linie,&Knoten,&Port)==0) {
 	CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
@@ -321,11 +325,21 @@ void StepSeq (void)
 	ActiveSeq[i]->DataLen = Current->DataLen ;
 	for (j=0;j<Current->DataLen;j++) 
 	  if (Current->Var[j]<10) Current->Data[j]=ActiveSeq[i]->Vars[Current->Var[j]] ;
+
+      // HSV-Werte nach RGB wandeln
+	for (k=0;k<Current->DataLen;k+=3) {
+	  Vals[k]=Current->Data[k] ;
+	  Vals[k+1]=Current->Data[k+1] ;
+	  Vals[k+2]=Current->Data[k+2] ;
+	  if (Current->Command==S_DIMH) 
+	    hsv_to_rgb (Vals[k],Vals[k+1],Vals[k+2],&(Vals[k]),&(Vals[k+1]),&(Vals[k+2])) ;
+	} ;
+	
 	for (j=0;j<Current->DataLen;j+=3) {
 	  Data[1] = j/3 ;
-	  Data[2] = ActiveSeq[i]->Data[j] = Current->Data[j]; 
-	  Data[3] = ActiveSeq[i]->Data[j+1] = Current->Data[j+1]; 
-	  Data[4] = ActiveSeq[i]->Data[j+2] = Current->Data[j+2]; 
+	  Data[2] = ActiveSeq[i]->Data[j] = Vals[j]; 
+	  Data[3] = ActiveSeq[i]->Data[j+1] = Vals[j+1]; 
+	  Data[4] = ActiveSeq[i]->Data[j+2] = Vals[j+2]; 
 	  Data[5] = Current->Para ;
 	  Len=6 ;
 	  SendCANMessage(CANID,Len,Data) ;
@@ -334,6 +348,7 @@ void StepSeq (void)
       ActiveSeq[i]->Current = ActiveSeq[i]->Current->Next ;
       break ;
     case S_SINGLE:
+    case S_SINGLEH:
       // Update Data
       if (Current->LED<0) {
 	if (Current->LED==-10) {
@@ -348,21 +363,34 @@ void StepSeq (void)
       for (j=0;j<Current->DataLen;j++) 
 	if (Current->Var[j]<10) Current->Data[j]=ActiveSeq[i]->Vars[Current->Var[j]] ;
       
+
+      // HSV-Werte nach RGB wandeln
+
+      for (k=0;k<Current->DataLen;k+=3) {
+	Vals[k]=Current->Data[k] ;
+	Vals[k+1]=Current->Data[k+1] ;
+	Vals[k+2]=Current->Data[k+2] ;
+	if (Current->Command==S_SINGLEH) 
+	  hsv_to_rgb (Vals[k],Vals[k+1],Vals[k+2],&(Vals[k]),&(Vals[k+1]),&(Vals[k+2])) ;
+      } ;
+
+
       for (k=0;(k<Current->DataLen)&&(j<MAX_WSLEDS*3);k++,j++) {
 	ActiveSeq[i]->Data[j] = Current->Data[k] ;
       } ;
 
       if (j>ActiveSeq[i]->DataLen) ActiveSeq[i]->DataLen = j ;
 
+      
       // Output Elements
       if (GetNodeAdress(ActiveSeq[i]->Action->Data.Aktion.Unit,&Linie,&Knoten,&Port)==0) {
 	CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
 	Data[0] = LOAD_LED ;
 	for (j=0;j<Current->DataLen;j+=3) {
 	  Data[1] = LEDNum/3+j/3 ;
-	  Data[2] = Current->Data[j]; 
-	  Data[3] = Current->Data[j+1]; 
-	  Data[4] = Current->Data[j+2]; 
+	  Data[2] = Vals[j]; 
+	  Data[3] = Vals[j+1]; 
+	  Data[4] = Vals[j+2]; 
 	  Data[5] = Current->Para ;
 	  Len=6 ;
 	  SendCANMessage(CANID,Len,Data) ;

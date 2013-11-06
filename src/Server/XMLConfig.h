@@ -18,7 +18,9 @@ typedef enum {
   S_COUNTUP = 5,
   S_COUNTDOWN = 6,
   S_COUNTEND = 7,
-  S_SETVAR = 8
+  S_SETVAR = 8,
+  S_SINGLEH = 9,
+  S_DIMH = 10
 } tSeqCom ;
 
 
