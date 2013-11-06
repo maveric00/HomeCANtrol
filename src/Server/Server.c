@@ -819,16 +819,19 @@ static void *Handle_Webserver(enum mg_event event, struct mg_connection *conn)
 {
   const struct mg_request_info *ri = mg_get_request_info(conn); 
   char data[NAMELEN*4] ;
+  char pos[NAMELEN*4] ;
   char Com[NAMELEN*4] ;
   char Obj[NAMELEN*4] ;
   struct Node *This ;
   int Line,Add,Port ;
+  int XPos,YPos ;
   int i,j ;
-  
+
   if (event==MG_NEW_REQUEST) {
     printf ("%s\n",ri->uri) ;
     if (!strcmp(ri->uri, "/Action")) {      
       // User has submitted a form, show submitted data and a variable value 
+      printf ("%s\n",ri->query_string) ;
       if (ri->query_string==NULL) return (NULL) ;
       
       for (i=0,j=0;(ri->query_string[i]!='\0')&&(ri->query_string[i]!='.')&&(j<NAMELEN*4-1);i++,j++) {
@@ -843,10 +846,29 @@ static void *Handle_Webserver(enum mg_event event, struct mg_connection *conn)
 	  data[j]=ri->query_string[i] ;
 	} ;
       }
+
       data[j] = '\0' ;
       Obj[0] = '\0' ;
       Com[0] = '\0' ;
+
+      printf ("Rest: %s\n",&(ri->query_string[i])); 
+
+      if ((ri->query_string[i]!='\0')&&(ri->query_string[i]=='.')&&(ri->query_string[i+1]=='x')) {
+	for (i+=3,j=0;(ri->query_string[i]!='\0')&&(ri->query_string[i]!='&')&&(j<NAMELEN*4-1);i++,j++) pos[j]=ri->query_string[i] ;
+	pos[j]='\0' ;
+	printf ("Pos: %s\n",pos) ;
+	sscanf (pos,"%d",&XPos) ;
+	for (;(ri->query_string[i]!='\0')&&(ri->query_string[i]!='=')&&(j<NAMELEN*4-1);i++);
+	if (ri->query_string[i]!='\0') {
+	  for (i++,j=0;(ri->query_string[i]!='\0')&&(ri->query_string[i]!='&')&&(j<NAMELEN*4-1);i++,j++) pos[j]=ri->query_string[i] ;
+	  pos[j]='\0' ;
+	  printf ("Pos: %s\n",pos) ;
+	  sscanf (pos,"%d",&YPos) ;
+	}; 
+      } ; 
+      
       printf ("Data: %s\n",data) ;
+      printf ("Position: %d %d\n",XPos,YPos) ;
       
       sscanf(data,"%s %s",Com,Obj) ;
       
