@@ -6,6 +6,7 @@
 #include <string.h>
 #include <locale.h>
 #include <ctype.h>
+#include <math.h>
 #include "libwebsocket/libwebsockets.h"
 #include "ConfigNodes.h"
 #include "XMLConfig.h"
@@ -276,7 +277,7 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       break ;
     case N_TIMER:
       if ((strcmp(attr[i],"zeit")==0)||(strcmp(attr[i],"time")==0)) {
-	strncpy(Current->Data.Wert.UnitName,attr[i+1],NAMELEN*4) ;
+	strncpy(Current->Data.Wert.Wert,attr[i+1],NAMELEN*2) ;
       } ;
       break ;
     case N_CALL:
@@ -293,7 +294,7 @@ void XMLCALL start(void *data, const char *el, const char **attr)
 	strncpy(Current->Data.Wert.UnitName,attr[i+1],NAMELEN*4) ;
       } ;
       if ((strcmp(attr[i],"wert")==0)||(strcmp(attr[i],"value")==0)) {
-	sscanf(attr[i+1],"%d",&(Current->Data.Wert.Wert)) ;
+	strncpy(Current->Data.Wert.Wert,attr[i+1],NAMELEN*2) ;
       } ;
       if ((strcmp(attr[i],"vergleich")==0)||(strcmp(attr[i],"comparison")==0)) {
 	switch (attr[i+1][0]) {
@@ -815,4 +816,283 @@ void ReadSequence (char *Name, char *FileName)
   } ;
 }
 
+#define LEFT_ASSOC 0
+#define RIGHT_ASSOC 1
+
+struct Operator {
+  char Op ;
+  char Prec ;
+  char Assoc ;
+} ;
+
+struct Operator Operators[] = {
+  {'=',0,RIGHT_ASSOC},
+  {'>',0,RIGHT_ASSOC},
+  {'<',0,RIGHT_ASSOC},
+  {'+',5,LEFT_ASSOC},
+  {'-',5,LEFT_ASSOC},
+  {'|',5,LEFT_ASSOC},
+  {'&',5,LEFT_ASSOC},
+  {'*',10,LEFT_ASSOC},
+  {'/',10,LEFT_ASSOC},
+  {'%',10,LEFT_ASSOC},
+  {'^',15,RIGHT_ASSOC},
+  {'\0',0,LEFT_ASSOC}
+} ;
+
+const char *CalcFunctions[]={
+  "sin",
+  "cos",
+  "tan",
+  "sqrt",
+  "sqr",
+  ""
+} ;
+
+int IsOperator (char* Token)
+{
+  int i ;
+  for (i=0;Operators[i].Op!='\0';i++) if (Operators[i].Op==Token[0]) break ;
+ 
+  if (Operators[i].Op=='\0') return (-1) ;
+
+  if ((Token[0]=='-')&&isdigit(Token[1])) return (-1) ; // Negative Zahl
+
+  return (i) ;
+}
+
+int IsAssociative (char *Expression, char *Token, char Type)
+{
+  int i ;
   
+  i = IsOperator (Token) ;
+  if (i==-1) {
+    printf ("Invalid Token %s in Expression %s\n",Token,Expression) ;
+    return (-1) ;
+  }
+  return (Operators[i].Assoc==Type) ;
+}
+
+int ComparePrec (char *Expression, char *Token1, char *Token2) 
+{
+  int i,j ;
+  if ((i=IsOperator(Token1))==-1) {
+    printf ("Invalid Token %s in Expression %s\n",Token1,Expression) ;
+    return (-1) ;
+  } ;
+  if ((j=IsOperator(Token2))==-1) {
+    printf ("Invalid Token %s in Expression %s\n",Token2,Expression) ;
+    return (-1) ;
+  } ;
+  return (Operators[i].Prec-Operators[j].Prec) ;
+} 
+
+char CalcStack [NAMELEN*8] ;
+char *CalcStackPointer ;
+char OutStack [NAMELEN*8] ;
+char *OutStackPointer ;
+
+int CalcPush (char *Exp,char *CS,char **CSP)
+{
+  strcpy (*CSP,Exp) ;
+  (*CSP) += strlen(Exp)+1 ;
+} 
+
+char *CalcPop (char *CS, char **CSP)
+{
+  if ((*CSP)==CS) return (CS) ;
+  (*CSP)-- ;
+  for (;(*CSP)[-1]!='\0'&&((*CSP)!=CS);(*CSP)--) ;
+  return (*CSP) ;
+}
+
+int CalcStackEmpty(char *CS, char **CSP)
+{
+  return (*CSP==CS) ;
+}
+
+char *CalcPeek (char *CS, char **CSP)
+{
+  char *a ;
+  if ((*CSP)==CS) return (CS) ;
+  for (a=(*CSP)-1;a[-1]!='\0'&&(a!=CS);a--) ;
+  return (a) ;
+}
+
+int TokenPointer ;
+
+int iswhitespace(char a)
+{
+  return ((a=='\n')||(a=='\t')||(a==' ')||(a=='r')) ;
+} 
+
+int GetNextToken(char *Expression, char *Token)
+{
+  int i,j ;
+  /* Leerzeichen ueberspringen */
+  for (;iswhitespace(Expression[TokenPointer]);TokenPointer++) ;
+
+  if (Expression[TokenPointer]=='\0') return (-1) ;
+
+  i = IsOperator(&(Expression[TokenPointer])) ;
+  if (i<0) {
+    if (Expression[TokenPointer]=='(') {
+      Token[0] = Expression[TokenPointer] ;
+      Token[1] = 0 ;
+      i=20 ;
+    } else if (Expression[TokenPointer]==')') {
+      Token[0] = Expression[TokenPointer] ;
+      Token[1] = 0 ;
+      i=21 ;
+    } else {
+      for (j=0;(!iswhitespace(Expression[TokenPointer])&&(IsOperator(&(Expression[TokenPointer]))<0)&&
+		(Expression[TokenPointer]!='(')&&(Expression[TokenPointer]!=')')&&(Expression[TokenPointer]!='\0'));TokenPointer++,j++) Token[j]=Expression[TokenPointer] ;
+      Token[j]='\0' ;
+      if (Expression[TokenPointer]=='(') {
+	i=23 ;
+      } else {
+	TokenPointer-- ;
+	i=22 ;
+      } ;
+    } ;
+  } else {
+    Token[0] = Expression[TokenPointer] ;
+    Token[1] = 0 ;
+  } ;
+  TokenPointer++ ; 
+  return (i);
+}
+
+int IsFunction (char *Token)
+{
+  int i;
+  
+  for (i=0;strlen(CalcFunctions[i])>0;i++) if (strcmp(Token,CalcFunctions[i])==0) break ;
+  if (strlen(CalcFunctions[i])==0) return FALSE ;
+  return TRUE ;
+}
+
+int CalcValue (char *Expression)
+{
+  int i ;
+  char Token[NAMELEN]; 
+  char *NextItem ;
+  int Stack[NAMELEN] ;
+  int SP ;
+  char Tok ;
+  struct Node *Var ;
+  
+  for (i=0;i<NAMELEN*8;i++) CalcStack[i]=0 ;
+  CalcStackPointer = CalcStack ;
+  for (i=0;i<NAMELEN*8;i++) OutStack[i]=0 ;
+  OutStackPointer = OutStack ;
+  TokenPointer = 0 ;
+
+  for (;(Tok=GetNextToken(Expression,Token))>=0;) {
+    if (Tok<20) {
+      while (!CalcStackEmpty(CalcStack,&CalcStackPointer) && 
+	     ((IsOperator(CalcPeek(CalcStack,&CalcStackPointer))>=0))) {
+	if (((IsAssociative(Expression,Token,LEFT_ASSOC)&&ComparePrec(Expression,Token,CalcPeek(CalcStack,&CalcStackPointer))<=0)||
+	     (IsAssociative(Expression,Token,RIGHT_ASSOC)&&ComparePrec(Expression,Token,CalcPeek(CalcStack,&CalcStackPointer))<0))) {
+	  CalcPush(CalcPop(CalcStack,&CalcStackPointer),OutStack,&OutStackPointer) ;
+	  continue ;
+	} ;
+	break ;
+      } ;
+      CalcPush(Token,CalcStack,&CalcStackPointer) ;
+    } else if (Tok==20) {
+      CalcPush(Token,CalcStack,&CalcStackPointer) ;
+    } else if (Tok==21) {
+      while (!CalcStackEmpty(CalcStack,&CalcStackPointer)&&strcmp(CalcPeek(CalcStack,&CalcStackPointer),"(")) {
+	CalcPush(CalcPop(CalcStack,&CalcStackPointer),OutStack,&OutStackPointer) ;
+      } ;
+      CalcPop(CalcStack,&CalcStackPointer) ;
+      if(IsFunction(CalcPeek(CalcStack,&CalcStackPointer))) {
+	CalcPush(CalcPop(CalcStack,&CalcStackPointer),OutStack,&OutStackPointer) ;
+      } ;
+    } else if (Tok==23) {
+      CalcPush(Token,CalcStack,&CalcStackPointer) ;
+      CalcPush("(",CalcStack,&CalcStackPointer) ;
+    } else {
+      CalcPush(Token,OutStack,&OutStackPointer) ;
+    } 
+  } ;
+  while (!CalcStackEmpty(CalcStack,&CalcStackPointer)) CalcPush(CalcPop(CalcStack,&CalcStackPointer),OutStack,&OutStackPointer) ;
+  
+  SP=-1 ;
+
+  for (NextItem=OutStack;NextItem!=OutStackPointer;) {
+    for (i=0;(*NextItem)!='\0';NextItem++,i++) Token[i]=(*NextItem) ;
+    Token[i]='\0' ; NextItem++ ;
+    
+    if (IsOperator(Token)>=0) {
+      switch (Token[0]) {
+      case '=':
+	Stack[SP-1]=(Stack[SP-1]==Stack[SP]) ;
+	break ;
+      case '>':
+	Stack[SP-1]=(Stack[SP-1]>Stack[SP]) ;
+	break ;
+      case '<':
+	Stack[SP-1]=(Stack[SP-1]<Stack[SP]) ;
+	break ;
+      case '+':
+	Stack[SP-1]=(Stack[SP-1]+Stack[SP]) ;
+	break ;
+      case '-':
+	Stack[SP-1]=(Stack[SP-1]-Stack[SP]) ;
+	break ;
+      case '|':
+	Stack[SP-1]=(Stack[SP-1]||Stack[SP]) ;
+	break ;
+      case '&':
+	Stack[SP-1]=(Stack[SP-1]&&Stack[SP]) ;
+	break ;
+      case '*':
+	Stack[SP-1]=(Stack[SP-1]*Stack[SP]) ;
+	break ;
+      case '/':
+	Stack[SP-1]=(Stack[SP-1]/Stack[SP]) ;
+	break ;
+      case '%':
+	Stack[SP-1]=(Stack[SP-1]%Stack[SP]) ;
+	break ;
+      case '^':
+	break ;
+      default:
+	printf ("Unknown Opcode") ;
+	break ;
+      }; 
+      SP-- ;
+    } else if (IsFunction(Token)) {
+      if (strcmp(Token,"sin")==0) {
+	Stack[SP]=(int)(1000.0*sin(((double)Stack[SP])*3.1415/180)+0.5) ;
+      } else if (strcmp(Token,"cos")==0) {
+	Stack[SP]=(int)(1000.0*cos(((double)Stack[SP])*3.1415/180)+0.5) ;
+      } else if (strcmp(Token,"tan")==0) {
+	Stack[SP]=(int)(1000.0*tan(((double)Stack[SP])*3.1415/180)+0.5) ;
+      } else if (strcmp(Token,"sqrt")==0) {
+	Stack[SP]=(int)sqrt((double)Stack[SP]) ;
+      } else if (strcmp(Token,"sqr")==0) {
+	Stack[SP]=Stack[SP]*Stack[SP] ;
+      } else {
+	printf ("Unknown function\n") ;
+      } ;
+    } else if (isalpha(Token[0])) {
+      // Variable einlesen
+      Var = FindNode(Haus->Child,Token) ;
+      if (FindNode!=NULL) {
+	SP++ ;
+	Stack[SP] = Var->Value ;
+      } else {
+	printf ("Unknown variable: %s\n",Token) ;
+	SP++ ;
+	Stack[SP]=0 ;
+      } ;
+    } else {
+      SP++ ;
+      sscanf (Token,"%d",&Stack[SP]) ;
+    } ;
+  }
+  return (Stack[0]) ;
+}  

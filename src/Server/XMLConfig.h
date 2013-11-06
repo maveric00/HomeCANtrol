@@ -122,7 +122,7 @@ struct Aktion {
 
 struct Werte {
   char UnitName[NAMELEN*4] ;
-  int Wert ;
+  char Wert[NAMELEN*2] ;
   int Vergleich ;
 } ;
 
@@ -255,6 +255,8 @@ struct ListItem *CreateItem (struct ListItem* Head) ;
 // ParseXML.c-Definitionen
 int ReadConfig(void) ;
 void ReadSequence (char *Name, char *FileName) ;
+void hsv_to_rgb (unsigned char h, unsigned char s, unsigned char v,unsigned char *r, unsigned char *g, unsigned char *b);
+int CalcValue (char *Expression);
 
 // Server.c-Definitionen
 void ExecuteMakro (struct Node *Makro);

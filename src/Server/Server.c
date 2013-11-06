@@ -131,7 +131,7 @@ void StepMakros (void)
 	  } else if (ActiveMacros[i].DelayType==W_VALUE) {
 	    That = ActiveMacros[i].Delay.WaitNode ;
 	    Caller = FindNode(Haus->Child,That->Data.Wert.UnitName) ;
-	    if ((Caller==NULL)||(MakroVergleich(Caller->Value,That->Data.Wert.Wert,That->Data.Wert.Vergleich))) {
+	    if ((Caller==NULL)||(MakroVergleich(Caller->Value,CalcValue(That->Data.Wert.Wert),That->Data.Wert.Vergleich))) {
 	      ActiveMacros[i].DelayType=0 ;
 	    }; 
 	  };
@@ -151,8 +151,8 @@ void StepMakros (void)
 	    ActiveMacros[i].DelayType=W_TIME ;
 	    time (&tim) ;
 	    LTime = localtime(&tim); 
-	    if(strptime(That->Data.Wert.UnitName,"%d.%n%b%n%Y%n%H:%M:%S",&tm)!=NULL) {
-	    } else if(strptime(That->Data.Wert.UnitName,"%A%n%H:%M:%S",&tm)!=NULL) {
+	    if(strptime(That->Data.Wert.Wert,"%d.%n%b%n%Y%n%H:%M:%S",&tm)!=NULL) {
+	    } else if(strptime(That->Data.Wert.Wert,"%A%n%H:%M:%S",&tm)!=NULL) {
 	      tm.tm_mday = LTime->tm_mday ;
 	      tm.tm_mon = LTime->tm_mon ;
 	      tm.tm_year = LTime->tm_year ;
@@ -160,25 +160,25 @@ void StepMakros (void)
 	      if (j<0) j+=7 ;
 	      if ((j==0)&&(TimeCompare(&tm,LTime)==1)) j=7;
 	      tm.tm_mday += j ;
-	    } else if(strptime(That->Data.Wert.UnitName,"%H:%M:%S",&tm)!=NULL) {
+	    } else if(strptime(That->Data.Wert.Wert,"%H:%M:%S",&tm)!=NULL) {
 	      tm.tm_mday = LTime->tm_mday ;
 	      tm.tm_mon = LTime->tm_mon ;
 	      tm.tm_year = LTime->tm_year ;
 	      if (TimeCompare(&tm,LTime)==1) tm.tm_mday++ ;
-	    } else if(strptime(That->Data.Wert.UnitName,"%M:%S",&tm)!=NULL) {
+	    } else if(strptime(That->Data.Wert.Wert,"%M:%S",&tm)!=NULL) {
 	      tm.tm_hour = LTime->tm_hour ;
 	      tm.tm_mday = LTime->tm_mday ;
 	      tm.tm_mon = LTime->tm_mon ;
 	      tm.tm_year = LTime->tm_year ;
 	      if (TimeCompare(&tm,LTime)==1) tm.tm_hour++ ;
-	    } else if(strptime(That->Data.Wert.UnitName,"%x%n%X",&tm)!=NULL) {
-	    } else if(strptime(That->Data.Wert.UnitName,"%X",&tm)!=NULL) {
+	    } else if(strptime(That->Data.Wert.Wert,"%x%n%X",&tm)!=NULL) {
+	    } else if(strptime(That->Data.Wert.Wert,"%X",&tm)!=NULL) {
 	      tm.tm_mday = LTime->tm_mday ;
 	      tm.tm_mon = LTime->tm_mon ;
 	      tm.tm_year = LTime->tm_year ;
 	      if (TimeCompare(&tm,LTime)==1) tm.tm_mday++ ;
 	    } else {
-	      fprintf (stderr,"Unbekanntes Datumsformat: %s\n",That->Data.Wert.UnitName);
+	      fprintf (stderr,"Unbekanntes Datumsformat: %s\n",That->Data.Wert.Wert);
 	    } ;
 	    tm.tm_isdst = LTime->tm_isdst ;
 	    ActiveMacros[i].Delay.WaitTime.tv_sec = mktime(&tm) ; 
@@ -197,8 +197,7 @@ void StepMakros (void)
 	      ExecuteMakro(Caller) ;
 	    } ;
 	  } else if ((That->Type==N_IF)||(That->Type==N_REPEAT)) {
-	    Caller = FindNode(Haus->Child,That->Data.Wert.UnitName) ;
-	    if ((Caller!=NULL)&&(MakroVergleich(Caller->Value,That->Data.Wert.Wert,That->Data.Wert.Vergleich))) {
+	    if (CalcValue(Haus->Child,That->Data.Wert.Wert)) {
 	      // Vergleich ist wahr, also ausfuehren
 	      for (That=That->Child;That!=NULL;That=That->Next)
 		if (IsMakro(That)) break ;
@@ -214,7 +213,7 @@ void StepMakros (void)
 	    } ;
 	  } else if (That->Type==N_SET) {
 	    Caller = FindNode(Haus->Child,That->Data.Wert.UnitName) ;
-	    Caller->Value = That->Data.Wert.Wert ;
+	    Caller->Value = CalcValue(That->Data.Wert.Wert) ;
 	  } else if (That->Type==N_ELSE) {
 	    /* Bis zum Ende des Else-Zweiges durchgehen (bis Ende des IF-Blocks) */
 	    for (;That->Next!=NULL;That=That->Next) ;
