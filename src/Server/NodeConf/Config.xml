@@ -39,7 +39,7 @@
     </Zimmer>
     <Zimmer name="Sport">
       <Schalter name="Deckenlicht">
-	<Adresse linie="5" knoten="101" port="2"/>
+	<Adresse linie="5" knoten="100" port="4"/>
       </Schalter>
       <Makro name="Aus">
 	<Adresse linie="0" knoten="200" port="3"/>
@@ -367,6 +367,79 @@
       <Schalter name="Deckenlicht">
 	<Adresse linie="1" knoten="102" port="2"/>
       </Schalter>
+      <Sensor name="BWM1" typ="BWM" intervall="10">
+	<Adresse linie="1" knoten="54" port="2"/>
+	<Aktion kurz="1" autonom="0" kommando="Rufe" objekt="TreppeHoch"/>
+	<Aktion kurz="1" autonom="1" kommando="Rufe" objekt="TreppeHoch"/>
+	<Aktion kurz="0" autonom="0" kommando="Rufe" objekt="TreppeHochAus"/>
+	<Aktion kurz="0" autonom="1" kommando="Rufe" objekt="TreppeHochAus"/>
+      </Sensor>
+      <Sensor name="BWM2" typ="BWM" intervall="60">
+        <Adresse linie="1" knoten="54" port="1"/>
+        <Aktion kurz="1" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Flur/BX1An"/>
+        <Aktion kurz="1" autonom="1" kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+        <Aktion kurz="0" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Flur/BX1Aus"/>
+        <Aktion kurz="0" autonom="1" kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+      </Sensor>
+      <Sensor name="BWM3" typ="BWM" intervall="60">
+        <Adresse linie="1" knoten="54" port="3"/>
+        <Aktion kurz="1" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Flur/BX2An"/>
+        <Aktion kurz="1" autonom="1" kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+        <Aktion kurz="0" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Flur/BX2Aus"/>
+        <Aktion kurz="0" autonom="1" kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+      </Sensor>
+      <Sensor name="BWM4" typ="BWM" intervall="60">
+        <Adresse linie="1" knoten="54" port="4"/>
+        <Aktion kurz="1" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Flur/BX3An"/>
+        <Aktion kurz="1" autonom="1" kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+        <Aktion kurz="0" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Flur/BX3Aus"/>
+        <Aktion kurz="0" autonom="1" kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+      </Sensor>
+      <Sensor name="Decke1" typ="WSData">
+	<Adresse linie="1" knoten="54" port="6"/>
+      </Sensor>
+      <Sensor name="Decke2" typ="WSClock">
+	<Adresse linie="1" knoten="54" port="5"/>
+      </Sensor>
+      <Variable name="BW1" wert="0"/>
+      <Variable name="BW2" wert="0"/>
+      <Variable name="BW3" wert="0"/>
+      <Makro name="BX1An">
+	<Adresse linie="0" knoten="200" port="47"/>
+	<Setze objekt="Erdgeschoss/Flur/BW1" wert="1"/>
+	<Aktion kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+      </Makro>
+      <Makro name="BX2An">
+	<Adresse linie="0" knoten="200" port="48"/>
+	<Setze objekt="Erdgeschoss/Flur/BW2" wert="1"/>
+	<Aktion kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+      </Makro>
+      <Makro name="BX3An">
+	<Adresse linie="0" knoten="200" port="49"/>
+	<Setze objekt="Erdgeschoss/Flur/BW3" wert="1"/>
+	<Aktion kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+      </Makro>
+      <Makro name="BX1Aus">
+	<Adresse linie="0" knoten="200" port="50"/>
+	<Setze objekt="Erdgeschoss/Flur/BW1" wert="0"/>
+	<Wenn wert="(Erdgeschoss/Flur/BW1=0)&amp;(Erdgeschoss/Flur/BW2=0)&amp;(Erdgeschoss/Flur/BW3=0)">
+	  <Aktion kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+	</Wenn>
+      </Makro>
+      <Makro name="BX2Aus">
+	<Adresse linie="0" knoten="200" port="51"/>
+	<Setze objekt="Erdgeschoss/Flur/BW2" wert="0"/>
+	<Wenn wert="(Erdgeschoss/Flur/BW1=0)&amp;(Erdgeschoss/Flur/BW2=0)&amp;(Erdgeschoss/Flur/BW3=0)">
+	  <Aktion kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+	</Wenn>
+      </Makro>
+      <Makro name="BX3Aus">
+	<Adresse linie="0" knoten="200" port="52"/>
+	<Setze objekt="Erdgeschoss/Flur/BW3" wert="0"/>
+	<Wenn wert="(Erdgeschoss/Flur/BW1=0)&amp;(Erdgeschoss/Flur/BW2=0)&amp;(Erdgeschoss/Flur/BW3=0)">
+	  <Aktion kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+	</Wenn>
+      </Makro>
       <Makro name="Aus">
 	<Adresse linie="0" knoten="200" port="15"/>
 	<Aktion kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht"/>
@@ -476,11 +549,61 @@
       <Schalter name="Deckenlicht">
 	<Adresse linie="3" knoten="102" port="3"/>
       </Schalter>
+      <Schalter name="Badewanne">
+      	<Adresse linie="3" knoten="102" port="5"/>
+      </Schalter>
+      <Schalter name="Steckdosen">
+        <Adresse linie="3" knoten="102" port="10"/>
+      </Schalter>
       <LED name="LEDs">
         <Adresse linie="4" knoten="16" port="7"/>
+	<Programm port="1" data="20FFFF"/>
+	<Programm port="2" data="20C8DE1008A010FF08C8DE54CBFF"/>
+	<Programm port="3" data="20C8DE0C08A010FF08C8DE58CBFF"/>
+	<Programm port="4" data="20C8DE0E08A010FF08C8DE56CBFF"/>
+	<Programm port="5" data="FF"/>
+	<Programm port="6" data="FF"/>
+	<Programm port="7" data="FF"/>
+	<Programm port="8" data="20C8DE0608A010FF08C8DE5ECBFF"/>
+	<Programm port="9" data="20FFFF"/>
+	<Programm port="10" data="FF"/>
+	<Programm port="11" data="20C8DE0208A010FF08C8DE62CBFF"/>
+	<Programm port="12" data="20C8DE0408A010FF08C8DE60CBFF"/>
+	<Programm port="13" data="20C8DE0E08A010FF08C8DE56CBFF"/>
+	<Programm port="14" data="20C8DE0C08A010FF08C8DE58CBFF"/>
+	<Programm port="15" data="20C8DE0A08A010FF08C8DE5ACBFF"/>
+	<Programm port="16" data="20C8DE0408A010FF08C8DE60CBFF"/>
+	<Programm port="17" data="20FFFF"/>
+	<Programm port="18" data="20FFFF"/>
+	<Programm port="19" data="20C8DE0808A010FF08C8DE5CCBFF"/>
+	<Programm port="20" data="20C8DE0A08A010FF08C8DE5ACBFF"/>
+	<Programm port="21" data="20C8DE0608A010FF08C8DE5ECBFF"/>
+	<Programm port="22" data="20C8DE0808A010FF08C8DE5CCBFF"/>
       </LED>
       <LED name="LED2">
         <Adresse linie="4" knoten="10" port="7"/>
+	<Programm port="1" data="20FFFF"/>
+	<Programm port="2" data="FF"/>
+	<Programm port="3" data="FF"/>
+	<Programm port="4" data="FF"/>
+	<Programm port="5" data="FF"/>
+	<Programm port="6" data="FF"/>
+	<Programm port="7" data="FF"/>
+	<Programm port="8" data="20C8DE0C08A010FF08C8DE58CBFF"/>
+	<Programm port="9" data="20FFFF"/>
+	<Programm port="10" data="FF"/>
+	<Programm port="11" data="FF"/>
+	<Programm port="12" data="FF"/>
+	<Programm port="13" data="20C8DE0808A010FF08C8DE5CCBFF"/>
+	<Programm port="14" data="20C8DE1208A010FF08C8DE52CBFF"/>
+	<Programm port="15" data="20C8DE1008A010FF08C8DE54CBFF"/>
+	<Programm port="16" data="20C8DE0A08A010FF08C8DE5ACBFF"/>
+	<Programm port="17" data="20FFFF"/>
+	<Programm port="18" data="20FFFF"/>
+	<Programm port="19" data="FF"/>
+	<Programm port="20" data="FF"/>
+	<Programm port="21" data="FF"/>
+	<Programm port="22" data="20C8DE0E08A010FF08C8DE56CBFF"/>
       </LED>
       <Rollo name="Fenster" kurz="60" lang="60" vertauschen="0">
 	<Adresse linie="3" knoten="105" port="5"/>
@@ -490,18 +613,20 @@
 	<Aktion autonom="0" kommando="Toggle" objekt="Obergeschoss/Bad/Deckenlicht"/>
 	<Aktion autonom="1" kommando="Toggle" objekt="Obergeschoss/Bad/Deckenlicht"/>
       </Sensor>
-      <Sensor name="Tuer2" typ="Einfach">
+      <Sensor name="Tuer2" typ="KurzLang" lang="5" ende="100">
 	<Adresse linie="3" knoten="52" port="2"/>
-	<Aktion autonom="0" kommando="Rufe" objekt="Obergeschoss/Bad/Licht"/>
-	<Aktion autonom="1" kommando="Toggle" objekt="Obergeschoss/Bad/LEDs"/>
+	<Aktion autonom="0" kurz="1" kommando="Rufe" objekt="Obergeschoss/Bad/Licht"/>
+	<Aktion autonom="1" kurz="1" kommando="Toggle" objekt="Obergeschoss/Bad/LEDs"/>
+	<Aktion autonom="0" kurz="0" kommando="Rufe" objekt="Obergeschoss/Bad/Blink"/>
+	<Aktion autonom="1" kurz="0" kommando="Toggle" objekt="Obergeschoss/Bad/LEDs"/>
       </Sensor>
       <Sensor name="Tuer3" typ="Rollo_KL" lang="5" ende="100">
-	<Adresse linie="3" knoten="52" port="3"/>
+	<Adresse linie="3" knoten="52" port="6"/>
 	<Aktion autonom="0" kommando="Runter" objekt="Obergeschoss/Bad/Fenster"/>
 	<Aktion autonom="1" kommando="Runter" objekt="Obergeschoss/Bad/Fenster"/>
       </Sensor>
       <Sensor name="Tuer4" typ="Rollo_KL" lang="5" ende="100">
-	<Adresse linie="3" knoten="52" port="6"/>
+	<Adresse linie="3" knoten="52" port="3"/>
 	<Aktion autonom="0" kommando="Hoch" objekt="Obergeschoss/Bad/Fenster"/>
 	<Aktion autonom="1" kommando="Hoch" objekt="Obergeschoss/Bad/Fenster"/>
       </Sensor>
@@ -513,6 +638,21 @@
       	<Adresse linie="0" knoten="200" port="26"/>
       	<Aktion kommando="Toggle" objekt="Obergeschoss/Bad/LEDs"/>
       	<Aktion kommando="Toggle" objekt="Obergeschoss/Bad/LED2"/>
+      </Makro>
+      <Variable name="LichtBad" wert="0"/>
+      <Makro name="Blink">
+      	<Adresse linie="0" knoten="200" port="44"/>
+	<Wenn wert="Obergeschoss/Bad/LichtBad=0">
+	  <Aktion kommando="StarteLED" objekt="Obergeschoss/Bad/LEDs:100"/>
+	  <Aktion kommando="StarteLED" objekt="Obergeschoss/Bad/LED2:100"/>
+	  <Setze objekt="Obergeschoss/Bad/LichtBad" wert="1"/>
+	  <Sonst/>
+	  <Aktion kommando="StoppLED" objekt="Obergeschoss/Bad/LEDs:100"/>
+	  <Aktion kommando="StoppLED" objekt="Obergeschoss/Bad/LED2:100"/>
+	  <Aktion kommando="Aus" objekt="Obergeschoss/Bad/LEDs"/>
+	  <Aktion kommando="Aus" objekt="Obergeschoss/Bad/LED2"/>
+	  <Setze objekt="Obergeschoss/Bad/LichtBad" wert="0"/>
+	</Wenn>
       </Makro>
     </Zimmer>
     <Zimmer name="Becki">
@@ -801,14 +941,24 @@
   </Makro>
   <Makro name="SeqTest">
     <Adresse linie="0" knoten="200" port="43"/>
-    <Aktion kommando="Sequenz" sequenz="TestSeq" objekt="Keller/Flur/Decke1"/>
+    <Aktion kommando="Sequenz" sequenz="TestS" objekt="Keller/Flur/Decke1"/>
+  </Makro>
+  <Makro name="TreppeHoch">
+    <Adresse linie="0" knoten="200" port="45"/>
+    <Aktion kommando="Sequenz" sequenz="TreppeH" objekt="Erdgeschoss/Flur/Decke1"/>
+  </Makro>
+  <Makro name="TreppeHochAus">
+    <Adresse linie="0" knoten="200" port="46"/>
+    <Aktion kommando="Sequenz" sequenz="TreppeHA" objekt="Erdgeschoss/Flur/Decke1"/>
   </Makro>
   <Firmware name="NodeConf/Bad.hex" id="1"/>
   <Firmware name="NodeConf/Relais.hex" id="16"/>
   <Firmware name="NodeConf/Licht.hex" id="0"/>
   <Firmware name="NodeConf/Sensor.hex" id="32"/>
   <Firmware name="NodeConf/Bootstrap.hex" id="255"/>
-  <Seq name="TestSeq" datei="NodeConf/Test.seq"/>
+  <Seq name="TestS" datei="NodeConf/Test.seq"/>
+  <Seq name="TreppeH" datei="NodeConf/TreppeHoch.seq"/>
+  <Seq name="TreppeHA" datei="NodeConf/TreppeHochAus.seq"/>
   <Immer>
     <Gleichzeitig makro="Heartbeat"/>
     <Gleichzeitig makro="AbendSimulation"/>

@@ -136,8 +136,8 @@ void StepMakros (void)
 	    }; 
 	  };
 	} else {
-	  // Naechste Aktion durchfuehren
 	  That = This->Data.MakroStep ;
+	  // Naechste Aktion durchfuehren
 	  if (That->Type==N_ACTION) {
 	    SendAction (That) ;
 	  } else if (That->Type==N_DELAY) {
@@ -197,7 +197,7 @@ void StepMakros (void)
 	      ExecuteMakro(Caller) ;
 	    } ;
 	  } else if ((That->Type==N_IF)||(That->Type==N_REPEAT)) {
-	    if (CalcValue(Haus->Child,That->Data.Wert.Wert)) {
+	    if (CalcValue(That->Data.Wert.Wert)) {
 	      // Vergleich ist wahr, also ausfuehren
 	      for (That=That->Child;That!=NULL;That=That->Next)
 		if (IsMakro(That)) break ;
@@ -213,7 +213,11 @@ void StepMakros (void)
 	    } ;
 	  } else if (That->Type==N_SET) {
 	    Caller = FindNode(Haus->Child,That->Data.Wert.UnitName) ;
-	    Caller->Value = CalcValue(That->Data.Wert.Wert) ;
+	    if (Caller==NULL) { 
+	      printf ("Unknown variable: %s\n",That->Data.Wert.UnitName) ;
+	    } else {
+	      Caller->Value = CalcValue(That->Data.Wert.Wert) ;
+	    } ;
 	  } else if (That->Type==N_ELSE) {
 	    /* Bis zum Ende des Else-Zweiges durchgehen (bis Ende des IF-Blocks) */
 	    for (;That->Next!=NULL;That=That->Next) ;
@@ -735,10 +739,11 @@ int HandleCommand (char *Command,int Socket)
 
   if (strcmp(Com,"hws")==0) {
     int LED,r,g,b,w ;
+    unsigned char rc,gc,bc ;
     sscanf (Command,"hws %d %d %d %d %d %d",&Line,&Add,&LED,&r,&g,&b) ;
-    hsv_to_rgb(r,g,b,&r,&g,&b) ;
+    hsv_to_rgb(r,g,b,&rc,&gc,&bc) ;
     if ((Line!=0)&&(Add!=0)) {
-      SendLEDCommand(LOAD_LED,Line,Add,LED,r,g,b,0) ;
+      SendLEDCommand(LOAD_LED,Line,Add,LED,rc,gc,bc,0) ;
       SendLEDCommand(OUT_LED,Line,Add,LED,0,0,0,0) ;
       return (TRUE); 
     } ;
@@ -805,7 +810,7 @@ int HandleCommand (char *Command,int Socket)
     } else if ((strcmp(Com,"kurzrunter")==0)||(strcmp(Com,"shortdown")==0)) {
       SendCommand(SHADE_DOWN_SHORT,Line,Add,Port) ;
     } else {
-      sprintf (Answer,"Unknown command: %s\r\n",Com) ;
+      if (strlen(Answer)==0) sprintf (Answer,"Unknown command: %s\r\n",Com) ;
     }
   } else {
     if (strlen(Answer)==0) sprintf (Answer,"Unknown object: %s\r\n",Obj) ;

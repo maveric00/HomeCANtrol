@@ -1,0 +1,21 @@
+% WS2801-Programm (z.B. zur Ausfuehrung mit dem Sensor-Board
+% Zeilen mit % am Anfang und Leerzeilen werden ignoriert
+% Das Programm besteht aus einzelnen Kommando- oder Daten-Zeilen. Jede Zeile beginnt mit einer Zeilennummer
+% In einer Kommando-Zeile steht ein Kommando mit Parameter.
+% Eine Datenzeile besteht aus N 24-Bit-Werten, die die Werte für die LEDs darstellen
+% Implementierte Kommandos: DIM TIME: Dimmt in Time(in 0,1 Sekunden) auf die folgenden RGB-Werte 
+%                           DIM_H TIME: Dimmt in Time(in 0,1 Sekunden) auf die folgenden HSV-Werte 
+%			    SINGLE TIME INDEX: Dimmt die ab INDEX beginnenden LEDs in Time(in 0,1 Sekunden) 
+%                                              auf die folgenden RGB-Werte 
+%			    SINGLE_H TIME INDEX: Dimmt die ab INDEX beginnenden LEDs in Time(in 0,1 Sekunden) 
+%                                              auf die folgenden HSV-Werte 
+%                           GOTO LINE: Springt zur angegebenen Zeile
+%                           COUNT_UP NUMBER: Beginnt eine Schleife von 1 bis NUMBER
+%                           COUNT_DOWN NUMBER: Beginnt eine Schleife von NUMBER bis 1
+%                           COUNT_END INCREMENT: Beendet die Schleife
+%                           DELAY TIME: Wartet Time(*0,1 Sekunden)
+%	
+10 COUNT_DOWN 15
+20 PSINGLE_H 10 $$ D0F020
+30 DELAY 3
+100 COUNT_END 1

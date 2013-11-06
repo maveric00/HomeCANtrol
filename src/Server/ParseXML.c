@@ -892,7 +892,7 @@ char *CalcStackPointer ;
 char OutStack [NAMELEN*8] ;
 char *OutStackPointer ;
 
-int CalcPush (char *Exp,char *CS,char **CSP)
+void CalcPush (char *Exp,char *CS,char **CSP)
 {
   strcpy (*CSP,Exp) ;
   (*CSP) += strlen(Exp)+1 ;
@@ -923,7 +923,7 @@ int TokenPointer ;
 
 int iswhitespace(char a)
 {
-  return ((a=='\n')||(a=='\t')||(a==' ')||(a=='r')) ;
+  return ((a=='\n')||(a=='\t')||(a==' ')||(a=='\r')) ;
 } 
 
 int GetNextToken(char *Expression, char *Token)
@@ -945,8 +945,10 @@ int GetNextToken(char *Expression, char *Token)
       Token[1] = 0 ;
       i=21 ;
     } else {
-      for (j=0;(!iswhitespace(Expression[TokenPointer])&&(IsOperator(&(Expression[TokenPointer]))<0)&&
-		(Expression[TokenPointer]!='(')&&(Expression[TokenPointer]!=')')&&(Expression[TokenPointer]!='\0'));TokenPointer++,j++) Token[j]=Expression[TokenPointer] ;
+      for (j=0;(!iswhitespace(Expression[TokenPointer])&&
+		((IsOperator(&(Expression[TokenPointer]))<0)||(Expression[TokenPointer]=='/'))&&
+		(Expression[TokenPointer]!='(')&&(Expression[TokenPointer]!=')')&&(Expression[TokenPointer]!='\0'));
+	   TokenPointer++,j++) Token[j]=Expression[TokenPointer] ;
       Token[j]='\0' ;
       if (Expression[TokenPointer]=='(') {
 	i=23 ;
@@ -1021,6 +1023,7 @@ int CalcValue (char *Expression)
   
   SP=-1 ;
 
+
   for (NextItem=OutStack;NextItem!=OutStackPointer;) {
     for (i=0;(*NextItem)!='\0';NextItem++,i++) Token[i]=(*NextItem) ;
     Token[i]='\0' ; NextItem++ ;
@@ -1081,7 +1084,7 @@ int CalcValue (char *Expression)
     } else if (isalpha(Token[0])) {
       // Variable einlesen
       Var = FindNode(Haus->Child,Token) ;
-      if (FindNode!=NULL) {
+      if (Var!=NULL) {
 	SP++ ;
 	Stack[SP] = Var->Value ;
       } else {
