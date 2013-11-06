@@ -808,7 +808,7 @@ int HandleCommand (char *Command,int Socket)
       sprintf (Answer,"Unknown command: %s\r\n",Com) ;
     }
   } else {
-    sprintf (Answer,"Unknown object: %s\r\n",Obj) ;
+    if (strlen(Answer)==0) sprintf (Answer,"Unknown object: %s\r\n",Obj) ;
   } ;    
 
   send(Socket,Answer,strlen(Answer),0) ;
@@ -828,10 +828,8 @@ static void *Handle_Webserver(enum mg_event event, struct mg_connection *conn)
   int i,j ;
 
   if (event==MG_NEW_REQUEST) {
-    printf ("%s\n",ri->uri) ;
     if (!strcmp(ri->uri, "/Action")) {      
       // User has submitted a form, show submitted data and a variable value 
-      printf ("%s\n",ri->query_string) ;
       if (ri->query_string==NULL) return (NULL) ;
       
       for (i=0,j=0;(ri->query_string[i]!='\0')&&(ri->query_string[i]!='.')&&(j<NAMELEN*4-1);i++,j++) {
@@ -851,29 +849,23 @@ static void *Handle_Webserver(enum mg_event event, struct mg_connection *conn)
       Obj[0] = '\0' ;
       Com[0] = '\0' ;
 
-      printf ("Rest: %s\n",&(ri->query_string[i])); 
 
       if ((ri->query_string[i]!='\0')&&(ri->query_string[i]=='.')&&(ri->query_string[i+1]=='x')) {
 	for (i+=3,j=0;(ri->query_string[i]!='\0')&&(ri->query_string[i]!='&')&&(j<NAMELEN*4-1);i++,j++) pos[j]=ri->query_string[i] ;
 	pos[j]='\0' ;
-	printf ("Pos: %s\n",pos) ;
 	sscanf (pos,"%d",&XPos) ;
 	for (;(ri->query_string[i]!='\0')&&(ri->query_string[i]!='=')&&(j<NAMELEN*4-1);i++);
 	if (ri->query_string[i]!='\0') {
 	  for (i++,j=0;(ri->query_string[i]!='\0')&&(ri->query_string[i]!='&')&&(j<NAMELEN*4-1);i++,j++) pos[j]=ri->query_string[i] ;
 	  pos[j]='\0' ;
-	  printf ("Pos: %s\n",pos) ;
+
 	  sscanf (pos,"%d",&YPos) ;
 	}; 
       } ; 
       
-      printf ("Data: %s\n",data) ;
-      printf ("Position: %d %d\n",XPos,YPos) ;
       
       sscanf(data,"%s %s",Com,Obj) ;
       
-      printf ("%s %s\n",Com,Obj) ;
-
       if ((strlen(Com)==0)||strlen(Obj)==0) return NULL ;
 
       This = FindNode(Haus->Child,Obj) ;  
@@ -881,6 +873,14 @@ static void *Handle_Webserver(enum mg_event event, struct mg_connection *conn)
       if ((strcmp(Com,"Action")==0)||(strcmp(Com,"Aktion")==0)) {  
 	ExecuteMakro (This) ;
       } ;
+
+      if ((strcmp(Com,"SetX")==0)||(strcmp(Com,"SetzeX")==0)) {  
+	if (This!=NULL) This->Value=XPos ;
+      } ;
+
+      if ((strcmp(Com,"SetY")==0)||(strcmp(Com,"SetzeY")==0)) {  
+	if (This!=NULL) This->Value=YPos ;
+      } ;      
       
       if (GetNodeAdress(This,&Line,&Add,&Port)==0) {
 	if ((strcmp(Com,"An")==0)||(strcmp(Com,"On")==0)) {
