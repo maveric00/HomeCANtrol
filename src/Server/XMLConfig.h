@@ -56,6 +56,7 @@ typedef enum {
   N_SENS2 = 28,
   N_REACT = 29,
   N_ELSE = 30,
+  N_LOC = 31,
   S_SIMPLE = 100,
   S_SHORTLONG = 101,
   S_SHADE_SHORTLONG = 102,
@@ -241,6 +242,10 @@ struct SeqList {
 extern struct Node *Haus ;
 extern struct SeqList *Sequences ;
 extern struct NodeList *Reactions ;
+extern double West,North ;
+extern struct tm SunSet ;
+extern struct tm SunRise ;
+
 // Node.c-Definitionen
 struct Node *CreateNode (void);
 void FreeNode (struct Node *This) ;

@@ -22,6 +22,10 @@ struct Node *Haus=NULL ;
 struct Node *Current=NULL ;
 struct SeqList *Sequences=NULL ;
 struct NodeList *Reactions=NULL ;
+double West,North ;
+struct tm SunSet ;
+struct tm SunRise ;
+
 
 int MakroNummer;
 int Depth;
@@ -84,6 +88,8 @@ struct TypSel Types[] = {
   {"Seq",N_SEQUENCE},
   {"Program",N_PROGRAM},
   {"Programm",N_PROGRAM},
+  {"Ort",N_LOC},
+  {"Location",N_LOC},
   {"Einfach",S_SIMPLE},
   {"Simple",S_SIMPLE},
   {"KurzLang",S_SHORTLONG},
@@ -279,6 +285,17 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       if ((strcmp(attr[i],"zeit")==0)||(strcmp(attr[i],"time")==0)) {
 	strncpy(Current->Data.Wert.Wert,attr[i+1],NAMELEN*2) ;
       } ;
+      if ((strcmp(attr[i],"relativ")==0)||(strcmp(attr[i],"relative")==0)) {
+	if ((strcmp(attr[i+1],"vor aufgang")==0)||(strcmp(attr[i],"before sunrise")==0)) {
+	  Current->Value = 1 ;
+	} else if ((strcmp(attr[i+1],"nach aufgang")==0)||(strcmp(attr[i],"after sunrise")==0)) {
+	  Current->Value = 2 ;
+	} else 	if ((strcmp(attr[i+1],"vor untergang")==0)||(strcmp(attr[i],"before sunset")==0)) {
+	  Current->Value = 3 ;
+	} else 	if ((strcmp(attr[i+1],"nach untergang")==0)||(strcmp(attr[i],"after sunset")==0)) {
+	  Current->Value = 4 ;
+	} ;
+      } ;
       break ;
     case N_CALL:
     case N_TASK:
@@ -357,6 +374,14 @@ void XMLCALL start(void *data, const char *el, const char **attr)
     case N_SEQUENCE:
       if ((strcmp(attr[i],"file")==0)||(strcmp(attr[i],"datei")==0)) {
 	ReadSequence (Current->Name,(char*)attr[i+1]) ;
+      } ;
+      break ;
+    case N_LOC:
+      if (strcmp(attr[i],"west")==0) {
+	sscanf (attr[i+1],"%lf",&West) ;
+      } ;
+      if ((strcmp(attr[i],"north")==0)||(strcmp(attr[i],"nord")==0)) {
+	sscanf (attr[i+1],"%lf",&North) ;
       } ;
       break ;
     case N_PROGRAM:
@@ -1104,3 +1129,68 @@ int CalcValue (char *Expression)
   }
   return (Stack[0]) ;
 }  
+
+#define pi 3.1415926536
+
+double SDec(double Day)
+{
+  return (0.409526325277017*sin(0.0169060504029192*(Day-80.0856919827619)));
+}
+
+double TimeDiff(double dec, double lon)
+{
+  return (12.0*acos((sin(-0.0145444074) - sin(lon)*sin(dec)) / (cos(lon)*cos(dec)))/pi);
+}
+
+double timeeq(double Day)
+{
+  return (-0.170869921174742*sin(0.0336997028793971 * Day + 0.465419984181394) - 0.129890681040717*sin(0.0178674832556871*Day - 0.167936777524864));
+}
+
+double CalcSunrise(double Day, double dec)
+{
+  double dec ;
+  dec = SDec(Day) ;
+  return (12-TimeDiff(dec)-timeeq(Day)) ;
+}
+
+double CalcSunset(double Day, double dec)
+{
+  double dec ;
+  dec = SDec(Day) ;
+  return (12+TimeDiff(dec)-timeeq(Day)) ;
+}
+
+void CalcSun ()
+{
+  time_t CurrentTime ;
+  struct tm T1,T2 ;
+  struct tm *Tim ;
+  double TimeZone ;
+  double Hour ;
+  double Day ;
+
+  time (&CurrentTime) ;
+  
+  tim = localtime(&CurrentTime) ;
+  Day = (double)tim->tm_yday ;
+  TimeZone = (double)tim->tm_hour ;
+  tim = gmtime(&CurrentTime) ;
+  TimeZone = TimeZone-(double)tim->tm_hour ;
+  
+  SunRise.tm_mday = SunSet.tm_mday = tim->tm_mday ;
+  SunRise.tm_mon = SunSet.tm_mon = tim->tm_mon ;
+  SunRise.tm_year = SunSet.tm_year = tim->tm_year ;
+  SunRise.tm_wday = SunSet.tm_wday = tim->tm_wday ;
+  SunRise.tm_yday = SunSet.tm_yday = tim->tm_yday ;
+  SunRise.tm_isdst = SunSet.tm_isdst = tim->tm_isdst ;
+  Hour = CalcSunrise(Day,North)+West/15.0+TimeZone ;
+  SunRise.tm_hour = (int)Hour ;
+  SunRise.tm_min = (int)((Hour-(double)SunRize.tm_hour)*60) ;
+  SunRise.tm_sec = 0 ;
+  Hour = CalcSunset(Day,North)+West/15.0+TimeZone ;
+  SunSet.tm_hour = (int)Hour ;
+  SunSet.tm_min = (int)((Hour-(double)SunSet.tm_hour)*60) ;
+  SunSet.tm_sec = 0 ;
+}
+  

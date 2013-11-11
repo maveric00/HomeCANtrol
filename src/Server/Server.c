@@ -181,6 +181,19 @@ void StepMakros (void)
 	      fprintf (stderr,"Unbekanntes Datumsformat: %s\n",That->Data.Wert.Wert);
 	    } ;
 	    tm.tm_isdst = LTime->tm_isdst ;
+	    if (That->Value==1) { // Relativ zum Aufgang 
+	      tm.tm_hour -= SunRise.tm_hour ;
+	      tm.tm_min -= SunRise.tm_min ;
+	    } else if (That->Value==2) { // Relativ zum Aufgang 
+	      tm.tm_hour += SunRise.tm_hour ;
+	      tm.tm_min += SunRise.tm_min ;
+	    } else if (That->Value==3) { // Relativ zum Aufgang 
+	      tm.tm_hour -= SunSet.tm_hour ;
+	      tm.tm_min -= SunSet.tm_min ;
+	    } else if (That->Value==4) { // Relativ zum Aufgang 
+	      tm.tm_hour += SunSet.tm_hour ;
+	      tm.tm_min += SunSet.tm_min ;
+	    } ;
 	    ActiveMacros[i].Delay.WaitTime.tv_sec = mktime(&tm) ; 
 	    ActiveMacros[i].Delay.WaitTime.tv_usec = 0 ; 
 	  } else if (That->Type==N_CALL) {
