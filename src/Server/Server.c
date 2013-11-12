@@ -181,16 +181,16 @@ void StepMakros (void)
 	      fprintf (stderr,"Unbekanntes Datumsformat: %s\n",That->Data.Wert.Wert);
 	    } ;
 	    tm.tm_isdst = LTime->tm_isdst ;
-	    if (That->Value==1) { // Relativ zum Aufgang 
+	    if (That->Value==1) { // Relativ (vor) zum Aufgang 
 	      tm.tm_hour -= SunRise.tm_hour ;
 	      tm.tm_min -= SunRise.tm_min ;
-	    } else if (That->Value==2) { // Relativ zum Aufgang 
+	    } else if (That->Value==2) { // Relativ (nach) zum Aufgang 
 	      tm.tm_hour += SunRise.tm_hour ;
 	      tm.tm_min += SunRise.tm_min ;
-	    } else if (That->Value==3) { // Relativ zum Aufgang 
+	    } else if (That->Value==3) { // Relativ (vor) zum Untergang 
 	      tm.tm_hour -= SunSet.tm_hour ;
 	      tm.tm_min -= SunSet.tm_min ;
-	    } else if (That->Value==4) { // Relativ zum Aufgang 
+	    } else if (That->Value==4) { // Relativ (nach) zum Untergang
 	      tm.tm_hour += SunSet.tm_hour ;
 	      tm.tm_min += SunSet.tm_min ;
 	    } ;
@@ -448,7 +448,10 @@ void InitAlways(void)
     } ;
 }
 
-
+void EveryDay(void)
+{
+  CalcSun () ;
+}
 
 void HandleCANRequest(void)
 {
@@ -978,6 +981,8 @@ int main(int argc, char **argv)
 
   struct mg_context *ctx ;
   struct timeval Now,Wait,Old ;
+  struct tm *timeinfo ;
+  struct timeval Day ;
 
   char *web_options[] = {
     "listening_ports", "8080",
@@ -1014,7 +1019,16 @@ int main(int argc, char **argv)
 
   // Makros starten
 
+  randomize() ;
   InitAlways() ;
+  EveryDay () ;
+  Day.tv_sec = time(NULL) ;
+  Day.tv_usec = 0 ;
+
+  timeinfo = localtime(Day.tv_sec) ;
+  timeinfo->tm_mday++ ;
+  timeinfo->tm_hour = 0 ;
+  Day.tv_sec = mktime(timeinfo) ;
 
   // Websockets starten
 
@@ -1045,6 +1059,12 @@ int main(int argc, char **argv)
     } ;
     
     gettimeofday(&Now,NULL) ;
+    if (Now.tv_sec>Day.tv_sec) { // another day gone
+      EveryDay () ;
+      timeinfo = localtime(Day.tv_sec) ;
+      timeinfo->tm_mday++ ;
+      Day.tv_sec = mktime(timeinfo) ;
+    }
     
     if (timercmp(&Now,&Old,>)) { // if UDP packets are coming in very fast, do not step macros for each
       

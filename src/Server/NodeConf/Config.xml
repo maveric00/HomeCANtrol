@@ -369,10 +369,10 @@
       </Schalter>
       <Sensor name="BWM1" typ="BWM" intervall="10">
 	<Adresse linie="1" knoten="54" port="2"/>
-	<Aktion kurz="1" autonom="0" kommando="Rufe" objekt="TreppeHoch"/>
-	<Aktion kurz="1" autonom="1" kommando="Rufe" objekt="TreppeHoch"/>
-	<Aktion kurz="0" autonom="0" kommando="Rufe" objekt="TreppeHochAus"/>
-	<Aktion kurz="0" autonom="1" kommando="Rufe" objekt="TreppeHochAus"/>
+	<Aktion kurz="1" autonom="0" kommando="Rufe" objekt="Erdgeschoss/TreppeHoch"/>
+	<Aktion kurz="1" autonom="1" kommando="Rufe" objekt="Erdgeschoss/TreppeHoch"/>
+	<Aktion kurz="0" autonom="0" kommando="Rufe" objekt="Erdgeschoss/TreppeHochAus"/>
+	<Aktion kurz="0" autonom="1" kommando="Rufe" objekt="Erdgeschoss/TreppeHochAus"/>
       </Sensor>
       <Sensor name="BWM2" typ="BWM" intervall="60">
         <Adresse linie="1" knoten="54" port="1"/>
@@ -411,17 +411,23 @@
       <Makro name="BX1An">
 	<Adresse linie="0" knoten="200" port="47"/>
 	<Setze objekt="Erdgeschoss/Flur/BW1" wert="1"/>
-	<Aktion kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+        <Wenn wert="nicht(Tag)">
+        	<Aktion kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+        </Wenn>
       </Makro>
       <Makro name="BX2An">
 	<Adresse linie="0" knoten="200" port="48"/>
 	<Setze objekt="Erdgeschoss/Flur/BW2" wert="1"/>
-	<Aktion kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+        <Wenn wert="nicht(Tag)">
+        	<Aktion kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+        </Wenn>
       </Makro>
       <Makro name="BX3An">
 	<Adresse linie="0" knoten="200" port="49"/>
 	<Setze objekt="Erdgeschoss/Flur/BW3" wert="1"/>
-	<Aktion kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+        <Wenn wert="nicht(Tag)">
+        	<Aktion kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+        </Wenn>
       </Makro>
       <Makro name="BX1Aus">
 	<Adresse linie="0" knoten="200" port="50"/>
@@ -478,11 +484,17 @@
 	<Programm port="21" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="22" data="2895DE30DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="23" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
-	<Aktion kurz="1" autonom="0" kommando="An"  objekt="Erdgeschoss/Bad/Deckenlicht"/>
+	<Aktion kurz="1" autonom="0" kommando="Rufe"  objekt="Erdgeschoss/Bad/An"/>
 	<Aktion kurz="0" autonom="0" kommando="Aus" objekt="Erdgeschoss/Bad/Deckenlicht"/>
 	<Aktion kurz="1" autonom="1" kommando="An"  objekt="Erdgeschoss/Bad/Deckenlicht"/>
 	<Aktion kurz="0" autonom="1" kommando="Aus" objekt="Erdgeschoss/Bad/Deckenlicht"/>
       </Bad>
+      <Makro name="An">
+        <Adresse linie="0" knoten="200" port="53"/>
+        <Wenn wert="nicht(Tag)">
+           <Aktion kommando="An" objekt="Erdgeschoss/Bad/Deckenlicht"/>
+        </Wenn>
+      </Makro>
       <Makro name="Aus">
 	<Adresse linie="0" knoten="200" port="16"/>
 	<Aktion kommando="Aus" objekt="Erdgeschoss/Bad/Deckenlicht"/>
@@ -546,6 +558,22 @@
       <Sub makro="Erdgeschoss/Bad/Aus"/>
       <Sub makro="Erdgeschoss/Flur/Aus"/>
       <Sub makro="Erdgeschoss/Gaderobe/Aus"/>
+    </Makro>
+    <Makro name="TreppeHoch">
+      <Adresse linie="0" knoten="200" port="45"/>
+      <Wenn wert="nicht(Tag)">
+         <Aktion kommando="Sequenz" sequenz="TreppeH" objekt="Erdgeschoss/Flur/Decke1"/>
+      </Wenn>
+    </Makro>
+    <Makro name="TreppeAus">
+      <Adresse linie="0" knoten="200" port="54"/>
+      <Aktion kommando="Sequenz" sequenz="TreppeA" objekt="Erdgeschoss/Flur/Decke1"/>
+    </Makro>
+    <Makro name="TreppeHochAus">
+      <Adresse linie="0" knoten="200" port="46"/>
+      <Wenn wert="nicht(Tag)">
+        <Aktion kommando="Sequenz" sequenz="TreppeHA" objekt="Erdgeschoss/Flur/Decke1"/>
+      </Wenn>
     </Makro>
   </Etage>
   <Etage name="Obergeschoss">
@@ -914,13 +942,21 @@
     <Aktion kommando="Herzschlag" objekt="Linie4"/>
     <Warte zeit="1000"/>
   </Makro>
+  <Makro name="TagNacht">
+    <Timer zeit = "00:30:00" relativ="nach aufgang"/>
+    <Setze objekt="Tag" wert="1=1"/>
+    <Sub makro="Erdgeschoss/TreppeAus"/>
+    <Timer zeit = "00:30:00" relativ="vor untergang"/>
+    <Sub makro="Erdgeschoss/TreppeHochAus"/>
+    <Setze objekt="Tag" wert="1=0"/>
+  </Makro>
   <Makro name="AbendSimulation">
-    <Timer zeit = "20:45:00"/>
+    <Timer zeit = "00:15:00" relativ="nach untergang"/>
     <Aktion kommando="Runter" objekt="Erdgeschoss/Kueche/Fenster"/>
     <Aktion kommando="Runter" objekt="Erdgeschoss/Esszimmer/Fenster"/>
   </Makro>
   <Makro name="MorgenSimulation">
-    <Timer zeit = "07:25:00"/>
+    <Timer zeit = "00:15:00" relativ="vor aufgang"/>
     <Aktion kommando="Hoch" objekt="Erdgeschoss/Kueche/Fenster"/>
     <Aktion kommando="Hoch" objekt="Erdgeschoss/Esszimmer/Fenster"/>
   </Makro>
@@ -947,14 +983,6 @@
     <Adresse linie="0" knoten="200" port="43"/>
     <Aktion kommando="Sequenz" sequenz="TestS" objekt="Keller/Flur/Decke1"/>
   </Makro>
-  <Makro name="TreppeHoch">
-    <Adresse linie="0" knoten="200" port="45"/>
-    <Aktion kommando="Sequenz" sequenz="TreppeH" objekt="Erdgeschoss/Flur/Decke1"/>
-  </Makro>
-  <Makro name="TreppeHochAus">
-    <Adresse linie="0" knoten="200" port="46"/>
-    <Aktion kommando="Sequenz" sequenz="TreppeHA" objekt="Erdgeschoss/Flur/Decke1"/>
-  </Makro>
   <Firmware name="NodeConf/Bad.hex" id="1"/>
   <Firmware name="NodeConf/Relais.hex" id="16"/>
   <Firmware name="NodeConf/Licht.hex" id="0"/>
@@ -963,14 +991,17 @@
   <Seq name="TestS" datei="NodeConf/Test.seq"/>
   <Seq name="TreppeH" datei="NodeConf/TreppeHoch.seq"/>
   <Seq name="TreppeHA" datei="NodeConf/TreppeHochAus.seq"/>
+  <Seq name="TreppeA" datei="NodeConf/TreppeAus.seq"/>
   <Immer>
     <Gleichzeitig makro="Heartbeat"/>
+    <Gleichzeitig makro="TagNacht"/>
     <Gleichzeitig makro="AbendSimulation"/>
     <Gleichzeitig makro="MorgenSimulation"/>
   </Immer>
   <Start>
     <Gleichzeitig makro="Init"/>
   </Start>
+  <Variable name="Tag" wert="1==0"/>
   <Variable name="Var" wert="0"/>
   <Web name="Webpage">
     <Bild name="MarkX" src="Pictures/DimX.png"/>

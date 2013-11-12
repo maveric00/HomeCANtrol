@@ -876,6 +876,9 @@ const char *CalcFunctions[]={
   "tan",
   "sqrt",
   "sqr",
+  "rnd",
+  "not",
+  "nicht"
   ""
 } ;
 
@@ -1108,6 +1111,12 @@ int CalcValue (char *Expression)
 	Stack[SP]=(int)sqrt((double)Stack[SP]) ;
       } else if (strcmp(Token,"sqr")==0) {
 	Stack[SP]=Stack[SP]*Stack[SP] ;
+      } else if (strcmp(Token,"rnd")==0) {
+	Stack[SP]=random(Stack[SP]) ;
+      } else if (strcmp(Token,"not")==0) {
+	Stack[SP]=!(Stack[SP]) ;
+      } else if (strcmp(Token,"nicht")==0) {
+	Stack[SP]=!(Stack[SP]) ;
       } else {
 	printf ("Unknown function\n") ;
       } ;
