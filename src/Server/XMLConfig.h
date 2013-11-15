@@ -265,6 +265,7 @@ int ReadConfig(void) ;
 void ReadSequence (char *Name, char *FileName) ;
 void hsv_to_rgb (unsigned char h, unsigned char s, unsigned char v,unsigned char *r, unsigned char *g, unsigned char *b);
 int CalcValue (char *Expression);
+void CalcSun (void) ;
 
 // Server.c-Definitionen
 void ExecuteMakro (struct Node *Makro);

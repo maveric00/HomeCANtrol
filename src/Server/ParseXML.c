@@ -189,7 +189,7 @@ void XMLCALL start(void *data, const char *el, const char **attr)
     } ;
   } ;
 
-  
+
   for (i = 0; attr[i]; i += 2) {
     if (strcmp(attr[i],"name")==0) {
       strncpy(Current->Name,attr[i+1],NAMELEN) ;
@@ -880,7 +880,7 @@ const char *CalcFunctions[]={
   "sqr",
   "rnd",
   "not",
-  "nicht"
+  "nicht",
   ""
 } ;
 
@@ -1062,7 +1062,7 @@ int CalcValue (char *Expression)
   for (NextItem=OutStack;NextItem!=OutStackPointer;) {
     for (i=0;(*NextItem)!='\0';NextItem++,i++) Token[i]=(*NextItem) ;
     Token[i]='\0' ; NextItem++ ;
-    
+
     if (IsOperator(Token)>=0) {
       switch (Token[0]) {
       case '=':
@@ -1114,7 +1114,7 @@ int CalcValue (char *Expression)
       } else if (strcmp(Token,"sqr")==0) {
 	Stack[SP]=Stack[SP]*Stack[SP] ;
       } else if (strcmp(Token,"rnd")==0) {
-	Stack[SP]=random(Stack[SP]) ;
+	Stack[SP]=(int)((double)random()*(double)Stack[SP]/(double)RAND_MAX) ;
       } else if (strcmp(Token,"not")==0) {
 	Stack[SP]=!(Stack[SP]) ;
       } else if (strcmp(Token,"nicht")==0) {
@@ -1148,9 +1148,9 @@ double SDec(double Day)
   return (0.409526325277017*sin(0.0169060504029192*(Day-80.0856919827619)));
 }
 
-double TimeDiff(double dec, double lon)
+double TimeDiff(double dec, double lat)
 {
-  return (12.0*acos((sin(-0.0145444074) - sin(lon)*sin(dec)) / (cos(lon)*cos(dec)))/pi);
+  return (12.0*acos((sin(-0.0145444074) - sin(lat)*sin(dec)) / (cos(lat)*cos(dec)))/pi);
 }
 
 double timeeq(double Day)
@@ -1158,25 +1158,24 @@ double timeeq(double Day)
   return (-0.170869921174742*sin(0.0336997028793971 * Day + 0.465419984181394) - 0.129890681040717*sin(0.0178674832556871*Day - 0.167936777524864));
 }
 
-double CalcSunrise(double Day, double dec)
+double CalcSunrise(double Day, double lat)
 {
   double dec ;
   dec = SDec(Day) ;
-  return (12-TimeDiff(dec)-timeeq(Day)) ;
+  return (12-TimeDiff(dec,lat)-timeeq(Day)) ;
 }
 
-double CalcSunset(double Day, double dec)
+double CalcSunset(double Day, double lat)
 {
   double dec ;
   dec = SDec(Day) ;
-  return (12+TimeDiff(dec)-timeeq(Day)) ;
+  return (12+TimeDiff(dec,lat)-timeeq(Day)) ;
 }
 
-void CalcSun ()
+void CalcSun (void)
 {
   time_t CurrentTime ;
-  struct tm T1,T2 ;
-  struct tm *Tim ;
+  struct tm *tim ;
   double TimeZone ;
   double Hour ;
   double Day ;
@@ -1195,11 +1194,11 @@ void CalcSun ()
   SunRise.tm_wday = SunSet.tm_wday = tim->tm_wday ;
   SunRise.tm_yday = SunSet.tm_yday = tim->tm_yday ;
   SunRise.tm_isdst = SunSet.tm_isdst = tim->tm_isdst ;
-  Hour = CalcSunrise(Day,North)+West/15.0+TimeZone ;
+  Hour = CalcSunrise(Day,North*pi/180.0)+West/15.0+TimeZone ;
   SunRise.tm_hour = (int)Hour ;
-  SunRise.tm_min = (int)((Hour-(double)SunRize.tm_hour)*60) ;
+  SunRise.tm_min = (int)((Hour-(double)SunRise.tm_hour)*60) ;
   SunRise.tm_sec = 0 ;
-  Hour = CalcSunset(Day,North)+West/15.0+TimeZone ;
+  Hour = CalcSunset(Day,North*pi/180.0)+West/15.0+TimeZone ;
   SunSet.tm_hour = (int)Hour ;
   SunSet.tm_min = (int)((Hour-(double)SunSet.tm_hour)*60) ;
   SunSet.tm_sec = 0 ;

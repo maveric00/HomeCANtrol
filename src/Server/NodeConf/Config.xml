@@ -2,6 +2,7 @@
 <Haus>
   <Sprache ist="deutsch"/>
   <Broadcast IP="192.168.69.255"/>
+  <Ort west="-6.55" nord="51"/>
   <Port CAN="13247" WS="13248" COM="13249" HTTP="80"/>
   <Etage name="Keller">
     <Zimmer name="Flur">
@@ -987,6 +988,7 @@
   <Firmware name="NodeConf/Relais.hex" id="16"/>
   <Firmware name="NodeConf/Licht.hex" id="0"/>
   <Firmware name="NodeConf/Sensor.hex" id="32"/>
+  <Firmware name="NodeConf/I2CSensor.hex" id="33"/>
   <Firmware name="NodeConf/Bootstrap.hex" id="255"/>
   <Seq name="TestS" datei="NodeConf/Test.seq"/>
   <Seq name="TreppeH" datei="NodeConf/TreppeHoch.seq"/>
@@ -1001,7 +1003,7 @@
   <Start>
     <Gleichzeitig makro="Init"/>
   </Start>
-  <Variable name="Tag" wert="1==0"/>
+  <Variable name="Tag" wert="0"/>
   <Variable name="Var" wert="0"/>
   <Web name="Webpage">
     <Bild name="MarkX" src="Pictures/DimX.png"/>

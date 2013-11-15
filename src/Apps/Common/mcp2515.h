@@ -81,6 +81,8 @@ typedef enum {
   OUT_LED               = 52,
   START_SENSOR          = 53,
   STOP_SENSOR           = 54,
+  ANALOG_VAL            = 55,
+  LIGHT_VAL             = 56,
   // Letztes Kommando
   UNDEFINED_COMMAND     = 63,
   // Answer bits

@@ -246,6 +246,22 @@ void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom,int Large)
     Conf[P1-1].Data = Node->Data.Sensor.Reset ;
   } ;
 
+  if (Node->Data.Sensor.SensorTyp==S_LIGHT) { // Licht-Konfiguration
+    if (P1!=1) {
+      printf ("Light sensor %s on wrong port: %d\n",Node->Name,P1) ;
+    } else {
+      EEprom->Data.Sensor.Pin[0].ShortAuto.TargetAdd[0]=0 ;
+      EEprom->Data.Sensor.Pin[0].ShortAuto.TargetAdd[1]=1 ;
+      EEprom->Data.Sensor.Pin[0].ShortAuto.TargetLine=0 ;
+      EEprom->Data.Sensor.Pin[0].ShortAuto.Command=LIGHT_VAL ;
+      EEprom->Data.Sensor.Pin[0].ShortMaster.TargetAdd[0]=0 ;
+      EEprom->Data.Sensor.Pin[0].ShortMaster.TargetAdd[1]=1 ;
+      EEprom->Data.Sensor.Pin[0].ShortMaster.TargetLine=0 ;
+      EEprom->Data.Sensor.Pin[0].ShortMaster.Command=LIGHT_VAL ;
+    } ;
+    return ;
+  } 
+
   for (Action=Node->Child;Action!=NULL;Action=Action->Next) {
     if (Action->Type!=N_ACTION) continue ; // Nur Aktionen abarbeiten
     Func=NULL ;
@@ -270,6 +286,14 @@ void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom,int Large)
 	       (Node->Data.Sensor.SensorTyp==S_BWM)||(Node->Data.Sensor.SensorTyp==S_BWM2)) {
       ConfigCommand(Node,Action,Func) ;
     } else {
+      EEprom->Data.Sensor.Pin[P1-1].ShortAuto.TargetAdd[0]=0 ;
+      EEprom->Data.Sensor.Pin[P1-1].ShortAuto.TargetAdd[1]=1 ;
+      EEprom->Data.Sensor.Pin[P1-1].ShortAuto.TargetLine=0 ;
+      EEprom->Data.Sensor.Pin[P1-1].ShortAuto.Command=ANALOG_VAL ;
+      EEprom->Data.Sensor.Pin[P1-1].ShortMaster.TargetAdd[0]=0 ;
+      EEprom->Data.Sensor.Pin[P1-1].ShortMaster.TargetAdd[1]=1 ;
+      EEprom->Data.Sensor.Pin[P1-1].ShortMaster.TargetLine=0 ;
+      EEprom->Data.Sensor.Pin[P1-1].ShortMaster.Command=ANALOG_VAL ;
       // Analog-Konfiguration einfuegen
     } ;
   }
@@ -383,13 +407,21 @@ int MakeConfig (int Linie, int Knoten, struct EEPROM *EEprom)
     switch (ANodes[i]->Type) {
     case N_SENSOR:
       if (EEprom->BoardType==0xFF) {
-	EEprom->BoardType = 32 ;
+	if (ANodes[i]->Data.Sensor.SensorTyp!=S_LIGHT) {
+	  EEprom->BoardType = 32 ;
+	} else {
+	  EEprom->BoardType = 33 ;
+	} ;
       } else {
-	if (EEprom->BoardType!=32) {
+	if ((EEprom->BoardType!=32)&&(EEprom->BoardType!=33)) {
 	  fprintf (stderr,"Inconsistent board L:%d, K:%d definition for sensor %s\n",Linie,Knoten,ANodes[i]->Name) ;
 	  return (0) ;
 	};
       } ;
+      if (ANodes[i]->Data.Sensor.SensorTyp==S_LIGHT) {
+	EEprom->BoardType = 33 ;
+      } ;
+      
       MakeSensorConfig(ANodes[i],EEprom,0) ;
       break ;
     case N_SENS2:

@@ -89,7 +89,11 @@ int MakroVergleich (int a, int b, int Vergleich)
 
 int TimeCompare(struct tm *tm1, struct tm *tm2)
 {
+  if (tm1->tm_mday>tm2->tm_mday) return (0) ;
+  if (tm1->tm_mday<tm2->tm_mday) return (1) ;
+  if (tm1->tm_hour>tm2->tm_hour) return (0) ;
   if (tm1->tm_hour<tm2->tm_hour) return (1) ;
+  if (tm1->tm_min>tm2->tm_min) return (0) ;
   if (tm1->tm_min<tm2->tm_min) return (1) ;
   if (tm1->tm_sec<=tm2->tm_sec) return (1) ;
   return (0) ;
@@ -182,17 +186,17 @@ void StepMakros (void)
 	    } ;
 	    tm.tm_isdst = LTime->tm_isdst ;
 	    if (That->Value==1) { // Relativ (vor) zum Aufgang 
-	      tm.tm_hour -= SunRise.tm_hour ;
-	      tm.tm_min -= SunRise.tm_min ;
+	      tm.tm_hour = SunRise.tm_hour-tm.tm_hour ;
+	      tm.tm_min = SunRise.tm_min-tm.tm_min ;
 	    } else if (That->Value==2) { // Relativ (nach) zum Aufgang 
-	      tm.tm_hour += SunRise.tm_hour ;
-	      tm.tm_min += SunRise.tm_min ;
+	      tm.tm_hour = SunRise.tm_hour+tm.tm_hour ;
+	      tm.tm_min = SunRise.tm_min+tm.tm_min ;
 	    } else if (That->Value==3) { // Relativ (vor) zum Untergang 
-	      tm.tm_hour -= SunSet.tm_hour ;
-	      tm.tm_min -= SunSet.tm_min ;
+	      tm.tm_hour = SunSet.tm_hour-tm.tm_hour ;
+	      tm.tm_min = SunSet.tm_min-tm.tm_min ;
 	    } else if (That->Value==4) { // Relativ (nach) zum Untergang
-	      tm.tm_hour += SunSet.tm_hour ;
-	      tm.tm_min += SunSet.tm_min ;
+	      tm.tm_hour = SunSet.tm_hour+tm.tm_hour ;
+	      tm.tm_min = SunSet.tm_min+tm.tm_min ;
 	    } ;
 	    ActiveMacros[i].Delay.WaitTime.tv_sec = mktime(&tm) ; 
 	    ActiveMacros[i].Delay.WaitTime.tv_usec = 0 ; 
@@ -219,10 +223,14 @@ void StepMakros (void)
 	      continue; 
 	    } else {
 	      // Pruefen, ob ein Else-Zweig vorhanden ist...
+	      Caller = That ;
 	      for (That=That->Child;That!=NULL;That=That->Next) 
 		if (That->Type==N_ELSE) break ;
-	      if ((That!=NULL)&&(That->Next!=NULL)) This->Data.MakroStep = That->Next ;
-	      continue ;
+	      if ((That!=NULL)&&(That->Next!=NULL)) {
+		This->Data.MakroStep = That->Next ;
+	      } else {
+		That = Caller ;
+	      } ;
 	    } ;
 	  } else if (That->Type==N_SET) {
 	    Caller = FindNode(Haus->Child,That->Data.Wert.UnitName) ;
@@ -575,6 +583,13 @@ void HandleCANRequest(void)
       // Firmware-Update; send out next data
       
       SendFirmwareByte(FromLine,FromAdd,Data,Len) ;
+    } else if ((Data[0]==ANALOG_VAL)||(Data[0]==LIGHT_VAL)) { // Sensorwerte abspeichern
+      This = FindNodeAdress(Haus,ToLine,ToAdd,0,NULL) ;
+      if (This!=NULL) {
+	This->Value = Data[1]+(Data[2]<<8) ;
+      } else {
+	printf ("Configuration of sensor %d.%d is wrong (node %d.%d not found)\n",FromLine,FromAdd,ToLine,ToAdd) ;
+      }
     } ;
   } ;
 }
@@ -782,7 +797,7 @@ int HandleCommand (char *Command,int Socket)
   } ;
 
   if (strcmp(Com,"hws")==0) {
-    int LED,r,g,b,w ;
+    int LED,r,g,b;
     unsigned char rc,gc,bc ;
     sscanf (Command,"hws %d %d %d %d %d %d",&Line,&Add,&LED,&r,&g,&b) ;
     hsv_to_rgb(r,g,b,&rc,&gc,&bc) ;
@@ -1019,13 +1034,12 @@ int main(int argc, char **argv)
 
   // Makros starten
 
-  randomize() ;
   InitAlways() ;
   EveryDay () ;
   Day.tv_sec = time(NULL) ;
   Day.tv_usec = 0 ;
 
-  timeinfo = localtime(Day.tv_sec) ;
+  timeinfo = localtime(&Day.tv_sec) ;
   timeinfo->tm_mday++ ;
   timeinfo->tm_hour = 0 ;
   Day.tv_sec = mktime(timeinfo) ;
@@ -1061,7 +1075,7 @@ int main(int argc, char **argv)
     gettimeofday(&Now,NULL) ;
     if (Now.tv_sec>Day.tv_sec) { // another day gone
       EveryDay () ;
-      timeinfo = localtime(Day.tv_sec) ;
+      timeinfo = localtime(&Day.tv_sec) ;
       timeinfo->tm_mday++ ;
       Day.tv_sec = mktime(timeinfo) ;
     }

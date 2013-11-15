@@ -40,26 +40,30 @@ uint8_t spi_putc(uint8_t data)
   return SPDR;
 #elif defined (__AVR_ATtiny84__)
   USIDR=data;
-#asm volatile (
+  asm volatile (
+  "push r16\n\t"
+  "push r17\n\t"
   "ldi r16,17 ; (1<<USIWM0)|(0<<USICS0)|(1<<USITC)\n\t"
     "ldi r17,19 ; (1<<USIWM0)|(0<<USICS0)|(1<<USITC)|(1<<USICLK)\n\t"
-    "out USICR,r16\n\t"
-    "out USICR,r17\n\t"
-    "out USICR,r16\n\t"
-    "out USICR,r17\n\t"
-    "out USICR,r16\n\t"
-    "out USICR,r17\n\t"
-    "out USICR,r16\n\t"
-    "out USICR,r17\n\t"
-    "out USICR,r16\n\t"
-    "out USICR,r17\n\t"
-    "out USICR,r16\n\t"
-    "out USICR,r17\n\t"
-    "out USICR,r16\n\t"
-    "out USICR,r17\n\t"
-    "out USICR,r16\n\t"
-    "out USICR,r17\n\t"
-    ::"r16","r17"
+    "out 47-34,r16\n\t"
+    "out 47-34,r17\n\t"
+    "out 47-34,r16\n\t"
+    "out 47-34,r17\n\t"
+    "out 47-34,r16\n\t"
+    "out 47-34,r17\n\t"
+    "out 47-34,r16\n\t"
+    "out 47-34,r17\n\t"
+    "out 47-34,r16\n\t"
+    "out 47-34,r17\n\t"
+    "out 47-34,r16\n\t"
+    "out 47-34,r17\n\t"
+    "out 47-34,r16\n\t"
+    "out 47-34,r17\n\t"
+    "out 47-34,r16\n\t"
+    "out 47-34,r17\n\t"
+    "pop r17\n\t"
+    "pop r16\n\t"
+    ::
     ) ;
   return (USIDR) ;
 #else
