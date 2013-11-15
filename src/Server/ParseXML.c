@@ -105,6 +105,8 @@ struct TypSel Types[] = {
   {"Movement",S_BWM2},
   {"R_Monoflop",S_RETMONO},
   {"Analog",S_ANALOG},
+  {"Lichtsensor",S_LIGHT},
+  {"Lightsensor",S_LIGHT},
   {"Ausgang",S_OUTPUT},
   {"Output",S_OUTPUT},
   {"WSData",S_WSDATA},

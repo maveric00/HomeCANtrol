@@ -208,6 +208,9 @@ void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom,int Large)
   case S_BWM2:
     i = 7 ;
     break ;
+  case S_LIGHT:
+    i = 8 ;
+    break ;
   case S_SHADE_SHORTLONG:
     i = 2 ;
     break ;
@@ -236,7 +239,7 @@ void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom,int Large)
       EEprom->Data.Taster.REPEAT_END = Node->Data.Sensor.Ende ;
     } ;
   } ;
-  if ((i==3)||(i==4)||(i==5)||(i==6)||(i==7)) {
+  if ((i==3)||(i==4)||(i==5)||(i==6)||(i==7)||(i==8)) {
     Conf[P1-1].Data = Node->Data.Sensor.Intervall ;
   }  ;
   if (i==10) {
@@ -248,7 +251,7 @@ void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom,int Large)
     Func=NULL ;
     // Bestimmen, welche Funktion konfiguriert werden soll
     if ((Node->Data.Sensor.SensorTyp==S_SIMPLE)||(Node->Data.Sensor.SensorTyp==S_SHADE_SHORTLONG)
-	||(Node->Data.Sensor.SensorTyp==S_ANALOG)) Action->Data.Aktion.Short = 1 ; // Fuer die gibt es nur "Kurze" Konfigurationen
+	||(Node->Data.Sensor.SensorTyp==S_ANALOG)||(Node->Data.Sensor.SensorTyp==S_LIGHT)) Action->Data.Aktion.Short = 1 ; // Fuer die gibt es nur "Kurze" Konfigurationen
     if (Large==0) {
       if ((Action->Data.Aktion.StandAlone==1)&&(Action->Data.Aktion.Short==1)) Func=&(EEprom->Data.Sensor.Pin[P1-1].ShortAuto) ;
       if ((Action->Data.Aktion.StandAlone==1)&&(Action->Data.Aktion.Short==0)) Func=&(EEprom->Data.Sensor.Pin[P1-1].LongAuto) ;

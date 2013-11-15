@@ -17,6 +17,7 @@
 #include <util/delay.h>
 #include "../Common/mcp2515.h"
 #include "../Common/utils.h"
+#include "i2cmaster.h"
 
 /* EEProm-Belegung vom Boot-Loader:
    0   0xba
@@ -97,6 +98,7 @@
    20: WS2801 Clock
    21: WS2801 Data
 */
+
 #define I_SIMPLE    1
 #define I_SHORTLONG 2
 #define I_MONO      3
@@ -113,8 +115,7 @@
 
 #define MAX_LEDS 20
 
-#define LED0 B,0
-#define LED1 B,1
+#define I2C_ADDR (0x29)
 
 #define TIMER_PRESET 177
 
@@ -134,10 +135,6 @@ uint8_t  TimerStatus ;
 uint8_t  Type[6] ;
 uint8_t  Config[6];
 uint8_t  Running[6] ;
-volatile uint8_t  PWM[6] ;
-volatile uint8_t  PWMTime[6] ;
-volatile uint8_t  PWMPort[6] ;
-volatile uint8_t  PWMStep ;
 
 uint8_t  SOLL_WS[MAX_LEDS*3] ;
 volatile uint8_t  START_WS[MAX_LEDS*3] ;
@@ -216,7 +213,7 @@ void SetOutMessage (uint8_t BoardLine,uint16_t BoardAdd)
   Message.length = 1 ;
 }
 
-void SendPinMessage (uint8_t Pin, uint8_t Long,uint8_t SendData)
+void SendPinMessage (uint8_t Pin, uint8_t Long,uint8_t SendData, uint8_t SendData2)
 {
   uint8_t *Data ;
   uint16_t SendAdd ;
@@ -265,7 +262,7 @@ void SendPinMessage (uint8_t Pin, uint8_t Long,uint8_t SendData)
     Message.id = BuildCANId (0,0,BoardLine,BoardAdd,SendLine,SendAdd,0) ;
     Message.data[0] = Command ;
     Message.data[1] = (SendData==0)?eeprom_read_byte(Data+4):SendData ;
-    Message.data[2] = eeprom_read_byte(Data+5) ;
+    Message.data[2] = (SendData2==0)?eeprom_read_byte(Data+5):SendData2 ;
     Message.data[3] = eeprom_read_byte(Data+6) ;
     Message.data[4] = eeprom_read_byte(Data+7) ;
     Message.data[5] = eeprom_read_byte(Data+8) ;
@@ -405,22 +402,6 @@ uint8_t get_key_long( uint8_t key_mask )
 }
 
 
-// Sortieren der PWM-Tabelle und bestimmen der Einschaltzeiten
-void UpdatePWM (void)
-{
-  uint8_t i,j,k ;
-
-  for (i=0;i<6;i++) { PWMTime[i] = 0 ; PWMPort[i] = 0 ; } ;
-  for (i=0;i<6;i++) { // Alle durchgehen
-    for (j=0;j<i;j++) if (PWM[i]<PWMTime[j]) break ;
-    for (k=5;k>j;k--) { PWMTime[k] = PWMTime[k-1] ; PWMPort[k] = PWMPort[k-1] ; } ;
-    PWMTime[j] = PWM[i] ;
-    PWMPort[j] = i ;
-  } ;
-  for (i=0;i<5;i++) PWMTime[i] = PWMTime[i+1]-PWMTime[i] ;
-  PWMTime[5] = 255-PWMTime[4]-PWMTime[3]-PWMTime[2]-PWMTime[1]-PWMTime[0] ;
-}
-    
 // Anschalten des angegebenen Ports
 
 inline void PortOn(uint8_t Port)
@@ -444,18 +425,6 @@ inline void PortOff(uint8_t Port)
 }
   
 
-// Timer1-Interrup-Service-Routine der PWM-Generierung
-
-ISR(TIM1_COMPA_vect) 
-{
-  uint8_t i ;
-
-  if (PWMStep==0) { // Alle die nicht null sind anmachen
-    for (i=0;i<6;i++)
-      if (PWM[PWMPort[i]]!=0) PortOn(PWMPort[i]) ;
-  }   
-}
-
 // Initialisieren des MC und setzen der Port-Eigenschaften
 // in Abhaengigkeit von der Konfiguration
 
@@ -463,12 +432,6 @@ void InitMC (void)
 {
   uint8_t i ;
     
-  // Timer 1 OCRA1, als variablem Timer nutzen
-  TCCR1B = 2;             // Timer laeuft mit Prescaler/8
-  TCNT1 = 0;              // Timer auf Null stellen
-  OCR1A = 1000;           // Overflow auf 1000
-  TIMSK1 |= (1 << OCIE1A);   // Interrupt freischalten
-
   // Timer 0 als 10 ms-Timer verwenden
   TCCR0B = (1<<CS02)|(1<<CS00);  // divide by 1024
   TCNT0 = (uint8_t)TIMER_PRESET; // preload for 10ms
@@ -479,7 +442,6 @@ void InitMC (void)
     // Konfigurations-Byte lesen
     Type[i] = eeprom_read_byte((uint8_t*)(300+(i<<1))) ;
     Config[i] = eeprom_read_byte((uint8_t*)(301+(i<<1))) ;
-    PWM[i] = 0 ;
 
     switch (Type[i]) {
     case I_SIMPLE: // Klick-Input
@@ -512,6 +474,14 @@ void InitMC (void)
       ADMUX = i ; // VCC Reference voltage, PortA0-PortA2 als Eingang
       ADCSRB = 1<<4 ; // Right adjusted, Unipolar, No comparator, Free-Running
       ADCSRA = (1<<7)||(1<<6)||(1<<5)||(1<<2)||(1<<1)||(1<<0) ; // ADC Enable, ADC On, ADC FreeRun, Clock/128
+      break ;
+    case I_LIGHT:
+      // Initialisiere I2C und Lichtsensor
+      i2c_init() ;
+      i2c_start_wait(I2C_ADDR+I2C_WRITE) ;
+      i2c_write(0x80) ;
+      i2c_write(0x00) ;
+      i2c_stop() ;
       break ;
     case O_ONOFF: // Ein-Aus
     case O_PWM: // PWM
@@ -554,17 +524,17 @@ void InitMC (void)
 	DDRB |= (1<<(i-3)) ;
       } ;
       break ;
+    default:
+      break ;
     } ;
-  } ;	  
+  } ;
 }	
-
-
 
 // Hauptprogramm
  
 int main(void) 
 {
-  uint8_t r ;
+  uint8_t r,q ;
   uint8_t i ;
   uint16_t Addr ;
   
@@ -617,25 +587,25 @@ int main(void)
 	switch (Type[i]) {
 	case I_SIMPLE: // Einfacher Eingang
 	  if (get_key_press(1<<i)) {
-	    SendPinMessage(i,0,0) ;
+	    SendPinMessage(i,0,0,0) ;
 	  } ;
 	  break ;
 	case I_SHORTLONG: // Kurz oder lang gedrueckt
 	  if (get_key_short(1<<i)) {
-	    SendPinMessage(i,0,0) ;
+	    SendPinMessage(i,0,0,0) ;
 	  } else if (get_key_long(1<<i)) {
-	    SendPinMessage(i,1,0) ;
+	    SendPinMessage(i,1,0,0) ;
 	  } ;
 	  break ;
 	case I_MONO: // Nicht-Nachstellbares Monoflop
 	  if (Timers[i]==0) {
 	    if (get_key_press(1<<i)) {
-	      SendPinMessage(i,0,0) ;
+	      SendPinMessage(i,0,0,0) ;
 	      Timers[i] = ((uint16_t)Config[i])*100 ;
 	      TimerStatus |= 1<<i ;
 	    } else {
 	      if ((TimerStatus&(1<<i))>0) {
-     		SendPinMessage(i,1,0) ;
+     		SendPinMessage(i,1,0,0) ;
 	    	TimerStatus &= ~(1<<i) ;
 	      } ;
 	    } ;
@@ -644,14 +614,14 @@ int main(void)
 	case I_RETRIG: // Nachstellbares Monoflop
 	  if (get_key_press(1<<i)) {
 	    if (Timers[i]==0) {
-	      SendPinMessage(i,0,0) ;
+	      SendPinMessage(i,0,0,0) ;
 	    } ;
 	    Timers[i] = ((uint16_t)Config[i])*100 ;
 	    TimerStatus |= 1<<i ;
 	  } ;
 	  if (Timers[i]==0) {
 	    if ((TimerStatus&(1<<i))>0) {
-	      SendPinMessage(i,1,0) ;
+	      SendPinMessage(i,1,0,0) ;
 	      TimerStatus &= ~(1<<i) ;
 	    } ;
 	  } ;
@@ -662,14 +632,14 @@ int main(void)
 	  if (Type[i]==I_BWM2) r=!r ;
 	  if (r) {
 	    if (Timers[i]==0) {
-	      SendPinMessage(i,0,0) ;
+	      SendPinMessage(i,0,0,0) ;
 	    } ;
 	    Timers[i] = ((uint16_t)Config[i])*100 ;
 	    TimerStatus |= 1<<i ;
 	  } ;
 	  if (Timers[i]==0) {
 	    if ((TimerStatus&(1<<i))>0) {
-	      SendPinMessage(i,1,0) ;
+	      SendPinMessage(i,1,0,0) ;
 	      TimerStatus &= ~(1<<i) ;
 	    } ;
 	  } ;
@@ -678,7 +648,18 @@ int main(void)
 	case I_ANALOG: // Analog-Input, wird alle ConfigByte-Sekunden auf dem Bus ausgegeben.
 	  if (Timers[i]==0) {
 	    r = ADCH ;
-	    SendPinMessage(i,0,r) ;
+	    SendPinMessage(i,0,r,0) ;
+	    Timers[i] = ((uint16_t)Config[i])*100 ;
+	  } ;
+	case I_LIGHT: // Lichtsensor, wird alle ConfigByte-Sekunden auf dem Bus ausgegeben.
+	  if (Timers[i]==0) {
+	    i2c_start_wait(I2C_ADDR+I2C_WRITE) ;
+	    i2c_write(0x84) ;
+	    i2c_stop();
+	    i2c_start_wait(I2C_ADDR+I2C_READ) ;
+	    r=i2c_readAck() ;
+	    q=i2c_readNak() ;
+	    SendPinMessage(i,0,r,q) ;
 	    Timers[i] = ((uint16_t)Config[i])*100 ;
 	  } ;
 	} ;
@@ -773,7 +754,11 @@ int main(void)
     case SET_PIN:
       if (Message.data[1]>5) break; // Illegaler PIN
       if ((Type[Message.data[1]]!=O_ONOFF)&&(Type[Message.data[1]]!=O_PWM)) break ; // Illegaler PIN
-      PWM[Message.data[1]] = Message.data[2] ;
+      if (Message.data[2]>0) {
+	PortOn(Message.data[1]) ;
+      } else {
+	PortOff(Message.data[1]) ;
+      }; 
       break ;
     case LOAD_LED:
       r = Message.data[1] ;

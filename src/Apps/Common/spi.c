@@ -38,6 +38,30 @@ uint8_t spi_putc(uint8_t data)
   while( !( SPSR & (1<<SPIF) ) );
   
   return SPDR;
+#elif defined (__AVR_ATtiny84__)
+  USIDR=data;
+#asm volatile (
+  "ldi r16,17 ; (1<<USIWM0)|(0<<USICS0)|(1<<USITC)\n\t"
+    "ldi r17,19 ; (1<<USIWM0)|(0<<USICS0)|(1<<USITC)|(1<<USICLK)\n\t"
+    "out USICR,r16\n\t"
+    "out USICR,r17\n\t"
+    "out USICR,r16\n\t"
+    "out USICR,r17\n\t"
+    "out USICR,r16\n\t"
+    "out USICR,r17\n\t"
+    "out USICR,r16\n\t"
+    "out USICR,r17\n\t"
+    "out USICR,r16\n\t"
+    "out USICR,r17\n\t"
+    "out USICR,r16\n\t"
+    "out USICR,r17\n\t"
+    "out USICR,r16\n\t"
+    "out USICR,r17\n\t"
+    "out USICR,r16\n\t"
+    "out USICR,r17\n\t"
+    ::"r16","r17"
+    ) ;
+  return (USIDR) ;
 #else
   // SW SPI on ATTiny, ist auch nicht besonders viel langsamer
   // als die HW-Unterstuetze Variante
