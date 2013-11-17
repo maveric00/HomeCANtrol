@@ -250,12 +250,12 @@ void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom,int Large)
     if (P1!=1) {
       printf ("Light sensor %s on wrong port: %d\n",Node->Name,P1) ;
     } else {
-      EEprom->Data.Sensor.Pin[0].ShortAuto.TargetAdd[0]=0 ;
-      EEprom->Data.Sensor.Pin[0].ShortAuto.TargetAdd[1]=1 ;
+      EEprom->Data.Sensor.Pin[0].ShortAuto.TargetAdd[0]=1 ;
+      EEprom->Data.Sensor.Pin[0].ShortAuto.TargetAdd[1]=0 ;
       EEprom->Data.Sensor.Pin[0].ShortAuto.TargetLine=0 ;
       EEprom->Data.Sensor.Pin[0].ShortAuto.Command=LIGHT_VAL ;
-      EEprom->Data.Sensor.Pin[0].ShortMaster.TargetAdd[0]=0 ;
-      EEprom->Data.Sensor.Pin[0].ShortMaster.TargetAdd[1]=1 ;
+      EEprom->Data.Sensor.Pin[0].ShortMaster.TargetAdd[0]=1 ;
+      EEprom->Data.Sensor.Pin[0].ShortMaster.TargetAdd[1]=0 ;
       EEprom->Data.Sensor.Pin[0].ShortMaster.TargetLine=0 ;
       EEprom->Data.Sensor.Pin[0].ShortMaster.Command=LIGHT_VAL ;
     } ;
@@ -746,7 +746,11 @@ void SendFirmware(char Linie, USHORT Knoten)
       TypCode = 16 ;
       break ;
     case N_SENSOR:
-      TypCode = 32 ;
+      if (ANodes[0]->Data.Sensor.SensorTyp!=S_LIGHT) {
+	TypCode = 32 ;
+      } else {
+	TypCode = 33 ;
+      } ;
       break ;
     case N_SENS2:
       TypCode = 48 ;

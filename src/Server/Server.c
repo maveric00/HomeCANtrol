@@ -168,7 +168,7 @@ void StepMakros (void)
 	      tm.tm_mday = LTime->tm_mday ;
 	      tm.tm_mon = LTime->tm_mon ;
 	      tm.tm_year = LTime->tm_year ;
-	      if (TimeCompare(&tm,LTime)==1) tm.tm_mday++ ;
+	      if ((That->Value==0)&&(TimeCompare(&tm,LTime)==1)) tm.tm_mday++ ;
 	    } else if(strptime(That->Data.Wert.Wert,"%M:%S",&tm)!=NULL) {
 	      tm.tm_hour = LTime->tm_hour ;
 	      tm.tm_mday = LTime->tm_mday ;
@@ -188,15 +188,19 @@ void StepMakros (void)
 	    if (That->Value==1) { // Relativ (vor) zum Aufgang 
 	      tm.tm_hour = SunRise.tm_hour-tm.tm_hour ;
 	      tm.tm_min = SunRise.tm_min-tm.tm_min ;
+	      if (mktime(&tm)<tim+600) tm.tm_mday++ ;
 	    } else if (That->Value==2) { // Relativ (nach) zum Aufgang 
 	      tm.tm_hour = SunRise.tm_hour+tm.tm_hour ;
 	      tm.tm_min = SunRise.tm_min+tm.tm_min ;
+	      if (mktime(&tm)<tim+600) tm.tm_mday++ ;
 	    } else if (That->Value==3) { // Relativ (vor) zum Untergang 
 	      tm.tm_hour = SunSet.tm_hour-tm.tm_hour ;
 	      tm.tm_min = SunSet.tm_min-tm.tm_min ;
+	      if (mktime(&tm)<tim+600) tm.tm_mday++ ;
 	    } else if (That->Value==4) { // Relativ (nach) zum Untergang
 	      tm.tm_hour = SunSet.tm_hour+tm.tm_hour ;
 	      tm.tm_min = SunSet.tm_min+tm.tm_min ;
+	      if (mktime(&tm)<tim+600) tm.tm_mday++ ;
 	    } ;
 	    ActiveMacros[i].Delay.WaitTime.tv_sec = mktime(&tm) ; 
 	    ActiveMacros[i].Delay.WaitTime.tv_usec = 0 ; 
@@ -584,7 +588,7 @@ void HandleCANRequest(void)
       
       SendFirmwareByte(FromLine,FromAdd,Data,Len) ;
     } else if ((Data[0]==ANALOG_VAL)||(Data[0]==LIGHT_VAL)) { // Sensorwerte abspeichern
-      This = FindNodeAdress(Haus,ToLine,ToAdd,0,NULL) ;
+      This = FindNodeAdress(Haus,FromLine,FromAdd,1,NULL) ;
       if (This!=NULL) {
 	This->Value = Data[1]+(Data[2]<<8) ;
       } else {
@@ -825,11 +829,25 @@ int HandleCommand (char *Command,int Socket)
       if (ActiveMacros[i].Macro!=NULL) {
 	Makro[0]='\0' ;
 	FullObjectName(ActiveMacros[i].Macro,Makro) ;
-	sprintf (Answer,"Macro: %s\r\n",Makro) ;
+	if (ActiveMacros[i].DelayType==W_MACRO) {
+	  sprintf (Answer,"Macro: %s waiting for macro %s\r\n",Makro,ActiveMacros[i].Delay.WaitNode->Name) ;
+	} else if ((ActiveMacros[i].DelayType==W_DELAY)||(ActiveMacros[i].DelayType==W_TIME)) {
+	  struct tm *LTime ;
+	  LTime=localtime(&ActiveMacros[i].Delay.WaitTime.tv_sec) ;
+	  sprintf (Answer,"Macro: %s waiting until Day %d, Hour %d, minute %d\r\n",Makro,LTime->tm_mday,LTime->tm_hour,LTime->tm_min) ;
+	} else{
+	  sprintf (Answer,"Macro: %s\r\n",Makro) ;
+	} ;
 	send(Socket,Answer,strlen(Answer),0) ;
       } ;
     } ;
     return (TRUE); 
+  } ;
+
+  if (strcmp(Com,"show")==0) {
+    sprintf (Answer,"Value: %d\r\n",MenuCurrent->Value) ;
+    send(Socket,Answer,strlen(Answer),0) ;
+    return (TRUE) ;
   } ;
   
   if (strcmp(Com,"exit")==0) {

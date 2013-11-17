@@ -829,6 +829,9 @@
 	<Adresse linie="0" knoten="200" port="33"/>
 	<Aktion kommando="Aus" objekt="Obergeschoss/Arbeit/SteckdoseRechts"/>
       </Makro>
+      <Sensor name="BWM1" typ="Lichtsensor" intervall="10">
+	<Adresse linie="3" knoten="54" port="1"/>
+      </Sensor>
     </Zimmer>
     <Makro name="Aus">
       <Adresse linie="0" knoten="200" port="34"/>

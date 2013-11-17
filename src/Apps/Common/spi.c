@@ -38,33 +38,13 @@ uint8_t spi_putc(uint8_t data)
   while( !( SPSR & (1<<SPIF) ) );
   
   return SPDR;
-#elif defined (__AVR_ATtiny84__)
-  USIDR=data;
-  asm volatile (
-  "push r16\n\t"
-  "push r17\n\t"
-  "ldi r16,17 ; (1<<USIWM0)|(0<<USICS0)|(1<<USITC)\n\t"
-    "ldi r17,19 ; (1<<USIWM0)|(0<<USICS0)|(1<<USITC)|(1<<USICLK)\n\t"
-    "out 47-34,r16\n\t"
-    "out 47-34,r17\n\t"
-    "out 47-34,r16\n\t"
-    "out 47-34,r17\n\t"
-    "out 47-34,r16\n\t"
-    "out 47-34,r17\n\t"
-    "out 47-34,r16\n\t"
-    "out 47-34,r17\n\t"
-    "out 47-34,r16\n\t"
-    "out 47-34,r17\n\t"
-    "out 47-34,r16\n\t"
-    "out 47-34,r17\n\t"
-    "out 47-34,r16\n\t"
-    "out 47-34,r17\n\t"
-    "out 47-34,r16\n\t"
-    "out 47-34,r17\n\t"
-    "pop r17\n\t"
-    "pop r16\n\t"
-    ::
-    ) ;
+#elif defined (__AVR_ATtiny884__)
+  USIDR = data;
+  USISR = _BV(USIOIF);
+  do {
+    USICR = _BV(USIWM0) | _BV(USICS1) | _BV(USICS0)|
+      _BV(USICLK) | _BV(USITC);
+  } while ((USISR & _BV(USIOIF)) == 0);
   return (USIDR) ;
 #else
   // SW SPI on ATTiny, ist auch nicht besonders viel langsamer

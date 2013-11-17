@@ -115,7 +115,7 @@
 
 #define MAX_LEDS 20
 
-#define I2C_ADDR (0x29)
+#define I2C_ADDR (0x29*2)
 
 #define TIMER_PRESET 177
 
@@ -480,6 +480,10 @@ void InitMC (void)
       i2c_init() ;
       i2c_start_wait(I2C_ADDR+I2C_WRITE) ;
       i2c_write(0x80) ;
+      i2c_write(0x03) ;
+      i2c_stop() ;
+      i2c_start_wait(I2C_ADDR+I2C_WRITE) ;
+      i2c_write(0x81) ;
       i2c_write(0x00) ;
       i2c_stop() ;
       break ;
