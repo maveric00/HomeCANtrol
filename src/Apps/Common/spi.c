@@ -38,37 +38,90 @@ uint8_t spi_putc(uint8_t data)
   while( !( SPSR & (1<<SPIF) ) );
   
   return SPDR;
-#else
+#elif defined (__AVR_ATtiny84__)
+
   // USI can not be used as ATTiny, as DO is matched to MISO,
   // not MOSI - would need different PCB layout
   // SW SPI on ATTiny, ist auch nicht besonders viel langsamer
   // als die HW-Unterstuetze Variante
-  uint8_t data_in = 0;
   
-  /* Schnelle Version:
-  ldi r25,#0 ; Output vorbereiten
-  in r15,PORTA
-  andi r15,~P_SCK
-  mov r16,r15
-  ori r15,P_MOSI
-  out PORTA,r16
+  asm volatile (
+  "ldi r25,0x00 ; Initialize result\n\t"
+  "in r18,0x1b ; read port setting\n\t"
+  "andi r18,0xef; mask P_SCK\n\t"
+  "mov r19,r18 ; copy \n\t"
+  "ori r18,0x40 ; or P_MOSI\n\t"
 
-  sbrc r25,7      ;2  low
-  out PORTA,r15   ;1  low
-  sbi PORTA,P_SCK ;2  low->high
-  sbic P_MISO     ;2  high
-  sec             ;1  high
-  rol r24         ;1  high
-  out PORTA,r16   ;1  high->low
+  "out 0x1b,r19 ; P_SCK to low\n\t"
 
-  sbrc r25,6      ;2  low
-  out PORTA,r15   ;1  low
-  sbi PORTA,P_SCK ;2  low->high
-  sbic P_MISO     ;2  high
-  sec             ;1  high
-  rol r24         ;1  high
-  out PORTA,r16   ;1  high->low
-  */
+  "sbrc r24,7      ; check bit 7 2  low\n\t"
+  "out 0x1b,r18   ; out P_MOSI1  low\n\t"
+  "sbi 0x1b,4     ; set HIGH 2  low->high\n\t"
+  "sbic 0x19,5    ; check P_MISO 2  high\n\t"
+  "sec            ; if set, set carry1  high\n\t"
+  "rol r25        ; rotate left with carry 1  high\n\t"
+  "out 0x1b,r19   ; P_SCK to low (without MOSI) 1  high->low\n\t"
+
+  "sbrc r24,6      ; check bit 7 2  low\n\t"
+  "out 0x1b,r18   ; out P_MOSI1  low\n\t"
+  "sbi 0x1b,4     ; set HIGH 2  low->high\n\t"
+  "sbic 0x19,5    ; check P_MISO 2  high\n\t"
+  "sec            ; if set, set carry1  high\n\t"
+  "rol r25        ; rotate left with carry 1  high\n\t"
+  "out 0x1b,r19   ; P_SCK to low (without MOSI) 1  high->low\n\t"
+
+  "sbrc r24,5      ; check bit 7 2  low\n\t"
+  "out 0x1b,r18   ; out P_MOSI1  low\n\t"
+  "sbi 0x1b,4     ; set HIGH 2  low->high\n\t"
+  "sbic 0x19,5    ; check P_MISO 2  high\n\t"
+  "sec            ; if set, set carry1  high\n\t"
+  "rol r25        ; rotate left with carry 1  high\n\t"
+  "out 0x1b,r19   ; P_SCK to low (without MOSI) 1  high->low\n\t"
+
+  "sbrc r24,4      ; check bit 7 2  low\n\t"
+  "out 0x1b,r18   ; out P_MOSI1  low\n\t"
+  "sbi 0x1b,4     ; set HIGH 2  low->high\n\t"
+  "sbic 0x19,5    ; check P_MISO 2  high\n\t"
+  "sec            ; if set, set carry1  high\n\t"
+  "rol r25        ; rotate left with carry 1  high\n\t"
+  "out 0x1b,r19   ; P_SCK to low (without MOSI) 1  high->low\n\t"
+
+  "sbrc r24,3      ; check bit 7 2  low\n\t"
+  "out 0x1b,r18   ; out P_MOSI1  low\n\t"
+  "sbi 0x1b,4     ; set HIGH 2  low->high\n\t"
+  "sbic 0x19,5    ; check P_MISO 2  high\n\t"
+  "sec            ; if set, set carry1  high\n\t"
+  "rol r25        ; rotate left with carry 1  high\n\t"
+  "out 0x1b,r19   ; P_SCK to low (without MOSI) 1  high->low\n\t"
+
+  "sbrc r24,2      ; check bit 7 2  low\n\t"
+  "out 0x1b,r18   ; out P_MOSI1  low\n\t"
+  "sbi 0x1b,4     ; set HIGH 2  low->high\n\t"
+  "sbic 0x19,5    ; check P_MISO 2  high\n\t"
+  "sec            ; if set, set carry1  high\n\t"
+  "rol r25        ; rotate left with carry 1  high\n\t"
+  "out 0x1b,r19   ; P_SCK to low (without MOSI) 1  high->low\n\t"
+
+  "sbrc r24,1      ; check bit 7 2  low\n\t"
+  "out 0x1b,r18   ; out P_MOSI1  low\n\t"
+  "sbi 0x1b,4     ; set HIGH 2  low->high\n\t"
+  "sbic 0x19,5    ; check P_MISO 2  high\n\t"
+  "sec            ; if set, set carry1  high\n\t"
+  "rol r25        ; rotate left with carry 1  high\n\t"
+  "out 0x1b,r19   ; P_SCK to low (without MOSI) 1  high->low\n\t"
+
+  "sbrc r24,0      ; check bit 7 2  low\n\t"
+  "out 0x1b,r18   ; out P_MOSI1  low\n\t"
+  "sbi 0x1b,4     ; set HIGH 2  low->high\n\t"
+  "sbic 0x19,5    ; check P_MISO 2  high\n\t"
+  "sec            ; if set, set carry1  high\n\t"
+  "rol r25        ; rotate left with carry 1  high\n\t"
+  "out 0x1b,r19   ; P_SCK to low (without MOSI) 1  high->low\n\t"
+  "mov r24,r25    ; copy to output \n\t"
+  ::) ;
+
+#else
+  uint8_t data_in = 0;
 
   RESET(P_SCK);
   for (uint8_t i=0;i<8;i++)
