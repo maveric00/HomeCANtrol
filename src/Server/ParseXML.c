@@ -1182,11 +1182,14 @@ void CalcSun (void)
 
   time (&CurrentTime) ;
   
-  tim = localtime(&CurrentTime) ;
-  Day = (double)tim->tm_yday ;
-  TimeZone = (double)tim->tm_hour ;
+
   tim = gmtime(&CurrentTime) ;
-  TimeZone = TimeZone-(double)tim->tm_hour ;
+  TimeZone = (double)tim->tm_hour ;
+  tim = localtime(&CurrentTime) ;
+  TimeZone = (double)tim->tm_hour-TimeZone ;
+  if ((TimeZone<0)&&(West<0)) TimeZone+=24 ;
+  if ((TimeZone>0)&&(West>=0)) TimeZone-=24 ;
+  Day = (double)tim->tm_yday ;
   
   SunRise.tm_mday = SunSet.tm_mday = tim->tm_mday ;
   SunRise.tm_mon = SunSet.tm_mon = tim->tm_mon ;

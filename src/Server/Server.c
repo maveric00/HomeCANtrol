@@ -188,19 +188,19 @@ void StepMakros (void)
 	    if (That->Value==1) { // Relativ (vor) zum Aufgang 
 	      tm.tm_hour = SunRise.tm_hour-tm.tm_hour ;
 	      tm.tm_min = SunRise.tm_min-tm.tm_min ;
-	      if (mktime(&tm)<tim+600) tm.tm_mday++ ;
+	      for (;mktime(&tm)<(tim+600);) tm.tm_mday++ ;
 	    } else if (That->Value==2) { // Relativ (nach) zum Aufgang 
 	      tm.tm_hour = SunRise.tm_hour+tm.tm_hour ;
 	      tm.tm_min = SunRise.tm_min+tm.tm_min ;
-	      if (mktime(&tm)<tim+600) tm.tm_mday++ ;
+	      for (;mktime(&tm)<(tim+600);) tm.tm_mday++ ;
 	    } else if (That->Value==3) { // Relativ (vor) zum Untergang 
 	      tm.tm_hour = SunSet.tm_hour-tm.tm_hour ;
 	      tm.tm_min = SunSet.tm_min-tm.tm_min ;
-	      if (mktime(&tm)<tim+600) tm.tm_mday++ ;
+	      for (;mktime(&tm)<(tim+600);) tm.tm_mday++ ;
 	    } else if (That->Value==4) { // Relativ (nach) zum Untergang
 	      tm.tm_hour = SunSet.tm_hour+tm.tm_hour ;
 	      tm.tm_min = SunSet.tm_min+tm.tm_min ;
-	      if (mktime(&tm)<tim+600) tm.tm_mday++ ;
+	      for (;mktime(&tm)<(tim+600);) tm.tm_mday++ ;
 	    } ;
 	    ActiveMacros[i].Delay.WaitTime.tv_sec = mktime(&tm) ; 
 	    ActiveMacros[i].Delay.WaitTime.tv_usec = 0 ; 
