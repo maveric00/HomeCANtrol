@@ -36,7 +36,6 @@ int IsMakro (struct Node *This)
 	  (This->Type==N_ELSE)||(This->Type==N_WAITFOR)) ;
 } ;
 
-
 void ExecuteMakro (struct Node *Makro)
 {
   struct Node *This ;
@@ -54,6 +53,7 @@ void ExecuteMakro (struct Node *Makro)
   for (i=0;i<MAX_ACTIVEMACROS-1;i++) if (ActiveMacros[i].Macro==NULL) break ;
   
   ActiveMacros[i].Macro = Makro ;
+  ActiveMacros[i].DelayType= 0 ;
 }
 
 void ExecuteSeq (struct Node *Action)
@@ -78,13 +78,6 @@ void ExecuteSeq (struct Node *Action)
   This->Action = Action ;
   for (i=0;i<MAX_ACTIVEMACROS-1;i++) if (ActiveSeq[i]==NULL) break ;
   ActiveSeq[i]=This ;
-}
-
-int MakroVergleich (int a, int b, int Vergleich)
-{
-  if (Vergleich==-1) return (a<b) ;
-  if (Vergleich==1) return (a>b) ;
-  return (a==b); 
 }
 
 int TimeCompare(struct tm *tm1, struct tm *tm2)
@@ -134,8 +127,7 @@ void StepMakros (void)
 	    if (timercmp(&Now,&ActiveMacros[i].Delay.WaitTime,>)) ActiveMacros[i].DelayType=0 ;
 	  } else if (ActiveMacros[i].DelayType==W_VALUE) {
 	    That = ActiveMacros[i].Delay.WaitNode ;
-	    Caller = FindNode(Haus->Child,That->Data.Wert.UnitName) ;
-	    if ((Caller==NULL)||(MakroVergleich(Caller->Value,CalcValue(That->Data.Wert.Wert),That->Data.Wert.Vergleich))) {
+	    if (CalcValue(That->Data.Wert.Wert)) {
 	      ActiveMacros[i].DelayType=0 ;
 	    }; 
 	  };
@@ -351,7 +343,7 @@ void StepSeq (void)
 	for (j=0;j<Current->DataLen;j++) 
 	  if (Current->Var[j]<10) Current->Data[j]=ActiveSeq[i]->Vars[Current->Var[j]] ;
 
-      // HSV-Werte nach RGB wandeln
+	// HSV-Werte nach RGB wandeln
 	for (k=0;k<Current->DataLen;k+=3) {
 	  Vals[k]=Current->Data[k] ;
 	  Vals[k+1]=Current->Data[k+1] ;

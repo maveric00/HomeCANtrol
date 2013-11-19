@@ -315,20 +315,6 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       if ((strcmp(attr[i],"wert")==0)||(strcmp(attr[i],"value")==0)) {
 	strncpy(Current->Data.Wert.Wert,attr[i+1],NAMELEN*2) ;
       } ;
-      if ((strcmp(attr[i],"vergleich")==0)||(strcmp(attr[i],"comparison")==0)) {
-	switch (attr[i+1][0]) {
-	case '<':
-	  Current->Data.Wert.Vergleich = -1 ;
-	  break ;
-	case '>':
-	  Current->Data.Wert.Vergleich = 1 ;
-	  break ;
-	case '=':
-	default:
-	  Current->Data.Wert.Vergleich = 0 ;
-	  break ;
-	} ;
-      } ;
       break ;
     case N_VAR:
       if ((strcmp(attr[i],"wert")==0)||(strcmp(attr[i],"value")==0)) {

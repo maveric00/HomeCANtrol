@@ -127,7 +127,6 @@ struct Aktion {
 struct Werte {
   char UnitName[NAMELEN*4] ;
   char Wert[NAMELEN*2] ;
-  int Vergleich ;
 } ;
 
 struct Program {

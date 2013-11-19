@@ -794,30 +794,20 @@ void SendFirmware(char Linie, USHORT Knoten)
 #ifdef DEBUG
   fprintf (stderr,"Sending Firmware %s\n",FNodes[i]->Name) ;
 #endif
-
-  FileSize = LoadIHexFile(FNodes[i]->Name,0) ;
-  if (FileSize<=0) {
+  
+  Firmware->Data.Code=NULL ;
+  
+  FileSize = LoadIHexFile(FNodes[i]->Name,&(Firmware->Data.Code)) ;
+  if (FileSize<0) {
     // Fuer den Typ gibt es keine Firmware
     if (Firmware==FirmwareList) FirmwareList=Firmware->Next ;
     // Geladene Firmware freigeben
     FreeItem(Firmware) ;
 #ifdef DEBUG
-  fprintf (stderr,"Sending Firmware %s\n",FNodes[i]->Name) ;
+  fprintf (stderr,"Firmware %s not found\n",FNodes[i]->Name) ;
 #endif
     return ;
   }
-
-  Firmware->Data.Code = malloc (sizeof(char)*(FileSize+256)) ;
-
-  if (Firmware->Data.Code==NULL) {
-    fprintf (stderr,"OutOfMemory in SendFirmware !\n") ;
-    exit(1) ;
-  }
-  
-  // Geladene Firware in den Puffer uebertragen
-  
-  for (i=0;i<FileSize;i++) Firmware->Data.Code[i]=FileBuffer[i] ;
-  for (;i<FileSize+255;i++) Firmware->Data.Code[i] = 0xFF ;
 
   Firmware->Number = FileSize ;
   Firmware->Counter= 0 ;
