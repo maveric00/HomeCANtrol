@@ -809,12 +809,17 @@ void SendFirmware(char Linie, USHORT Knoten)
     return ;
   }
 
+
+
   Firmware->Number = FileSize ;
   Firmware->Counter= 0 ;
   Firmware->Linie = Linie ;
   Firmware->Knoten = Knoten ;
   Firmware->State = 0 ;
   Firmware->Package = 0 ;
+#ifdef DEBUG
+  fprintf (stderr,"Read %d bytes\n",Firmware->Number) ;
+#endif
 
   // Reset des Knotens loest Anfrage nach Firmwareupdate aus...
 #ifdef DEBUG
@@ -852,6 +857,7 @@ void SendFirmwareByte (char Linie, USHORT Knoten,unsigned char *Response, char R
     fprintf (stderr,"Received Firmware communication without request\n") ;
     return ; // Es steht kein Update an...
   } ;
+
 
   CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
   
@@ -928,7 +934,7 @@ void SendFirmwareByte (char Linie, USHORT Knoten,unsigned char *Response, char R
     Len = 2 ;
     SendCANMessage(CANID,Len,Data) ;
 #ifdef DEBUG
-    fprintf (stderr,"\nFirmware %d bytes transferred, starting application\n",Firmware->Counter) ;
+    fprintf (stderr,"\nFirmware %d bytes of %d transferred, starting application\n",Firmware->Counter,Firmware->Number) ;
 #endif
     Firmware->State=4 ;
     return ;

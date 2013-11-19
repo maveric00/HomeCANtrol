@@ -676,6 +676,8 @@ int main(void)
     // Sende-Addresse zusammenstoepseln (enthält auch die Quelladdresse aus Message,
     // ueberschreibt dann die In-Message)
     SetOutMessage(BoardLine,BoardAdd) ;
+    //    Message.length = 6 ;
+    //    mcp2515_send_message(&Message) ;
 
     // Befehl abarbeiten
     switch (r) {

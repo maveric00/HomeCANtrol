@@ -16,7 +16,7 @@
 
 /* Einzelne Hex-Zahlen einlesen */
 
-Mstatic int ScanHex(char **sp, int len, USHORT *result)
+static int ScanHex(char **sp, int len, USHORT *result)
 {
   char cifra[20];
   int j;
@@ -109,15 +109,15 @@ int LoadIHexFile (char *FileName, u_char** FileBuffer)
   USHORT data;
   USHORT rectype;
   
-  *FileBuffer = malloc(sizeof(u_char)*516) ; // 4 Bytes as reserve
+  *FileBuffer = malloc(sizeof(u_char)*576) ; // 64 Bytes as reserve
   if (*FileBuffer==NULL) {
     printf ("Out of mem in LoadIHex\n") ;
     exit (1) ;
   }; 
   
-  endp = FileBuffer + 512;
+  endp = *FileBuffer + 512;
   
-  dp = FileBuffer;
+  dp = *FileBuffer;
   
   if ( (fh = fopen(FileName, "r")) == NULL )
     return FILENOTFOUND;
@@ -161,8 +161,9 @@ int LoadIHexFile (char *FileName, u_char** FileBuffer)
     //Data Byte
     if (rectype == DATA_RECORD) {
       //buffer overflow
-      if (dp+laddr+bcount > endp) {
-	*FileBuffer= realloc(FileBuffer, laddr+bcount+4) ; // 4 bytes as reserve
+      if (dp+laddr+bcount >= endp) {
+	*FileBuffer= realloc(*FileBuffer, laddr+bcount+64) ; // 64 bytes as reserve
+	dp = *FileBuffer ;
 	if (*FileBuffer==NULL) {
 	  printf ("Out of mem in LoadIHex\n") ;
 	  exit (1) ;
