@@ -13,15 +13,6 @@
 #include <ctype.h>
 #include "IHex.h"
 
-typedef unsigned long ULONG ;
-typedef unsigned short USHORT ;
-#ifndef TRUE
-#define TRUE (0==0)
-#endif
-#ifndef FALSE
-#define FALSE (0==1)
-#endif
-
 
 /* Einzelne Hex-Zahlen einlesen */
 
@@ -118,7 +109,7 @@ int LoadIHexFile (char *FileName, u_char** FileBuffer)
   USHORT data;
   USHORT rectype;
   
-  *FileBuffer = malloc(sizeof(u_char)*512) ;
+  *FileBuffer = malloc(sizeof(u_char)*516) ; // 4 Bytes as reserve
   if (*FileBuffer==NULL) {
     printf ("Out of mem in LoadIHex\n") ;
     exit (1) ;
@@ -171,7 +162,7 @@ int LoadIHexFile (char *FileName, u_char** FileBuffer)
     if (rectype == DATA_RECORD) {
       //buffer overflow
       if (dp+laddr+bcount > endp) {
-	*FileBuffer= realloc(FileBuffer, laddr+bcount) ;
+	*FileBuffer= realloc(FileBuffer, laddr+bcount+4) ; // 4 bytes as reserve
 	if (*FileBuffer==NULL) {
 	  printf ("Out of mem in LoadIHex\n") ;
 	  exit (1) ;
