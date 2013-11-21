@@ -22,6 +22,9 @@
 #include "artnet.h"
 #include "packets.h"
 
+#define TRUE (1==1)
+#define FALSE (1==0)
+
 artnet_node node1, node2;
 
 char *CommandName[]={
@@ -44,30 +47,30 @@ char *CommandName[]={
   "Undefined (17)",
   "Undefined (18)",
   "Undefined (19)",
-  "Channel on",
-  "Channel off",
-  "Channel toggle",
-  "Shade up (full)",
-  "Shade down (full)",
-  "Shade up (short)",
-  "Shade down (short)",
-  "Send LEDPort",
+  "Channel on", //20
+  "Channel off", //21
+  "Channel toggle", //22
+  "Shade up (full)", //23
+  "Shade down (full)", //24
+  "Shade up (short)", //25
+  "Shade down (short)",//26
+  "Send LEDPort", //27
   "Undefined (28)",
   "Undefined (29)",
-  "LED off",
-  "LED on",
-  "Set to",
-  "HSet to",
-  "Load and store",
-  "Set to G1",
-  "Set to G2",
-  "Set To G3",
-  "Load Low",
-  "Load Mid1",
-  "Load Mid2",
-  "Load High",
-  "Start program",
-  "Stop program",
+  "Set to", //30
+  "HSet to", //31
+  "Load and store", //32
+  "Set to G1", //33
+  "Set to G2", //34
+  "Set To G3", //35
+  "Load program", //36
+  "Start program", //37
+  "Stop program", //38
+  "Dim to", //39
+  "HDim to", //40
+  "Load two LEDs", //41
+  "Undefined (42)", //42
+  "Undefined (43)", 
   "Undefined (44)",
   "Undefined (45)",
   "Undefined (46)",
@@ -78,7 +81,9 @@ char *CommandName[]={
   "Load LED",
   "Out LED",
   "Start Sensor",
-  "Stop Sensor"
+  "Stop Sensor",
+  "Analog Value",
+  "Light Value"
 } ;
 
 char CommandNum[40]; 
@@ -95,7 +100,7 @@ char *ToCommand(int Command)
     Command = Command & ~0x80 ;
     Type +=2 ;
   } ;
-  if ((Command<1)||(Command>54)) {
+  if ((Command<1)||(Command>56)) {
     sprintf (CommandNum,"Out of Range: %d (0x%02x)",Command,Command) ;
     return (CommandNum) ;
   } ;
@@ -186,7 +191,7 @@ void ReadDMXTable (FILE *Conf, int Univ)
   int i,j ;
   int L1,A1,S1,S2 ;
  
-  for (i=0;i<ARTNET_DMX_LENGTH/2;i++) CANBuffer[Univ][i].High=CANBuffer[Univ][i].Low=ARTNET_DMX_LENGTH ;
+  //  for (i=0;i<ARTNET_DMX_LENGTH/2;i++) CANBuffer[Univ][i].High=CANBuffer[Univ][i].Low=ARTNET_DMX_LENGTH ;
 
   i = 0 ;
 
@@ -861,7 +866,7 @@ int dmx_callback(artnet_node n, int port, void *d)
   memcpy(buff, data, length);
 
   // Send out CAN-Data
-  for (i=0;i<ARTNET_DMX_LENGTH/2) {
+  for (i=0;i<ARTNET_DMX_LENGTH/2;) {
     if (CANBuffer[port][i].Line==0) break ; // Finished
     CANID = BuildCANId(0,0,0,253,CANBuffer[port][i].Line,CANBuffer[port][i].Add,0) ;
     frame.can_id = CANID|CAN_EFF_FLAG ;
@@ -976,7 +981,7 @@ int main (int argc, char*argv[])
     } else if (FD_ISSET(Can1SockFD,&rdfs)) {
       ReceiveFromCAN (Can1SockFD,&Command) ;
       Command.Interface = CIF_CAN0 ;
-    } else if (FD_ISSET(Can1SockFD,&rdfs)) {
+    } else if (FD_ISSET(artnetFD,&rdfs)) {
       artnet_read(node1,0); 
     } ;
 

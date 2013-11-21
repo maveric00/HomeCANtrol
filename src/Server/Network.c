@@ -241,6 +241,8 @@ int ReceiveCANMessage (ULONG *CANID, char *Len, unsigned char *Data)
   struct sockaddr_storage their_addr;
   struct sockaddr_in *tap ;
   int Source ;
+  char ToLine ;
+  USHORT ToAdd ;
 
   tap = (struct sockaddr_in*)&their_addr ;  
   addr_len = sizeof(their_addr);
@@ -257,9 +259,17 @@ int ReceiveCANMessage (ULONG *CANID, char *Len, unsigned char *Data)
     return (0) ;
   } ;
 
+  CANIDP = (unsigned char*)CANID ;
+  for (i=0;i<4;i++) CANIDP[i]=buf[i] ;
+  *Len = buf[4];
+
+  GetDestinationAddress(*CANID,&ToLine,&ToAdd) ;
+
   //Relay to Gateway (with source) ;
-  relsendto(GateSockFD, buf, numbytes, 0,
-	    (struct sockaddr_in*)GaInfo->ai_addr, GaInfo->ai_addrlen,99) ;
+  if (ToLine!=0) { // was not directed to the Server
+    relsendto(GateSockFD, buf, numbytes, 0,
+	      (struct sockaddr_in*)GaInfo->ai_addr, GaInfo->ai_addrlen,99) ;
+  } ;
 
   CANIDP = (unsigned char*)CANID ;
   for (i=0;i<4;i++) CANIDP[i]=buf[i] ;

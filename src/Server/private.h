@@ -99,7 +99,7 @@ extern uint16_t HIGH_BYTE;
 #endif
 
 // byte ordering macros
-#define bswap_16(x)  ((((x) >> 8) & 0xff) | (((x) & 0xff) << 8))
+//#define bswap_16(x)  ((((x) >> 8) & 0xff) | (((x) & 0xff) << 8))
 
 // htols : convert short from host to little endian order
 # ifdef HAVE_ENDIAN_H
@@ -422,6 +422,6 @@ int artnet_net_close(int sock);
 int artnet_net_join(node n1, node n2);
 int artnet_net_set_fdset(node n, fd_set *fdset);
 int artnet_net_inet_aton(const char *ip_address, struct in_addr *address);
-const char *artnet_net_last_error();
+const char *artnet_net_last_error(void);
 
 #endif

@@ -55,7 +55,7 @@ EXTRALIBS = -lexpat -lwebsockets -lz -lpthread
 CSTANDARD = -std=gnu99
 
 # Place -D or -U options here for C sources
-CDEFS  = -DNDEBUG -DNO_SSL
+CDEFS  = -DNDEBUG -DNO_SSL=1 -DNO_CGI=1
 
 # Place -D or -U options here for ASM sources
 ADEFS  = 

@@ -1026,12 +1026,14 @@ int main(int argc, char **argv)
   HTTP_PORT_NUM = 8080 ;
   strcpy (CAN_BROADCAST,"127.0.0.1") ;
 
+
   // XML-Konfiguration lesen
 
   if (ReadConfig()!=0) {
     fprintf (stderr,"Fehler in der Konfiguration\n") ;
     exit(-1) ;
   } ;
+
 
   web_options[1] = HTTP_PORT ;
 
@@ -1041,6 +1043,7 @@ int main(int argc, char **argv)
     fprintf (stderr,"Fehler im Netzwerk\n") ;
     exit(-1) ;
   } ;
+
 
   // Makros starten
 
@@ -1067,6 +1070,7 @@ int main(int argc, char **argv)
     fprintf (stderr,"Fehler im Webserver\n") ;
     //    exit(-1) ;
   } ;
+
 
   fprintf (stderr,"Starte Server\n") ;
 

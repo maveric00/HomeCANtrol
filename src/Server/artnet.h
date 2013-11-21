@@ -271,7 +271,7 @@ EXTERN int artnet_get_config(artnet_node n, artnet_node_config_t *config);
 EXTERN int artnet_get_sd(artnet_node n);
 EXTERN int artnet_set_fdset(artnet_node vn, fd_set *fdset);
 
-char *artnet_strerror();
+char *artnet_strerror(void);
 
 #ifdef __cplusplus
 }
