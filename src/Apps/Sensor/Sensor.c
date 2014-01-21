@@ -137,15 +137,15 @@ uint8_t  Running[6] ;
 
 volatile uint8_t  PWMStep ;
 volatile uint8_t  PWM[6] ;
-volatile uint8_t  PWMTime[6] ;
+volatile uint8_t  PWMTime[7] ;
 volatile uint8_t  PWMOut[6] ;
 
 volatile uint8_t* PWMPort[6] ;
 volatile uint8_t  PWMPin[7] ;
 volatile uint8_t SOLL_PWM[6] ;
 volatile uint8_t START_PWM[6] ;
-volatile uint16_t TimerPWM[6] ;
-volatile uint16_t DurationPWM[6] ;
+volatile int16_t TimerPWM[6] ;
+volatile int16_t DurationPWM[6] ;
 
 volatile uint8_t  SOLL_WS[MAX_LEDS*3] ;
 volatile uint8_t  START_WS[MAX_LEDS*3] ;
@@ -154,10 +154,10 @@ volatile int16_t DurationLED[MAX_LEDS] ;
 volatile uint8_t ChangedLED ;
 volatile uint8_t  NumLED ;
 
-volatile uint8_t* PIX_Clock ;
-volatile uint8_t* PIX_Data ;
-volatile uint8_t  PIX_CL ;
-volatile uint8_t  PIX_DA ;
+uint8_t* PIX_Clock ;
+uint8_t* PIX_Data ;
+uint8_t  PIX_CL ;
+uint8_t  PIX_DA ;
 
 volatile uint8_t  REPEAT_MASK ;
 volatile uint16_t REPEAT_START ;
@@ -257,7 +257,6 @@ void SendPinMessage (uint8_t Pin, uint8_t Long,uint8_t SendData)
 
       Message.data[1] = eeprom_read_byte(Data+4+i*2+1) ;
       Message.length = 2 ;
-	  _delay_ms(5);
       mcp2515_send_message(&Message) ;
     } ;
   } else {
@@ -331,7 +330,7 @@ ISR( TIM0_OVF_vect )
       for (i=0;i<NumLED*3;i++) {
 	j = i/3 ;
 	if ((i%3==0)&&(TimerLED[j]>0)) TimerLED[j]-- ;
-	WSByte = (uint8_t)(((uint16_t)START_WS[i])+(((int16_t)((int16_t)SOLL_WS[i]-(int16_t)START_WS[i]))*(DurationLED[j]-TimerLED[j])/DurationLED[j])) ;
+	WSByte = (uint8_t)(((int16_t)START_WS[i])+(((int16_t)((int16_t)SOLL_WS[i]-(int16_t)START_WS[i]))*(DurationLED[j]-TimerLED[j])/DurationLED[j])) ;
 	ws2801_writeByte(WSByte) ;
 	if (TimerLED[j]==0) {
 	  DurationLED[j] = 1 ;
@@ -425,7 +424,7 @@ void UpdatePWM (void)
     if (Timing>23) {
       if (TimerLED[i]>0) { 
 	TimerLED[i]-- ;
-	PWM[i] = (uint8_t)(((uint16_t)START_PWM[i])+(((int16_t)((int16_t)SOLL_PWM[i]-(int16_t)START_PWM[i]))*(DurationPWM[j]-TimerPWM[j])/DurationPWM[j])) ;
+	PWM[i] = (uint8_t)(((int16_t)START_PWM[i])+(((int16_t)((int16_t)SOLL_PWM[i]-(int16_t)START_PWM[i]))*(DurationPWM[i]-TimerPWM[i])/DurationPWM[i])) ;
       } else {
 	START_PWM[i]=SOLL_PWM[i] ;
       } ;
@@ -493,9 +492,12 @@ ISR(TIM1_COMPA_vect)
 // Initialisieren des MC und setzen der Port-Eigenschaften
 // in Abhaengigkeit von der Konfiguration
 
+uint8_t Bits[]={1,2,4,8,16,32} ;
+
 void InitMC (void)
 {
   uint8_t i ;
+
     
   // Timer 1 OCRA1, als variablem Timer nutzen
   TCCR1B = 3|8;             // Timer laeuft mit Prescaler/64 bis OCR1A
@@ -526,16 +528,16 @@ void InitMC (void)
       if (Type[i]==I_SHORTLONG) {
 	REPEAT_START = eeprom_read_byte((uint8_t*)312)*10 ; // in 1/10 Sekunden
 	REPEAT_NEXT  = eeprom_read_byte((uint8_t*)313)*10 ;  // in 1/10 Sekunden
-	REPEAT_MASK |= (1<<i) ;
+	REPEAT_MASK |= Bits[i] ;
       } ;
       if (i<3) {
 	// Port A
-	PORTA &= ~(1<<i) ;
-	DDRA &= ~(1<<i) ;
+	PORTA &= ~Bits[i] ;
+	DDRA &= ~Bits[i] ;
       } else {
 	// Port B
-	PORTB &= ~(1<<(i-3)) ;
-	DDRB &= ~(1<<(i-3)) ;
+	PORTB &= ~Bits[i-3] ;
+	DDRB &= ~Bits[i-3] ;
       } ;
       break ;
     case I_ANALOG: // Analog-Input
@@ -543,8 +545,8 @@ void InitMC (void)
       // dies nicht abgefragt -> der letzte angegebene Port ist ADC port
       // Port kann nur in Port A liegen
       if (i>2) break ;
-      PORTA &= ~(1<<i) ;
-      DDRA &= ~(1<<i) ;
+      PORTA &= ~Bits[i] ;
+      DDRA &= ~Bits[i] ;
       ADMUX = i ; // VCC Reference voltage, PortA0-PortA2 als Eingang
       ADCSRB = 1<<4 ; // Right adjusted, Unipolar, No comparator, Free-Running
       ADCSRA = (1<<7)||(1<<6)||(1<<5)||(1<<2)||(1<<1)||(1<<0) ; // ADC Enable, ADC On, ADC FreeRun, Clock/128
@@ -556,50 +558,50 @@ void InitMC (void)
       // Ausgabe-Port (Ein-Aus oder PWM), wird entsprechend dem Config Byte initalisiert
       if (Type[i]==O_WSCLOCK) { // WS Clock: Pointer auf den richtigen Port-Pin setzen
 	if (i<3) { 
-	  PIX_Clock = &PORTA ;
-	  PIX_CL = 1<<i ;
+	  PIX_Clock = (uint8_t*)&PORTA ;
+	  PIX_CL = Bits[i] ;
 	} else {
-	  PIX_Clock = &PORTB ;
-	  PIX_CL = 1<<(i-3) ;
+	  PIX_Clock = (uint8_t*)&PORTB ;
+	  PIX_CL = Bits[i-3] ;
 	} ;
       } ;
       if (Type[i]==O_WSDATA) { // WS Data: Pointer auf den richtigen Port-Pin setzen
 	if (i<3) { 
-	  PIX_Data = &PORTA ;
-	  PIX_DA = 1<<i ;
+	  PIX_Data = (uint8_t*)&PORTA ;
+	  PIX_DA = Bits[i] ;
 	} else {
-	  PIX_Data = &PORTB ;
-	  PIX_DA = 1<<(i-3) ;
+	  PIX_Data = (uint8_t*)&PORTB ;
+	  PIX_DA = Bits[i-3] ;
 	} ;
       } ;
       if (i<3) {
 	// Port A
 	PWMPort[i] = &PORTA ;
 	if (Type[i]==O_PWM){
-	  PWMPin[i] = 1<<i ;
+	  PWMPin[i] = Bits[i] ;
 	} else {
 	  if (Config[i]>0) {
-	    PORTA |= (1<<i) ;
+	    PORTA |= Bits[i] ;
 	  } else {
-	    PORTA &= ~(1<<i) ;
+	    PORTA &= ~Bits[i] ;
 	  } ;
 	  PWMPin[i] = 0 ;
 	} ;
-	DDRA |= (1<<i) ;
+	DDRA |= Bits[i] ;
       } else {
 	// Port B
 	PWMPort[i] = &PORTB ;
 	if (Type[i]==O_PWM){
-	  PWMPin[i] = 1<<(i-3) ;
+	  PWMPin[i] = Bits[i-3] ;
 	} else {
 	  if (Config[i]>0) {
-	    PORTB &= ~(1<<(i-3)) ;
+	    PORTB &= ~Bits[i-3] ;
 	  } else {
-	    PORTB |= (1<<(i-3)) ;
+	    PORTB |= Bits[i-3] ;
 	  } ;
 	  PWMPin[i] = 0 ;
 	} ;
-	DDRB |= (1<<(i-3)) ;
+	DDRB |= Bits[i-3] ;
       } ;
       break ;
     } ;
@@ -744,37 +746,6 @@ int main(void)
     // Befehl abarbeiten
     switch (r) {
       
-    case SEND_STATUS:
-      // Wartet auf einen Tastendruck und sendet dann die Port-Nummer des Tasters
-      do {
-	for (i=0;i<6;i++) {
-	  if (get_key_press(1<<i)) break ;
-	}
-      } while (i==6) ;
-      
-      Message.data[1] = i ;
-      Message.length = 2 ;
-      mcp2515_send_message(&Message) ;				
-      break ;
-
-    case READ_CONFIG:
-      Message.data[1] = eeprom_read_byte((uint8_t*)0) ;
-      Message.data[2] = eeprom_read_byte((uint8_t*)1) ;
-      Message.data[3] = eeprom_read_byte((uint8_t*)2) ;
-      Message.data[4] = eeprom_read_byte((uint8_t*)3) ;
-      Message.data[5] = eeprom_read_byte((uint8_t*)4) ;
-      Message.length = 6 ;
-      mcp2515_send_message(&Message) ;
-      break ;
-
-    case WRITE_CONFIG:
-      if ((Message.data[1] == 0xba)&&(Message.data[2]==0xca)) {	
-	eeprom_write_byte((uint8_t*)2,Message.data[3]) ;	
-	eeprom_write_byte((uint8_t*)3,Message.data[4]) ;	
-	eeprom_write_byte((uint8_t*)4,Message.data[5]) ;	
-      } ;
-      break ;
-
     case READ_VAR:
       Addr = ((uint16_t)Message.data[1])+(((uint16_t)Message.data[2])<<8) ;
       Message.data[3]=eeprom_read_byte((uint8_t*)Addr) ;
@@ -785,7 +756,7 @@ int main(void)
     case SET_VAR:
       Addr = ((uint16_t)Message.data[1])+(((uint16_t)Message.data[2])<<8) ;
       eeprom_write_byte((uint8_t*)Addr,Message.data[3]) ;
-	  Message.length=4 ;
+      Message.length=4 ;
       mcp2515_send_message(&Message) ; // Empfang bestaetigen
       break ;
 
@@ -799,16 +770,6 @@ int main(void)
       break ;
       // Diese Befehle sind beim Sensor nicht bekannt
       // LED
-    case SET_TO:
-    case HSET_TO:
-    case L_AND_S:
-    case SET_TO_G1:
-    case SET_TO_G2:
-    case SET_TO_G3:
-    case LOAD_PROG:
-    case START_PROG:
-    case STOP_PROG:
-      break ;
       // Relais-Befehle
     case CHANNEL_ON:
     case CHANNEL_OFF:
@@ -831,11 +792,6 @@ int main(void)
 	TimerPWM[j] = DurationPWM[j] = 1 ;
       } ;
       break ;
-    case SHADE_UP_FULL:
-    case SHADE_DOWN_FULL:
-    case SHADE_UP_SHORT:
-    case SHADE_DOWN_SHORT:
-      break ;
       // Nun die Sensor-Befehle
     case SET_PIN:
       j-- ;
@@ -856,13 +812,13 @@ int main(void)
       SOLL_WS[j*3+2] = Message.data[4] ;
       DurationLED[j] = TimerLED[j] = Message.data[5]*5+1 ;
       break ;
-    case OUT_LED:
-      break ;
     case START_SENSOR:
       Running[(int)j-1] = 1 ;
       break ;
     case STOP_SENSOR:
       Running[(int)j-1] = 0 ;
+      break ;
+    default:
       break ;
     } ;
   } ;
