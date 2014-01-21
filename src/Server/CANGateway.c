@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/types.h>
@@ -21,10 +22,15 @@
 #include "RelUDP.h"
 #include "artnet.h"
 #include "packets.h"
+#define _XOPEN_SOURCE
+#include <time.h>
+#include <sys/time.h>
+
 
 #define TRUE (1==1)
 #define FALSE (1==0)
 
+struct timeval Now ;
 artnet_node node1, node2;
 
 char *CommandName[]={
@@ -87,6 +93,18 @@ char *CommandName[]={
 } ;
 
 char CommandNum[40]; 
+char TimeString[40] ;
+
+char *LogTime(void) 
+{
+  struct tm *LTime ;
+
+  LTime = localtime(&(Now.tv_sec)) ;
+  sprintf (TimeString,"%02d.%02d, %02d:%02d:%02d.%03d",LTime->tm_mday,LTime->tm_mon,LTime->tm_hour,LTime->tm_min,LTime->tm_sec,(int)(Now.tv_usec/1000)) ;
+  return (TimeString) ;
+}
+
+
 
 char *ToCommand(int Command)
 {
@@ -141,6 +159,7 @@ int SendSockFD;
 int Can0SockFD;
 int Can1SockFD;
 int artnetFD;
+FILE *logfd ;
 
 // Struct for a single CAN-Message, including masking, receiving interface and pointer to modification methods
 
@@ -658,11 +677,12 @@ int ReceiveFromUDP (struct CANCommand *Command)
   for (i=0;i<Command->Len;i++) Command->Data[i] = buf[i+5] ;
 
   if ((Verbose==1)&&((NoTime==0)||((Command->Data[0]!=7)&&(Command->Data[0]!=16)))) {
-    fprintf (stderr,"IP:%s:%d, From: %d %d To: %d %d, Len: %d , Command: %s ",inet_ntoa(tap->sin_addr),tap->sin_port,
+    fprintf (logfd,"%s: ",LogTime()) ;
+    fprintf (logfd,"IP:%s:%d, From: %d %d To: %d %d, Len: %d , Command: %s ",inet_ntoa(tap->sin_addr),tap->sin_port,
 	     Command->FromLine, Command->FromAdd,
 	     Command->ToLine, Command->ToAdd, Command->Len, ToCommand(Command->Data[0])) ;
-    for (i=1;i<Command->Len;i++) fprintf (stderr,"%02x ",Command->Data[i]) ;
-    fprintf (stderr,"\n") ;
+    for (i=1;i<Command->Len;i++) fprintf (logfd,"%02x ",Command->Data[i]) ;
+    fprintf (logfd,"\n") ;
   } ;
     
   return 0;
@@ -690,11 +710,12 @@ int ReceiveFromCAN (int socket, struct CANCommand *Command)
   Command->Len = frame.can_dlc;
     
   if (Verbose==1) {
-    fprintf (stderr,"CAN%d: %d %d, To: %d %d, Len: %d , Command: %s ",socket==Can0SockFD?0:1,
+    fprintf (logfd,"%s: ",LogTime()) ;
+    fprintf (logfd,"CAN%d: %d %d, To: %d %d, Len: %d , Command: %s ",socket==Can0SockFD?0:1,
 	     Command->FromLine, Command->FromAdd,
 	     Command->ToLine, Command->ToAdd, Command->Len, ToCommand(Command->Data[0])) ;
-    for (i=1;i<Command->Len;i++) fprintf (stderr,"%02x ",Command->Data[i]) ;
-    fprintf (stderr,"\n") ;
+    for (i=1;i<Command->Len;i++) fprintf (logfd,"%02x ",Command->Data[i]) ;
+    fprintf (logfd,"\n") ;
   } ;
 
   return 0;
@@ -801,7 +822,8 @@ void RouteCommand (struct CANCommand *Command)
     // Received by CAN, Send out to network
     SendToUDP(Command) ;
     if ((Verbose==1)&&((NoTime==0)||((Command->Data[0]!=7)&&(Command->Data[0]!=16)))) {
-      fprintf (stderr,"Routed to UDP\n") ;
+      fprintf (logfd,"%s: ",LogTime()) ;
+      fprintf (logfd,"Routed to UDP\n") ;
     } ;
   } ;
   if (Command->Interface!=CIF_CAN0) {
@@ -810,7 +832,8 @@ void RouteCommand (struct CANCommand *Command)
       if (RouteIF0[(int)Command->FromLine]==0) {
 	SendToCAN(Can0SockFD,Command) ;
 	if ((Verbose==1)&&((NoTime==0)||((Command->Data[0]!=7)&&(Command->Data[0]!=16)))) {
-	  fprintf (stderr,"Routed to CAN0\n") ;
+	  fprintf (logfd,"%s: ",LogTime()) ;
+	  fprintf (logfd,"Routed to CAN0\n") ;
 	} ;
       } ;
     } ;
@@ -821,7 +844,8 @@ void RouteCommand (struct CANCommand *Command)
       if (RouteIF1[(int)Command->FromLine]==0) {
 	SendToCAN(Can1SockFD,Command) ;
 	if ((Verbose==1)&&((NoTime==0)||((Command->Data[0]!=7)&&(Command->Data[0]!=16)))) {
-	  fprintf (stderr,"Routed to CAN1\n") ;
+	  fprintf (logfd,"%s: ",LogTime()) ;
+	  fprintf (logfd,"Routed to CAN1\n") ;
 	} ;
       } ;
     } ;
@@ -900,20 +924,34 @@ int main (int argc, char*argv[])
   struct CANCommand *Exchange ;
   struct timeval tv;
 
+
+  logfd = stderr ;
   for (i=1;i<argc;i++) {
     if (strstr("-v",argv[i])!=NULL) Verbose = 1 ;
     if (strstr("-t",argv[i])!=NULL) NoTime = 1 ;
     if (strstr("-noroute",argv[i])!=NULL) NoRoute = 1 ;
+    if (strstr("-f",argv[i])!=NULL) {
+      logfd = fopen(argv[i+1],"w") ;
+      if (logfd==NULL) {
+	fprintf (stderr,"Could not open logfile %s\n",argv[i+1]) ;
+	logfd = stderr ;
+      } ;
+      setvbuf (logfd,NULL,_IOLBF,0) ;
+      i++ ;
+    } ;
     if ((strstr("-?",argv[i])!=NULL)||
 	(strstr("--help",argv[i])!=NULL)) {
       printf ("Usage: %s [-v] [-t] [-noroute] [--help] [-?]\n\n",argv[0]) ;
       printf ("       -v: Verbose\n") ;
       printf ("       -t: dont display time messages\n") ;
       printf ("       -noroute: Do not route messages\n") ;
+      printf ("       -f FILE: log into file FILE\n") ;
       printf ("       -?, --help: display this message\n") ;
       exit(0) ;
     } ;
   } ;
+
+
 
   ReadConfig() ;
 
@@ -962,6 +1000,8 @@ int main (int argc, char*argv[])
       perror ("CANGateway: Could not select") ;
       exit (1) ;
     } ;
+
+    gettimeofday(&Now,NULL) ;
 
     relworkqueue () ;
 

@@ -245,6 +245,9 @@
       <Schalter name="SteckdoseFernseherRechts">
 	<Adresse linie="1" knoten="103" port="1"/>
       </Schalter>
+      <Schalter name="SteckdoseFernseherRechts2">
+        <Adresse linie="1" knoten="103" port="6"/>
+      </Schalter>
       <Rollo name="FensterOben" kurz="70" lang="70" vertauschen="0">
 	<Adresse linie="3" knoten="104" port="1"/>
       </Rollo>
@@ -341,6 +344,7 @@
 	<Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks1"/>
 	<Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks2"/>
 	<Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts"/>
+	<Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts2"/>
       </Makro>
       <Makro name="Hoch">
 	<Adresse linie="0" knoten="200" port="12"/>
@@ -405,10 +409,10 @@
       <Variable name="BW1" wert="0"/>
       <Variable name="BW2" wert="0"/>
       <Variable name="BW3" wert="0"/>
-      <Variable name="HueAn" wert="180"/>
-      <Variable name="HueAus" wert="210"/>
-      <Variable name="SatAn" wert="200"/>
-      <Variable name="SatAus" wert="200"/>
+      <Variable name="HueAn" wert="30"/>
+      <Variable name="HueAus" wert="27"/>
+      <Variable name="SatAn" wert="175"/>
+      <Variable name="SatAus" wert="237"/>
       <Makro name="BX1An">
 	<Adresse linie="0" knoten="200" port="47"/>
 	<Setze objekt="Erdgeschoss/Flur/BW1" wert="1"/>
@@ -517,6 +521,7 @@
       <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks1"/>
       <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks2"/>
       <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts"/>
+      <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts2"/>
       <Aktion kommando="Aus" objekt="Erdgeschoss/Esszimmer/SteckdoseFenster"/>
       <Aktion kommando="Aus" objekt="Obergeschoss/Arbeit/SteckdoseRechts"/>
     </Makro>    
@@ -525,6 +530,7 @@
       <Aktion kommando="An" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks1"/>
       <Aktion kommando="An" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks2"/>
       <Aktion kommando="An" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts"/>
+      <Aktion kommando="An" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts2"/>
       <Aktion kommando="An" objekt="Erdgeschoss/Esszimmer/SteckdoseFenster"/>
       <Aktion kommando="An" objekt="Obergeschoss/Arbeit/SteckdoseRechts"/>
     </Makro>                                             
@@ -533,6 +539,7 @@
       <Aktion kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks1"/>
       <Aktion kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks2"/>
       <Aktion kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts"/>
+      <Aktion kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts2"/>
       <Aktion kommando="Toggle" objekt="Erdgeschoss/Esszimmer/SteckdoseFenster"/>
       <Aktion kommando="Toggle" objekt="Obergeschoss/Arbeit/SteckdoseRechts"/>
     </Makro>
@@ -895,11 +902,17 @@
       <Schalter name="SeiteLicht">
 	<Adresse linie="2" knoten="200" port="2"/>
       </Schalter>
-      <Makro name="Aus">
+      <Makro name="FestLichtAus">
 	<Adresse linie="0" knoten="200" port="37"/>
 	<Aktion kommando="Aus" objekt="Aussen/Vorgarten/BrunnenMotor"/>
 	<Aktion kommando="Aus" objekt="Aussen/Vorgarten/BrunnenLicht"/>
 	<Aktion kommando="Aus" objekt="Aussen/Vorgarten/SeiteLicht"/>
+      </Makro>
+      <Makro name="FestLichtAn">
+	<Adresse linie="0" knoten="200" port="55"/>
+	<Aktion kommando="An" objekt="Aussen/Vorgarten/BrunnenMotor"/>
+	<Aktion kommando="An" objekt="Aussen/Vorgarten/BrunnenLicht"/>
+	<Aktion kommando="An" objekt="Aussen/Vorgarten/SeiteLicht"/>
       </Makro>
     </Zimmer>
     <Zimmer name="Terasse">
@@ -915,6 +928,7 @@
       <Adresse linie="0" knoten="200" port="39"/>
       <Aktion kommando="Toggle" objekt="Aussen/Vorgarten/BrunnenMotor"/>
       <Aktion kommando="Toggle" objekt="Aussen/Vorgarten/BrunnenLicht"/>
+      <Aktion kommando="Toggle" objekt="Aussen/Vorgarten/SeiteLicht"/>
     </Makro>
     <Makro name="Aus">
       <Adresse linie="0" knoten="200" port="40"/>
@@ -946,6 +960,14 @@
     <Aktion kommando="Herzschlag" objekt="Linie4"/>
     <Warte zeit="1000"/>
   </Makro>
+  <Makro name="AbendLicht">
+    <Timer zeit="00:20:00" relativ="vor untergang"/>
+    <Sub makro="Aussen/Vorgarten/FestLichtAn"/>
+    <Aktion kommando="An" objekt="Erdgeschoss/Kueche/SteckdoseFensterMitte"/>
+    <Timer zeit="21:45:00" />
+    <Sub makro="Aussen/Vorgarten/FestLichtAus"/>
+    <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/SteckdoseFensterMitte"/>
+  </Makro>
   <Makro name="TagNacht">
     <Timer zeit = "00:30:00" relativ="nach aufgang"/>
     <Setze objekt="Tag" wert="1=1"/>
@@ -956,7 +978,6 @@
   </Makro>
   <Makro name="AbendSimulation">
     <Timer zeit = "00:15:00" relativ="nach untergang"/>
-    <Aktion kommando="Runter" objekt="Erdgeschoss/Kueche/Fenster"/>
     <Aktion kommando="Runter" objekt="Erdgeschoss/Esszimmer/Fenster"/>
   </Makro>
   <Makro name="MorgenSimulation">
@@ -975,12 +996,11 @@
     <Sub makro="Keller/Aus"/>
     <Sub makro="Erdgeschoss/Aus"/>
     <Sub makro="Obergeschoss/Aus"/>
-    <Sub makro="Aussen/Aus"/>
+    <Sub makro="Aussen/Vorgarten/FestLichtAus"/>
   </Makro>
   <Makro name="GuteNacht">
     <Adresse linie="0" knoten="200" port="42"/>
     <Sub makro="Erdgeschoss/Aus"/>
-    <Sub makro="Aussen/Aus"/>
     <Sub makro="Obergeschoss/Arbeit/Aus"/>
   </Makro>
   <Makro name="SeqTest">
@@ -1002,6 +1022,7 @@
     <Gleichzeitig makro="TagNacht"/>
     <Gleichzeitig makro="AbendSimulation"/>
     <Gleichzeitig makro="MorgenSimulation"/>
+    <Gleichzeitig makro="AbendLicht"/>
   </Immer>
   <Start>
     <Gleichzeitig makro="Init"/>

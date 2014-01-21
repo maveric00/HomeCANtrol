@@ -28,6 +28,112 @@ char *strptime(const char *s, const char *format, struct tm *tm);
 struct MacroList ActiveMacros[MAX_ACTIVEMACROS] ;
 struct SeqList *ActiveSeq[MAX_ACTIVEMACROS] ;
 
+char TimeString[40] ;
+char CommandNum[40]; 
+FILE *logfd ;
+int Verbose=0 ;
+int NoTime=0 ;
+
+char *CommandName[]={
+  "Update request",
+  "Identify",
+  "Set Address",
+  "Firmware data",
+  "Start application",
+  "Undefined (6)",
+  "Undefined (7)",
+  "Undefined (8)",
+  "Undefined (9)",
+  "Send Status",
+  "Read Config",
+  "WriteConfig",
+  "Read Variable",
+  "Set Variable",
+  "Start Bootloader",
+  "Time",
+  "Undefined (17)",
+  "Undefined (18)",
+  "Undefined (19)",
+  "Channel on", //20
+  "Channel off", //21
+  "Channel toggle", //22
+  "Shade up (full)", //23
+  "Shade down (full)", //24
+  "Shade up (short)", //25
+  "Shade down (short)",//26
+  "Send LEDPort", //27
+  "Undefined (28)",
+  "Undefined (29)",
+  "Set to", //30
+  "HSet to", //31
+  "Load and store", //32
+  "Set to G1", //33
+  "Set to G2", //34
+  "Set To G3", //35
+  "Load program", //36
+  "Start program", //37
+  "Stop program", //38
+  "Dim to", //39
+  "HDim to", //40
+  "Load two LEDs", //41
+  "Undefined (42)", //42
+  "Undefined (43)", 
+  "Undefined (44)",
+  "Undefined (45)",
+  "Undefined (46)",
+  "Undefined (47)",
+  "Undefined (48)",
+  "Undefined (49)",
+  "Set Pin",
+  "Load LED",
+  "Out LED",
+  "Start Sensor",
+  "Stop Sensor",
+  "Analog Value",
+  "Light Value"
+} ;
+
+char *LogTime(void) 
+{
+  struct timeval CurrTime ;
+  struct tm *LTime ;
+
+  gettimeofday(&CurrTime,NULL) ;
+  LTime = localtime(&(CurrTime.tv_sec)) ;
+  sprintf (TimeString,"%02d.%02d, %02d:%02d:%02d.%03d",LTime->tm_mday,LTime->tm_mon,LTime->tm_hour,LTime->tm_min,LTime->tm_sec,(int)(CurrTime.tv_usec/1000)) ;
+  return (TimeString) ;
+}
+
+char *ToCommand(int Command)
+{
+  int Type ;
+  Type = 0 ;
+  if ((Command&0x40)!=0) {
+    Command = Command & ~0x40 ;
+    Type = 1 ;
+  }
+  if ((Command&0x80)!=0) {
+    Command = Command & ~0x80 ;
+    Type +=2 ;
+  } ;
+  if ((Command<1)||(Command>56)) {
+    sprintf (CommandNum,"Out of Range: %d (0x%02x)",Command,Command) ;
+    return (CommandNum) ;
+  } ;
+  if (Type==0) {
+    return (CommandName[Command-1]) ;
+  } else if (Type==1) {
+    sprintf (CommandNum,"Success: %s",CommandName[Command-1]) ;
+    return (CommandNum) ;
+  } else if (Type==2) {
+    sprintf (CommandNum,"Error: %s",CommandName[Command-1]) ;
+    return (CommandNum) ;
+  } else {
+    sprintf (CommandNum,"WrongNum: %s",CommandName[Command-1]) ;
+    return (CommandNum) ;
+  }
+}
+
 int IsMakro (struct Node *This)
 {
   return ((This->Type==N_ACTION)||(This->Type==N_DELAY)||(This->Type==N_TIMER)||
@@ -95,7 +201,7 @@ int TimeCompare(struct tm *tm1, struct tm *tm2)
 void StepMakros (void)
 {
   struct Node *This,*That,*Caller ;
-  struct timeval Now ;
+  struct timeval CurrTime ;
   struct tm tm;
   struct tm *LTime ;
   time_t tim ;
@@ -105,7 +211,8 @@ void StepMakros (void)
     if (ActiveMacros[i].Macro!=NULL) {
       This = ActiveMacros[i].Macro  ;
       // Wurde Makro beendet?
-      if (This->Data.MakroStep==NULL) { 
+      if ((This->Data.MakroStep==NULL)&&(ActiveMacros[i].DelayType==0)) { 
+	// Makro wurde im letzten Schritt beendet und ein eventuelles Delay ist abgearbeitet
 	ActiveMacros[i].Macro = NULL ;
 	// Schauen, ob dieses Makro immer ausgefuehrt werden soll, dann wieder auf Anfang
         for (That=Haus->Child;That!=NULL;That=That->Next) if (That->Type==N_ALWAYS) break ;
@@ -121,10 +228,11 @@ void StepMakros (void)
 	  if (ActiveMacros[i].DelayType == W_MACRO) {
 	    for (j=0;j<MAX_ACTIVEMACROS;j++) if (ActiveMacros[j].Macro==ActiveMacros[i].Delay.WaitNode) break ;
 	    if (j==MAX_ACTIVEMACROS) ActiveMacros[i].DelayType=0 ; // Wird nicht mehr ausgefuehrt ;
-	  } else if (ActiveMacros[i].DelayType==W_DELAY) {
-	  } else if (ActiveMacros[i].DelayType==W_TIME) {
-	    gettimeofday(&Now,NULL) ;
-	    if (timercmp(&Now,&ActiveMacros[i].Delay.WaitTime,>)) ActiveMacros[i].DelayType=0 ;
+	  } else if ((ActiveMacros[i].DelayType==W_DELAY)||(ActiveMacros[i].DelayType==W_TIME)) {
+	    gettimeofday(&CurrTime,NULL) ;
+	    if (timercmp(&CurrTime,&ActiveMacros[i].Delay.WaitTime,>)) {
+	      ActiveMacros[i].DelayType=0 ;
+	    } ;
 	  } else if (ActiveMacros[i].DelayType==W_VALUE) {
 	    That = ActiveMacros[i].Delay.WaitNode ;
 	    if (CalcValue(That->Data.Wert.Wert)) {
@@ -137,8 +245,8 @@ void StepMakros (void)
 	  if (That->Type==N_ACTION) {
 	    SendAction (That) ;
 	  } else if (That->Type==N_DELAY) {
-	    gettimeofday(&Now,NULL) ;
-	    timeradd(&Now,&That->Data.Time,&ActiveMacros[i].Delay.WaitTime) ;
+	    gettimeofday(&CurrTime,NULL) ;
+	    timeradd(&CurrTime,&That->Data.Time,&ActiveMacros[i].Delay.WaitTime) ;
 	    ActiveMacros[i].DelayType=W_TIME ;
 	  } else if (That->Type==N_WAITFOR) {
 	    ActiveMacros[i].Delay.WaitNode=That ;
@@ -476,13 +584,22 @@ void HandleCANRequest(void)
   struct NodeList *NL ;
 
   ReceiveCANMessage(&CANID,&Len,Data) ;
-  
-  if (Len==0) return; // Nothing has been received 
 
-  p = (char*)&(websocket_buf[LWS_SEND_BUFFER_PRE_PADDING]) ;
+  if (Len==0) return; // Nothing has been received 
 
   GetSourceAddress(CANID,&FromLine,&FromAdd) ;
   GetDestinationAddress(CANID,&ToLine,&ToAdd) ;
+
+  if ((Verbose==1)&&((NoTime==0)||((Data[0]!=7)&&(Data[0]!=16)))) {
+    fprintf (logfd,"%s: ",LogTime()) ;
+    fprintf (logfd," Received From: %d %d To: %d %d, Len: %d , Command: %s ",FromLine, FromAdd,
+	     ToLine, ToAdd, Len, ToCommand(Data[0])) ;
+    for (i=1;i<Len;i++) fprintf (logfd,"%02x ",Data[i]) ;
+    fprintf (logfd,"\n") ;
+  } ;
+
+  p = (char*)&(websocket_buf[LWS_SEND_BUFFER_PRE_PADDING]) ;
+
   
   // Nachsehen, ob auf diese Kommando eine Reaktion folgen soll
   for (NL=Reactions; NL!=NULL;NL=NL->Next) {
@@ -994,7 +1111,7 @@ static void *Handle_Webserver(enum mg_event event, struct mg_connection *conn)
 
 }
 
-
+struct timeval Now ;
 
 /* Hauptprogramm */
 
@@ -1005,16 +1122,42 @@ int main(int argc, char **argv)
   int Error ;
 
   struct mg_context *ctx ;
-  struct timeval Now,Wait,Old ;
+  struct timeval Wait,Old ;
   struct tm *timeinfo ;
   struct timeval Day ;
+  int i ;
 
   char *web_options[] = {
     "listening_ports", "8080",
     "document_root", "./Webpage",
     "url_rewrite_patterns","/NodeConf=./NodeConf",
+    "num_threads","6",
     NULL
   };
+
+  logfd = stderr ;
+  for (i=1;i<argc;i++) {
+    if (strstr("-v",argv[i])!=NULL) Verbose = 1 ;
+    if (strstr("-t",argv[i])!=NULL) NoTime = 1 ;
+    if (strstr("-f",argv[i])!=NULL) {
+      logfd = fopen(argv[i+1],"w") ;
+      if (logfd==NULL) {
+	fprintf (stderr,"Could not open logfile %s\n",argv[i+1]) ;
+	logfd = stderr ;
+      } ;
+      setvbuf (logfd,NULL,_IOLBF,0) ;
+      i++ ;
+    } ;
+    if ((strstr("-?",argv[i])!=NULL)||
+	(strstr("--help",argv[i])!=NULL)) {
+      printf ("Usage: %s [-v] [-t] [-f FILE] [-noroute] [--help] [-?]\n\n",argv[0]) ;
+      printf ("       -v: Verbose\n") ;
+      printf ("       -t: dont display time messages\n") ;
+      printf ("       -f FILE: log into file FILE\n") ;
+      printf ("       -?, --help: display this message\n") ;
+      exit(0) ;
+    } ;
+  } ;    
 
   strcpy (CAN_PORT,"13247") ;
   CAN_PORT_NUM = 13247 ;

@@ -245,6 +245,9 @@ extern struct NodeList *Reactions ;
 extern double West,North ;
 extern struct tm SunSet ;
 extern struct tm SunRise ;
+extern int Verbose ;
+extern int NoTime ;
+extern FILE *logfd ;
 
 // Node.c-Definitionen
 struct Node *CreateNode (void);
@@ -270,3 +273,5 @@ void CalcSun (void) ;
 void ExecuteMakro (struct Node *Makro);
 void ExecuteSeq (struct Node *Action) ;
 int HandleCommand (char *Command,int Socket) ;
+char *LogTime(void)  ;
+char *ToCommand(int Command) ;

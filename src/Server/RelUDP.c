@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -112,12 +113,14 @@ int RelAddMessage (struct RelUDPHost *Host, unsigned char *Buffer, size_t Buffer
 {
   int i ;
 
-  i = Buffer[0] ;
+  i = Buffer[0]&0x7F ; // Mask out repeat flag
+
   if (i>=RELQLEN) return (-1) ; // Out of ring buffer???
 
   Host->Messages[i].len = Bufferlen ;
   memcpy (Host->Messages[i].Buffer,Buffer,Bufferlen) ;
-  
+  Host->Messages[i].Time = Now ; // Mark receiving time
+
   Host->SendSocket = SendSocket ;
   Host->tap = tap ;
   Host->taplen = taplen ;
@@ -125,7 +128,6 @@ int RelAddMessage (struct RelUDPHost *Host, unsigned char *Buffer, size_t Buffer
 #ifdef DEBUG  
   printf ("Add Message %d to  %s\n",i,Host->IP) ;
 #endif
-
 
   return (0) ;
 } ;
@@ -135,7 +137,12 @@ int RelCmpMessage (struct RelUDPHost *Host, unsigned char *Buffer, size_t Buffer
   int i ;
 
   i = Buffer[0] ;
-  if (i>=RELQLEN) return (FALSE) ; // Out of ring buffer???
+
+  if ((i&0x80)==0) return (FALSE) ; // Message was not repeated, must be added ;
+
+  i&=0x7F ; // Mask out repeat flag
+
+  if (i>=RELQLEN) return (FALSE) ; // Out of ring buffer 
 
 
   if ((Host->Messages[i].len==Bufferlen)&&(memcmp(Host->Messages[i].Buffer,Buffer,Bufferlen)==0)) return (TRUE) ;
@@ -157,8 +164,9 @@ void RelDelMessage (struct RelUDPHost *Host, unsigned char SeqNr)
 void relworkqueue ()
 {
   struct RelUDPHost *Host,*Next ;
-  int i ;
+  int i,j ;
   static int Count = 0 ;
+  unsigned char Buf[RELBUFLEN] ;
 
   i = Count ;
   
@@ -168,7 +176,10 @@ void relworkqueue ()
 #ifdef DEBUG
       printf ("ReSend %d to %s\n",i,Host->IP) ;
 #endif
-      sendto(Host->SendSocket,Host->Messages[i].Buffer,Host->Messages[i].len,0,Host->tap,Host->taplen) ;
+      for (j=0;j<RELBUFLEN;j++) Buf[j]=Host->Messages[i].Buffer[j] ;
+      Buf[0]|=0x80 ; // Mark it as re-send
+
+      sendto(Host->SendSocket,Buf,Host->Messages[i].len,0,Host->tap,Host->taplen) ;
       Host->NotSeen++ ;
     } ;
     if (Host->NotSeen>50) RelDelHost(&RelFirstSend,Host) ; // Seems to be gone for good...
@@ -178,11 +189,18 @@ void relworkqueue ()
 #ifdef DEBUG
       printf ("ReSend %d to Gateway\n",i) ;
 #endif
-      sendto(RelaySend.SendSocket,RelaySend.Messages[i].Buffer,RelaySend.Messages[i].len,0,RelaySend.tap,RelaySend.taplen) ;
+      for (j=0;j<RELBUFLEN;j++) Buf[j]=RelaySend.Messages[i].Buffer[j] ;
+      Buf[0]|=0x80 ; // Mark it as re-send
+      sendto(RelaySend.SendSocket,Buf,RelaySend.Messages[i].len,0,RelaySend.tap,RelaySend.taplen) ;
       RelaySend.NotSeen++ ;
     } ;
   } ;
 
+  // Go through all queues and delete "old" Messages (received more than 2 seconds ago)
+  for (Host=RelFirstRec.Next;Host!=NULL;Host=Next) 
+    for (j=0;j<RELQLEN;j++) 
+      if (Host->Messages[j].Time.tv_sec<(Now.tv_sec-2)) Host->Messages[j].len=0 ;
+  
   Count++ ;
   if (Count>=RELQLEN) Count = 0 ;
 }
@@ -231,7 +249,7 @@ int relrecvfrom (int Socket,unsigned char *Buffer, size_t Bufferlen, int flag, s
   // not an acknowledgement, so ack it if it not from us...
   
   if (*Relay!=(int)Buf[1]) {
-    Ack[0] = Buf[0] ;
+    Ack[0] = Buf[0]&0x7F ;   // Ack original Message 
     if (Buf[1]!=99) {
       Ack[1] = *Relay ;
     } else {

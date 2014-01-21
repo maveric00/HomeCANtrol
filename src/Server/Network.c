@@ -288,11 +288,25 @@ int SendCANMessage (ULONG CANID, char Len, unsigned char *Data)
   int i ;
   unsigned char Message [CANBUFLEN] ;
   unsigned char *CANIDP ;
+  char ToLine ;
+  USHORT ToAdd ;
+  char FromLine ;
+  USHORT FromAdd ;
   int numbytes;  
 
   /* Nachricht zusammensetzen */
   CANIDP = (unsigned char*)&CANID ;
   for (i=0;i<4;i++) Message[i] = CANIDP[i] ;
+
+  if ((Verbose==1)&&((NoTime==0)||((Data[0]!=7)&&(Data[0]!=16)))) {
+    GetSourceAddress(CANID,&FromLine,&FromAdd) ;
+    GetDestinationAddress(CANID,&ToLine,&ToAdd) ;
+    fprintf (logfd,"%s: ",LogTime()) ;
+    fprintf (logfd," Sending From: %d %d To: %d %d, Len: %d , Command: %s ",FromLine, FromAdd,
+	     ToLine, ToAdd, Len, ToCommand(Data[0])) ;
+    for (i=1;i<Len;i++) fprintf (logfd,"%02x ",Data[i]) ;
+    fprintf (logfd,"\n") ;
+  } ;
 
   Message[4] = Len ;
 
