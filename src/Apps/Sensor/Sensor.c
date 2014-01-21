@@ -134,22 +134,30 @@ uint8_t  TimerStatus ;
 uint8_t  Type[6] ;
 uint8_t  Config[6];
 uint8_t  Running[6] ;
+
+volatile uint8_t  PWMStep ;
 volatile uint8_t  PWM[6] ;
 volatile uint8_t  PWMTime[6] ;
-volatile uint8_t  PWMPort[6] ;
-volatile uint8_t  PWMStep ;
+volatile uint8_t  PWMOut[6] ;
 
-uint8_t  SOLL_WS[MAX_LEDS*3] ;
+volatile uint8_t* PWMPort[6] ;
+volatile uint8_t  PWMPin[7] ;
+volatile uint8_t SOLL_PWM[6] ;
+volatile uint8_t START_PWM[6] ;
+volatile uint16_t TimerPWM[6] ;
+volatile uint16_t DurationPWM[6] ;
+
+volatile uint8_t  SOLL_WS[MAX_LEDS*3] ;
 volatile uint8_t  START_WS[MAX_LEDS*3] ;
 volatile int16_t TimerLED[MAX_LEDS] ;
 volatile int16_t DurationLED[MAX_LEDS] ;
 volatile uint8_t ChangedLED ;
-uint8_t  NumLED ;
+volatile uint8_t  NumLED ;
 
 volatile uint8_t* PIX_Clock ;
 volatile uint8_t* PIX_Data ;
-uint8_t  PIX_CL ;
-uint8_t  PIX_DA ;
+volatile uint8_t  PIX_CL ;
+volatile uint8_t  PIX_DA ;
 
 volatile uint8_t  REPEAT_MASK ;
 volatile uint16_t REPEAT_START ;
@@ -409,38 +417,50 @@ uint8_t get_key_long( uint8_t key_mask )
 void UpdatePWM (void)
 {
   uint8_t i,j,k ;
+  uint8_t PT[6] ;
+  static uint8_t Timing=0 ;
 
-  for (i=0;i<6;i++) { PWMTime[i] = 0 ; PWMPort[i] = 0 ; } ;
+  for (i=0;i<6;i++) { PWMTime[i] = 255 ; PWMOut[i] = 0 ; } ;
   for (i=0;i<6;i++) { // Alle durchgehen
-    for (j=0;j<i;j++) if (PWM[i]<PWMTime[j]) break ;
-    for (k=5;k>j;k--) { PWMTime[k] = PWMTime[k-1] ; PWMPort[k] = PWMPort[k-1] ; } ;
+    if (Timing>23) {
+      if (TimerLED[i]>0) { 
+	TimerLED[i]-- ;
+	PWM[i] = (uint8_t)(((uint16_t)START_PWM[i])+(((int16_t)((int16_t)SOLL_PWM[i]-(int16_t)START_PWM[i]))*(DurationPWM[j]-TimerPWM[j])/DurationPWM[j])) ;
+      } else {
+	START_PWM[i]=SOLL_PWM[i] ;
+      } ;
+    }; 
+    for (j=0;j<i;j++) if (PWM[i]<=PWMTime[j]) break ;
+    for (k=5;k>j;k--) { PWMTime[k] = PWMTime[k-1] ; PWMOut[k] = PWMOut[k-1] ; } ;
     PWMTime[j] = PWM[i] ;
-    PWMPort[j] = i ;
+    if (PWM[i]==255) {  
+      PWMOut[j]=6 ; // If full on never switch off
+    } else {
+      PWMOut[j] = i ;
+    } ;
   } ;
-  for (i=0;i<5;i++) PWMTime[i] = PWMTime[i+1]-PWMTime[i] ;
-  PWMTime[5] = 255-PWMTime[4]-PWMTime[3]-PWMTime[2]-PWMTime[1]-PWMTime[0] ;
+  if (Timing>23) {
+    Timing=0 ;
+  } else {
+    Timing++ ;
+  } ;
+  for (i=1;i<6;i++) PT[i] = PWMTime[i]-PWMTime[i-1] ;
+  for (i=1;i<6;i++) PWMTime[i] = PT[i] ;
+  PWMTime[6] = 255-PWMTime[5]-PWMTime[4]-PWMTime[3]-PWMTime[2]-PWMTime[1]-PWMTime[0] ;
 }
     
 // Anschalten des angegebenen Ports
 
 inline void PortOn(uint8_t Port)
 {
-  if (Port<3) {
-    PORTA |=(1<<Port) ;
-  } else {
-    PORTB |=(1<<(Port-3)) ;
-  } ;
+  if (PWMPin[Port]!=0) PWMPort[Port][0]|=PWMPin[Port] ;
 }
 
 // Ausschalten des angegebenen Ports
 
 inline void PortOff(uint8_t Port)
 {
-  if (Port<3) {
-    PORTA &= ~(1<<Port) ;
-  } else {
-    PORTB &= ~(1<<(Port-3)) ;
-  } ;
+  if (PWMPin[Port]!=0) PWMPort[Port][0]&=~(PWMPin[Port]) ;
 }
   
 
@@ -450,10 +470,24 @@ ISR(TIM1_COMPA_vect)
 {
   uint8_t i ;
 
-  if (PWMStep==0) { // Alle die nicht null sind anmachen
+  if (PWMStep==0) {
+    UpdatePWM() ;
+    if (PWMTime[0]<4) TCNT1 = 0 ;            // reset Timer, else UpdatePWM might be too long
+    OCR1A = PWMTime[0]<<1 ;
     for (i=0;i<6;i++)
-      if (PWM[PWMPort[i]]!=0) PortOn(PWMPort[i]) ;
-  }   
+      if (PWM[i]!=0) PortOn(i) ;
+    PWMStep++ ;
+  } else {
+    do {
+      PortOff(PWMOut[PWMStep-1]) ;
+      PWMStep++ ;
+    } while ((PWMTime[PWMStep-1]==0)&&(PWMStep<7)) ;
+    OCR1A = PWMTime[PWMStep-1]<<1 ;
+    for (i=PWMStep;i<7;i++) if (PWMTime[i]!=0) break ; // If no further shut off follows, set to PWMStep7
+  } ;
+  if ((i==7)||(PWMStep==7)) {
+    PWMStep = 0 ;
+  } ;
 }
 
 // Initialisieren des MC und setzen der Port-Eigenschaften
@@ -464,9 +498,9 @@ void InitMC (void)
   uint8_t i ;
     
   // Timer 1 OCRA1, als variablem Timer nutzen
-  TCCR1B = 2;             // Timer laeuft mit Prescaler/8
+  TCCR1B = 3|8;             // Timer laeuft mit Prescaler/64 bis OCR1A
   TCNT1 = 0;              // Timer auf Null stellen
-  OCR1A = 1000;           // Overflow auf 1000
+  OCR1A = 512;           // Overflow auf 512
   TIMSK1 |= (1 << OCIE1A);   // Interrupt freischalten
 
   // Timer 0 als 10 ms-Timer verwenden
@@ -475,6 +509,8 @@ void InitMC (void)
   TIMSK0 |= 1<<TOIE0;            // enable timer interrupt
   
   // Port-Konfiguration durchgehen
+  PWMPin[6]=0 ;
+
   for (i=0;i<6;i++) {
     // Konfigurations-Byte lesen
     Type[i] = eeprom_read_byte((uint8_t*)(300+(i<<1))) ;
@@ -538,18 +574,30 @@ void InitMC (void)
       } ;
       if (i<3) {
 	// Port A
-	if (Config[i]>0) {
-	  PORTA |= (1<<i) ;
+	PWMPort[i] = &PORTA ;
+	if (Type[i]==O_PWM){
+	  PWMPin[i] = 1<<i ;
 	} else {
-	  PORTA &= ~(1<<i) ;
+	  if (Config[i]>0) {
+	    PORTA |= (1<<i) ;
+	  } else {
+	    PORTA &= ~(1<<i) ;
+	  } ;
+	  PWMPin[i] = 0 ;
 	} ;
 	DDRA |= (1<<i) ;
       } else {
 	// Port B
-	if (Config[i]>0) {
-	  PORTB &= ~(1<<(i-3)) ;
+	PWMPort[i] = &PORTB ;
+	if (Type[i]==O_PWM){
+	  PWMPin[i] = 1<<(i-3) ;
 	} else {
-	  PORTB |= (1<<(i-3)) ;
+	  if (Config[i]>0) {
+	    PORTB &= ~(1<<(i-3)) ;
+	  } else {
+	    PORTB |= (1<<(i-3)) ;
+	  } ;
+	  PWMPin[i] = 0 ;
 	} ;
 	DDRB |= (1<<(i-3)) ;
       } ;
@@ -565,7 +613,7 @@ void InitMC (void)
 int main(void) 
 {
   uint8_t r ;
-  uint8_t i ;
+  uint8_t i,j ;
   uint16_t Addr ;
   
   // Default-Werte:
@@ -612,65 +660,65 @@ int main(void)
     // Warte auf die nächste CAN-Message
     while ((LastCommand=mcp2515_get_message(&Message)) == NO_MESSAGE) {
       /* Ports verarbeiten */
-      for (i=0;i<6;i++) {
+      for (i=0,j=1;i<6;i++,j=j<<1) {
 	// Aktion je nach Konfigurations-Byte ausfuehren
 	switch (Type[i]) {
 	case I_SIMPLE: // Einfacher Eingang
-	  if (get_key_press(1<<i)) {
+	  if (get_key_press(j)) {
 	    SendPinMessage(i,0,0) ;
 	  } ;
 	  break ;
 	case I_SHORTLONG: // Kurz oder lang gedrueckt
-	  if (get_key_short(1<<i)) {
+	  if (get_key_short(j)) {
 	    SendPinMessage(i,0,0) ;
-	  } else if (get_key_long(1<<i)) {
+	  } else if (get_key_long(j)) {
 	    SendPinMessage(i,1,0) ;
 	  } ;
 	  break ;
 	case I_MONO: // Nicht-Nachstellbares Monoflop
 	  if (Timers[i]==0) {
-	    if (get_key_press(1<<i)) {
+	    if (get_key_press(j)) {
 	      SendPinMessage(i,0,0) ;
 	      Timers[i] = ((uint16_t)Config[i])*100 ;
-	      TimerStatus |= 1<<i ;
+	      TimerStatus |= j ;
 	    } else {
-	      if ((TimerStatus&(1<<i))>0) {
+	      if ((TimerStatus&(j))>0) {
      		SendPinMessage(i,1,0) ;
-	    	TimerStatus &= ~(1<<i) ;
+	    	TimerStatus &= ~(j) ;
 	      } ;
 	    } ;
 	  } ;
 	  break ;
 	case I_RETRIG: // Nachstellbares Monoflop
-	  if (get_key_press(1<<i)) {
+	  if (get_key_press(j)) {
 	    if (Timers[i]==0) {
 	      SendPinMessage(i,0,0) ;
 	    } ;
 	    Timers[i] = ((uint16_t)Config[i])*100 ;
-	    TimerStatus |= 1<<i ;
+	    TimerStatus |= j ;
 	  } ;
 	  if (Timers[i]==0) {
-	    if ((TimerStatus&(1<<i))>0) {
+	    if ((TimerStatus&(j))>0) {
 	      SendPinMessage(i,1,0) ;
-	      TimerStatus &= ~(1<<i) ;
+	      TimerStatus &= ~(j) ;
 	    } ;
 	  } ;
 	  break ;
   	case I_BWM: // Nachstellbares Monoflop als Bewegungsmelder
 	case I_BWM2:
-	  r=!get_key_stat(1<<i) ;
+	  r=!get_key_stat(j) ;
 	  if (Type[i]==I_BWM2) r=!r ;
 	  if (r) {
 	    if (Timers[i]==0) {
 	      SendPinMessage(i,0,0) ;
 	    } ;
 	    Timers[i] = ((uint16_t)Config[i])*100 ;
-	    TimerStatus |= 1<<i ;
+	    TimerStatus |= j ;
 	  } ;
 	  if (Timers[i]==0) {
-	    if ((TimerStatus&(1<<i))>0) {
+	    if ((TimerStatus&(j))>0) {
 	      SendPinMessage(i,1,0) ;
-	      TimerStatus &= ~(1<<i) ;
+	      TimerStatus &= ~(j) ;
 	    } ;
 	  } ;
 	  break ;
@@ -687,6 +735,7 @@ int main(void)
     
     // Kommando extrahieren
     r = Message.data[0] ;
+    j = Message.data[1] ;
 
     // Sende-Addresse zusammenstoepseln (enthält auch die Quelladdresse aus Message,
     // ueberschreibt dann die In-Message)
@@ -694,15 +743,15 @@ int main(void)
 
     // Befehl abarbeiten
     switch (r) {
-
+      
     case SEND_STATUS:
       // Wartet auf einen Tastendruck und sendet dann die Port-Nummer des Tasters
       do {
-		for (i=0;i<6;i++) {
-		  if (get_key_press(1<<i)) break ;
-		}
-	  } while (i==6) ;
-
+	for (i=0;i<6;i++) {
+	  if (get_key_press(1<<i)) break ;
+	}
+      } while (i==6) ;
+      
       Message.data[1] = i ;
       Message.length = 2 ;
       mcp2515_send_message(&Message) ;				
@@ -746,7 +795,7 @@ int main(void)
       break ;
     case TIME:
       Heartbeat = 0 ;
-      Time = Message.data[1] ;
+      Time = j ;
       break ;
       // Diese Befehle sind beim Sensor nicht bekannt
       // LED
@@ -764,6 +813,24 @@ int main(void)
     case CHANNEL_ON:
     case CHANNEL_OFF:
     case CHANNEL_TOGGLE:
+      j-- ;
+      if (j>5) break; // Illegaler PIN
+      if ((Type[j]!=O_ONOFF)&&(Type[j]!=O_PWM)) break ; // Illegaler PIN
+      if (r==CHANNEL_ON) {
+	i = 255 ;
+      } else if (r==CHANNEL_OFF) {
+	i = 0 ;
+      } else {
+	i =255-PWM[j] ;
+      }
+      START_PWM[j] = PWM[j] ;
+      SOLL_PWM[j] = i ;
+      if (Config[j]>0) {
+	TimerPWM[j] = DurationPWM[j] = Config[j] ;
+      } else {
+	TimerPWM[j] = DurationPWM[j] = 1 ;
+      } ;
+      break ;
     case SHADE_UP_FULL:
     case SHADE_DOWN_FULL:
     case SHADE_UP_SHORT:
@@ -771,30 +838,31 @@ int main(void)
       break ;
       // Nun die Sensor-Befehle
     case SET_PIN:
-      if (Message.data[1]>5) break; // Illegaler PIN
-      if ((Type[Message.data[1]]!=O_ONOFF)&&(Type[Message.data[1]]!=O_PWM)) break ; // Illegaler PIN
-      PWM[Message.data[1]] = Message.data[2] ;
+      j-- ;
+      if (j>5) break; // Illegaler PIN
+      if ((Type[j]!=O_ONOFF)&&(Type[j]!=O_PWM)) break ; // Illegaler PIN
+      START_PWM[j] = PWM[j] ;
+      SOLL_PWM[j] = Message.data[2] ;
+      TimerPWM[j] = DurationPWM[j] = Message.data[3]+1 ;
       break ;
     case LOAD_LED:
-      r = Message.data[1] ;
-      if ((r+1)>MAX_LEDS) break; // Zu hohe LED-Nummer
-      NumLED = (r+1)>NumLED?(r+1):NumLED ; // Set Max used LED
-      START_WS[r*3] = SOLL_WS[r*3] ;
-      START_WS[r*3+1] = SOLL_WS[r*3+1] ;
-      START_WS[r*3+2] = SOLL_WS[r*3+2] ;
-      SOLL_WS[r*3] = Message.data[2] ;
-      SOLL_WS[r*3+1] = Message.data[3] ;
-      SOLL_WS[r*3+2] = Message.data[4] ;
-      TimerLED[r] = Message.data[5]*5+1 ;
-      DurationLED[r] = TimerLED[r] ;
+      if ((j+1)>MAX_LEDS) break; // Zu hohe LED-Nummer
+      NumLED = (j+1)>NumLED?(j+1):NumLED ; // Set Max used LED
+      START_WS[j*3] = SOLL_WS[j*3] ;
+      START_WS[j*3+1] = SOLL_WS[j*3+1] ;
+      START_WS[j*3+2] = SOLL_WS[j*3+2] ;
+      SOLL_WS[j*3] = Message.data[2] ;
+      SOLL_WS[j*3+1] = Message.data[3] ;
+      SOLL_WS[j*3+2] = Message.data[4] ;
+      DurationLED[j] = TimerLED[j] = Message.data[5]*5+1 ;
       break ;
     case OUT_LED:
       break ;
     case START_SENSOR:
-      Running[(int)Message.data[1]-1] = 1 ;
+      Running[(int)j-1] = 1 ;
       break ;
     case STOP_SENSOR:
-      Running[(int)Message.data[1]-1] = 0 ;
+      Running[(int)j-1] = 0 ;
       break ;
     } ;
   } ;
