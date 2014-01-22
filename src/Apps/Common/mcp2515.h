@@ -21,15 +21,6 @@ typedef struct
 	uint32_t mask;				//!< Maske
 } can_filter_t;
 
-
-#define MCP2515_FILTER_EXTENDED(id)	\
-		(uint8_t)  ((uint32_t) (id) >> 21), \
-		(uint8_t)((((uint32_t) (id) >> 13) & 0xe0) | (1<<3) | \
-			(((uint32_t) (id) >> 16) & 0x3)), \
-		(uint8_t)  ((uint32_t) (id) >> 8), \
-		(uint8_t)  ((uint32_t) (id))
-
-
 extern can_t InMessage ;
 extern can_t OutMessage ;
 extern uint8_t message_number;			//!< Running number of the messages
@@ -108,22 +99,6 @@ typedef enum {
 
 #define false (0==1)
 #define true (0==0)
-
-#ifndef	MCP2515_CLKOUT_PRESCALER
-	#error	MCP2515_CLKOUT_PRESCALER not defined!
-#elif MCP2515_CLKOUT_PRESCALER == 0
-	#define	CLKOUT_PRESCALER_	0x0
-#elif MCP2515_CLKOUT_PRESCALER == 1
-	#define	CLKOUT_PRESCALER_	0x4
-#elif MCP2515_CLKOUT_PRESCALER == 2
-	#define	CLKOUT_PRESCALER_	0x5
-#elif MCP2515_CLKOUT_PRESCALER == 4
-	#define	CLKOUT_PRESCALER_	0x6
-#elif MCP2515_CLKOUT_PRESCALER == 8
-	#define	CLKOUT_PRESCALER_	0x7
-#else
-	#error	invaild value of MCP2515_CLKOUT_PRESCALER
-#endif
 
 #if defined (__AVR_AT90PWM3B__)
 	#define P_MOSI D,3

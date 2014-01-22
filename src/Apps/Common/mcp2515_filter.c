@@ -3,9 +3,6 @@
 #include "utils.h"
 #include "spi.h"
 
-
-#include <util/delay.h>
-
 // Filter setzen
 
 uint8_t mcp2515_set_filter(uint8_t number, const can_filter_t *filter)
@@ -34,11 +31,15 @@ uint8_t mcp2515_set_filter(uint8_t number, const can_filter_t *filter)
 		spi_putc(SPI_WRITE);
 		spi_putc(mask_address);
 		mcp2515_write_id(&filter->mask);
-		_delay_us(1);
+
+		asm volatile ("nop");
+		asm volatile ("nop");
 		
 		SET(MCP2515_CS);
 		
-		_delay_us(1);
+		asm volatile ("nop");
+		asm volatile ("nop");
+
 	}
 	
 	// Filter setzen
@@ -55,10 +56,14 @@ uint8_t mcp2515_set_filter(uint8_t number, const can_filter_t *filter)
 	spi_putc(SPI_WRITE);
 	spi_putc(filter_address | (number * 4));
 	mcp2515_write_id(&filter->id);
-	_delay_us(1);
+
+	asm volatile ("nop");
+	asm volatile ("nop");
+
 	SET(MCP2515_CS);
 	
-	_delay_us(1);
+	asm volatile ("nop");
+	asm volatile ("nop");
 
 	if (number == 0)
 	{
@@ -70,7 +75,7 @@ uint8_t mcp2515_set_filter(uint8_t number, const can_filter_t *filter)
 	} ;
 	
 	// zurueck zum normalen modus
-	mcp2515_write_register(CANCTRL, CLKOUT_PRESCALER_);
+	mcp2515_write_register(CANCTRL, 0);
 	
 	return true;
 }

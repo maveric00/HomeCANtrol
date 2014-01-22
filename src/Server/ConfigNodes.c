@@ -136,30 +136,23 @@ void ConfigCommand (struct Node *Node, struct Node *Action, struct EEPromSensFun
     if (Action->Data.Aktion.Unit->Type==N_LED) Command = STOP_PROG ;
     break ;
   default:
-    break ;
+    SF->Command = UNDEFINED_COMMAND ;
+    return ;
   } ;
 
   SF->Command = Command ;
 
   // Je nach Kommando jetzt noch den Datenbereich fuellen...
 
-  if ((Command==CHANNEL_ON)||(Command==CHANNEL_OFF)||(Command==CHANNEL_TOGGLE)) {
-    SF->Data[0] = P1 ;
-  } else if ((Command==SHADE_UP_SHORT)||(Command==SHADE_DOWN_SHORT)||
-	     (Command==SHADE_UP_FULL)||(Command==SHADE_DOWN_FULL)) {
-    SF->Data[0] = P1 ;
-  } else if (Command==START_PROG) {
-    SF->Data[0] = P1 ; 
-  } else if ((Command==SET_TO)||(Command==HSET_TO)||(Command==DIM_TO)||(Command==HDIM_TO)) {
+  SF->Data[0] = P1 ;
+
+  if ((Command==SET_TO)||(Command==HSET_TO)||(Command==DIM_TO)||(Command==HDIM_TO)) {
     SF->Data[1] = Action->Data.Aktion.R ;
     SF->Data[2] = Action->Data.Aktion.G ;
     SF->Data[3] = Action->Data.Aktion.B ;
     SF->Data[4] = Action->Data.Aktion.W ;
     SF->Data[5] = Action->Data.Aktion.Delay ;
-  } else {
-    // Kommando wurde nicht gesetzt
-    SF->Command = UNDEFINED_COMMAND ;
-  }
+  } ;
 }
 
 void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom,int Large)
@@ -217,6 +210,9 @@ void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom,int Large)
   case S_OUTPUT:
     i = 10 ;
     break ;
+  case S_PWM:
+    i = 11 ;
+    break ;
   case S_WSDATA:
     i = 21 ;
     break ;
@@ -242,7 +238,7 @@ void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom,int Large)
   if ((i==3)||(i==4)||(i==5)||(i==6)||(i==7)||(i==8)) {
     Conf[P1-1].Data = Node->Data.Sensor.Intervall ;
   }  ;
-  if (i==10) {
+  if ((i==10)||(i==11)) {
     Conf[P1-1].Data = Node->Data.Sensor.Reset ;
   } ;
 

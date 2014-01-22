@@ -109,6 +109,7 @@ struct TypSel Types[] = {
   {"Lightsensor",S_LIGHT},
   {"Ausgang",S_OUTPUT},
   {"Output",S_OUTPUT},
+  {"PWM",S_PWM},
   {"WSData",S_WSDATA},
   {"WSClock",S_WSCLOCK},
   {"An",A_ON},

@@ -38,39 +38,10 @@
 	#endif
 #endif
 
-#define MCP2515_FILTER_EXTENDED(id)	\
-		(uint8_t)  ((uint32_t) (id) >> 21), \
-		(uint8_t)((((uint32_t) (id) >> 13) & 0xe0) | (1<<3) | \
-			(((uint32_t) (id) >> 16) & 0x3)), \
-		(uint8_t)  ((uint32_t) (id) >> 8), \
-		(uint8_t)  ((uint32_t) (id))
-
-#define	MCP2515_FILTER(id) \
-		(uint8_t)((uint32_t) id >> 3), \
-		(uint8_t)((uint32_t) id << 5), \
-		0, \
-		0
-
 
 // Registersatz aufsetzen
 
 static uint8_t PROGMEM mcp2515_register_map[45] = {
-	MCP2515_FILTER_EXTENDED(0x00001000),	// Filter 0
-	MCP2515_FILTER_EXTENDED(0),				// Filter 1
-	MCP2515_FILTER_EXTENDED(0),		// Filter 2
-	0,									// BFPCTRL
-	0,									// TXRTSCTRL
-	0,									// CANSTAT (read-only)
-	(1<<REQOP2) | CLKOUT_PRESCALER_,	// CANCTRL
-	MCP2515_FILTER_EXTENDED(0),		// Filter 3
-	MCP2515_FILTER_EXTENDED(0),		// Filter 4
-	MCP2515_FILTER_EXTENDED(0),		// Filter 5
-	0,									// TEC (read-only)
-	0,									// REC (read-only)
-	0,									// CANSTAT (read-only)
-	(1<<REQOP2) | CLKOUT_PRESCALER_,	// CANCTRL
-	MCP2515_FILTER_EXTENDED(0x3FE2),// Mask 0 (for group 0)
-	MCP2515_FILTER_EXTENDED(0x1FFFFFFF),		// Mask 1 (for group 1)
 	R_CNF3,
 	R_CNF2,
 	R_CNF1,
@@ -218,9 +189,6 @@ uint8_t mcp2515_send_message(const can_t *msg)
   return address;
 }
 
-
-
-
 void mcp2515_bit_modify(uint8_t adress, uint8_t mask, uint8_t data)
 {
 	RESET(MCP2515_CS);
@@ -302,7 +270,7 @@ void mcp2515_init(void)
 	// Filter usw. setzen
 	RESET(MCP2515_CS);
 	spi_putc(SPI_WRITE);
-	spi_putc(RXF0SIDH);
+	spi_putc(CNF3);
 	for (uint8_t i = 0; i < sizeof(mcp2515_register_map); i++)
 		spi_putc(pgm_read_byte(&mcp2515_register_map[i]));
 	SET(MCP2515_CS);
@@ -312,5 +280,5 @@ void mcp2515_init(void)
 	mcp2515_write_register(RXB1CTRL, (1<<RXM1)|(0<<RXM0));
 	
 	// MCP2515 zurueck in den normalen Modus versetzten
-	mcp2515_write_register(CANCTRL, CLKOUT_PRESCALER_);
+	mcp2515_write_register(CANCTRL, 0);
 }
