@@ -257,6 +257,9 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       if (strcmp(attr[i],"reset")==0) {
 	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.Reset)) ;
       } ;
+      if ((strcmp(attr[i],"dauer")==0)||(strcmp(attr[i],"time")==0)) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.Reset)) ;
+      } ;
       if ((strcmp(attr[i],"intervall")==0)||(strcmp(attr[i],"interval")==0)) {
 	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.Intervall)) ;
       } ;
