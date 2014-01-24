@@ -504,6 +504,31 @@ void UpdateActions (struct Node *Root)
   } ;
 }
 
+void AddConstants (struct Node *Root)
+{
+  struct Node *This ;
+
+  This = NewChild(Root) ;
+  strcpy (Current->Name,"wahr") ;
+  Current->Type=N_VAR ;
+  Current->Value = (1==1) ;
+
+  This = NewChild(Root) ;
+  strcpy (Current->Name,"true") ;
+  Current->Type=N_VAR ;
+  Current->Value = (1==1) ;
+
+  This = NewChild(Root) ;
+  strcpy (Current->Name,"falsch") ;
+  Current->Type=N_VAR ;
+  Current->Value = (1==0) ;
+
+  This = NewChild(Root) ;
+  strcpy (Current->Name,"false") ;
+  Current->Type=N_VAR ;
+  Current->Value = (1==0) ;
+} ;
+
 /* Parse a document from the open file descriptor 'fd' until the parse
    is complete (the document has been completely parsed, or there's
    been an error), or the parse is stopped.  Return non-zero when
@@ -574,6 +599,7 @@ int ReadConfig(void)
   parse_xml(p,InFile) ;
 
   UpdateActions(Haus->Child) ;
+  AddConstants (Haus->Child) ;
 
   XML_ParserFree(p);
   close(InFile) ;

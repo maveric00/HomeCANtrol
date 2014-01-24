@@ -460,7 +460,7 @@ int main(void)
     case SET_VAR:
       Addr = ((uint16_t)Message.data[1])+(((uint16_t)Message.data[2])<<8) ;
       eeprom_write_byte((uint8_t*)Addr,Message.data[3]) ;
-	  Message.length=4 ;
+      Message.length=4 ;
       mcp2515_send_message(&Message) ; // Empfang bestaetigen
       break ;
 

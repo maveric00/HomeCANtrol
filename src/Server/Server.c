@@ -811,6 +811,17 @@ int HandleCommand (char *Command,int Socket)
   for (This = MenuCurrent->Child,i=1;This!=NULL;This=This->Next,i++) {
     Makro[0]='\0' ;
     FullObjectName(This,Makro) ;
+    if ((This->Type==N_ADRESS)||(This->Type==N_REACT)||
+	(This->Type==N_DELAY)||(This->Type==N_TIMER)||
+	(This->Type==N_CALL)||(This->Type==N_TASK)||
+	(This->Type==N_ALWAYS)||(This->Type==N_ACTIVE)||
+	(This->Type==N_STARTUP)||(This->Type==N_IF)||
+	(This->Type==N_ELSE)||(This->Type==N_SET)||
+	(This->Type==N_REPEAT)||(This->Type==N_WAITFOR)||
+	(This->Type==N_LANGUAGE)||(This->Type==N_BROADCAST)||
+	(This->Type==N_PORT)||(This->Type==N_FIRMWARE)||
+	(This->Type==N_SEQUENCE)||(This->Type==N_PROGRAM)||
+	(This->Type==N_LOC)||(strlen(Makro)==0)) continue ;
     sprintf (Answer,"%d: %s\r\n",i,Makro) ;
     send(Socket,Answer,strlen(Answer),0) ;
   } ;
