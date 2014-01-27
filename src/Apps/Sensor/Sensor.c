@@ -417,7 +417,7 @@ void UpdatePWM (void)
       if (TimerPWM[i]>0) { 
 	TimerPWM[i]-- ;
 	PWM[i] = (uint8_t)(((int16_t)START_PWM[i])+(((int16_t)((int16_t)SOLL_PWM[i]-(int16_t)START_PWM[i]))*(DurationPWM[i]-TimerPWM[i])/DurationPWM[i])) ;
-	if (PWM[i]<4) PWM[i]=0 ;  // Don¡´t exceed current driver frequency limitations
+	if (PWM[i]<4) PWM[i]=0 ;  // Don't exceed current driver frequency limitations
 	if (PWM[i]>251) PWM[i]=255 ;
       } else {
 	START_PWM[i]=SOLL_PWM[i] ;
@@ -459,16 +459,14 @@ inline void PortOff(uint8_t Port)
 
 // Timer1-Interrup-Service-Routine der PWM-Generierung
 
-ISR(TIM1_COMPA_vect) 
+ISR( TIM1_OVF_vect )                           
 {
   uint8_t i ;
-  uint16_t j ;
   
   if (!PWMStep) {
     UpdatePWM() ;
     for (;(PWMTime[PWMStep]==0)&&(PWMStep<7);PWMStep++) ;
-    j = PWMTime[PWMStep]<<1 ;
-    OCR1A = (TCNT1+2)>j?(TCNT1+2):j ; // Headroom, if UpdatePWM took too long
+    TCNT1=65535-(PWMTime[PWMStep]<<1) ;
     for (i=0;i<6;i++)
       if (PWM[i]) PortOn(i) ;
     PWMStep++ ;
@@ -478,8 +476,7 @@ ISR(TIM1_COMPA_vect)
       PortOff(PWMOut[PWMStep-1]) ;
       PWMStep++ ;
     } while ((PWMTime[PWMStep-1]==(uint8_t)0)&&(PWMStep<7)) ;
-    j = PWMTime[PWMStep-1]<<1 ;
-    OCR1A = (TCNT1+2)>j?(TCNT1+2):j ; // Headroom, if calculation took too long
+    TCNT1=65535-(PWMTime[PWMStep-1]<<1) ;
     for (i=PWMStep;i<7;i++) if (PWMTime[i]) break ; // If no further shut off follows, set to PWMStep7
   } ;
   if ((i==(uint8_t)7)||(PWMStep==(uint8_t)7)) {
@@ -498,10 +495,9 @@ void InitMC (void)
 
     
   // Timer 1 OCRA1, als variablem Timer nutzen
-  TCCR1B = 3|8;             // Timer laeuft mit Prescaler/64 bis OCR1A
-  TCNT1 = 0;              // Timer auf Null stellen
-  OCR1A = 512;           // Overflow auf 512
-  TIMSK1 |= (1 << OCIE1A);   // Interrupt freischalten
+  TCCR1B = 3|8;             // Timer laeuft mit Prescaler/64 
+  TCNT1 = 65530;              // Timer auf Null stellen
+  TIMSK1 |= (1 << TOIE1);   // Interrupt freischalten
 
   // Timer 0 als 10 ms-Timer verwenden
   TCCR0B = (1<<CS02)|(1<<CS00);  // divide by 1024
@@ -804,7 +800,7 @@ int __attribute__((OS_main)) main(void)
       if ((Type[j]!=O_ONOFF)&&(Type[j]!=O_PWM)) break ; // Illegaler PIN
       START_PWM[j] = PWM[j] ;
       SOLL_PWM[j] = Message.data[2+r] ;
-      TimerPWM[j] = DurationPWM[j] = Message.data[3+r]+1 ;
+      TimerPWM[j] = DurationPWM[j] = Message.data[3+r]*5+1 ;
       break ;
     case LOAD_LED:
       if ((j+1)>(uint8_t)MAX_LEDS) break; // Zu hohe LED-Nummer

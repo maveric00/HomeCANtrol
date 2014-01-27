@@ -318,8 +318,8 @@ ISR( TIMER0_OVF_vect )
     if (PWM[1]) PORTC|=(uint8_t)0x01 ; // Pin0 
     
   } else {
-    if (PWM[0]=PWMStep) PORTD&=(uint8_t)0xfe ;
-    if (PWM[1]=PWMStep) PORTC&=(uint8_t)0xfe ;
+    if (PWM[0]==PWMStep) PORTD&=(uint8_t)0xfe ;
+    if (PWM[1]==PWMStep) PORTC&=(uint8_t)0xfe ;
   } ;
   PWMStep++ ;
 }

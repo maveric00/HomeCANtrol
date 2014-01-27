@@ -526,6 +526,15 @@ void SendAction (struct Node *Action)
       Len=4 ;
       Action->Data.Aktion.Unit->Value=1-Action->Data.Aktion.Unit->Value ; 
     } ;
+    if (Action->Data.Aktion.Type==A_LEDDIM) { 
+      Command = DIM_TO ; 
+      Data[2] = Action->Data.Aktion.R ;
+      Data[3] = Action->Data.Aktion.G ;
+      Data[4] = Action->Data.Aktion.B ;
+      Data[5] = Action->Data.Aktion.W ;
+      Data[6] = Action->Data.Aktion.Delay ;
+      Len=7 ;
+    } ;
     if (Action->Data.Aktion.Type==A_SEND_VAL) {
       Data[2] = Action->Data.Aktion.Unit->Value ;
       Len=3 ;
@@ -575,7 +584,7 @@ void SendAction (struct Node *Action)
       Data[4] = Action->Data.Aktion.B ;
       Data[5] = Action->Data.Aktion.W ;
       Data[6] = Action->Data.Aktion.Delay ;
-      Len=6 ;
+      Len=7 ;
     } else if (Command==START_PROG) {
       Data[7] = GlobalTime ;
       Len=8 ;

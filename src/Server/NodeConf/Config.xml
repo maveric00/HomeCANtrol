@@ -531,14 +531,14 @@
       <Makro name="BX1An">
 	<Adresse linie="0" knoten="201" port="47"/>
 	<Setze objekt="Erdgeschoss/Gaderobe/BW1" wert="1"/>
-	<Aktion kommando="An" objekt="Erdgeschoss/Gaderobe/Deckenlicht1"/>
-	<Aktion kommando="An" objekt="Erdgeschoss/Gaderobe/Deckenlicht2"/>
+	<Aktion kommando="DIMRGB" W="255" dauer="10" objekt="Erdgeschoss/Gaderobe/Deckenlicht1"/>
+	<Aktion kommando="DIMRGB" W="180" dauer="10" objekt="Erdgeschoss/Gaderobe/Deckenlicht2"/>
       </Makro>
       <Makro name="BX2An">
 	<Adresse linie="0" knoten="201" port="48"/>
 	<Setze objekt="Erdgeschoss/Gaderobe/BW2" wert="1"/>
-	<Aktion kommando="An" objekt="Erdgeschoss/Gaderobe/Deckenlicht1"/>
-	<Aktion kommando="An" objekt="Erdgeschoss/Gaderobe/Deckenlicht2"/>
+	<Aktion kommando="DIMRGB" W="255" dauer="10" objekt="Erdgeschoss/Gaderobe/Deckenlicht1"/>
+	<Aktion kommando="DIMRGB" W="180" dauer="10" objekt="Erdgeschoss/Gaderobe/Deckenlicht2"/>
       </Makro>
       <Makro name="BX1Aus">
 	<Adresse linie="0" knoten="201" port="50"/>
