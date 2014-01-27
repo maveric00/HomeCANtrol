@@ -417,11 +417,12 @@ void UpdatePWM (void)
       if (TimerPWM[i]>0) { 
 	TimerPWM[i]-- ;
 	PWM[i] = (uint8_t)(((int16_t)START_PWM[i])+(((int16_t)((int16_t)SOLL_PWM[i]-(int16_t)START_PWM[i]))*(DurationPWM[i]-TimerPWM[i])/DurationPWM[i])) ;
+	if (PWM[i]<4) PWM[i]=0 ;  // Don¡´t exceed current driver frequency limitations
+	if (PWM[i]>251) PWM[i]=255 ;
       } else {
 	START_PWM[i]=SOLL_PWM[i] ;
       } ;
     }; 
-    if (PWM[i]<20) PWM[i]=0 ; // workaround
     for (j=0;j<i;j++) if (PWM[i]<=PWMTime[j]) break ;
     for (k=5;k>j;k--) { PWMTime[k] = PWMTime[k-1] ; PWMOut[k] = PWMOut[k-1] ; } ;
     PWMTime[j] = PWM[i] ;
@@ -461,21 +462,24 @@ inline void PortOff(uint8_t Port)
 ISR(TIM1_COMPA_vect) 
 {
   uint8_t i ;
+  uint16_t j ;
   
   if (!PWMStep) {
     UpdatePWM() ;
     for (;(PWMTime[PWMStep]==0)&&(PWMStep<7);PWMStep++) ;
-    if (PWMTime[PWMStep]<4) TCNT1 = 0 ;            // reset Timer, else UpdatePWM might be too long
-    OCR1A = PWMTime[PWMStep]<<1 ;
+    j = PWMTime[PWMStep]<<1 ;
+    OCR1A = (TCNT1+2)>j?(TCNT1+2):j ; // Headroom, if UpdatePWM took too long
     for (i=0;i<6;i++)
       if (PWM[i]) PortOn(i) ;
     PWMStep++ ;
+    for (;(PWMTime[PWMStep]==0)&&(PWMStep<7);PWMStep++) ; // Delete trailing zeros
   } else {
     do {
       PortOff(PWMOut[PWMStep-1]) ;
       PWMStep++ ;
     } while ((PWMTime[PWMStep-1]==(uint8_t)0)&&(PWMStep<7)) ;
-    OCR1A = PWMTime[PWMStep-1]<<1 ;
+    j = PWMTime[PWMStep-1]<<1 ;
+    OCR1A = (TCNT1+2)>j?(TCNT1+2):j ; // Headroom, if calculation took too long
     for (i=PWMStep;i<7;i++) if (PWMTime[i]) break ; // If no further shut off follows, set to PWMStep7
   } ;
   if ((i==(uint8_t)7)||(PWMStep==(uint8_t)7)) {

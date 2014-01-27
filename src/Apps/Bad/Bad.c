@@ -72,7 +72,7 @@ EEProm-Belegung vom LED-Board:
 */
 // globale Variablen
 #define PWM_CHANNELS 24
-#define TIMER_PRESET 99
+#define TIMER_PRESET 246
 
 
 extern volatile uint8_t LEDVal[PWM_CHANNELS] ;
@@ -296,16 +296,34 @@ ISR( TIMER0_OVF_vect )
   static int CC=0 ;
   
   TCNT0 = (uint8_t)TIMER_PRESET;  // preload for 10ms
+  
+  // Called 27 777 times per second (16 Mhz/64/9)
+  
+  if (!PWMStep) {
+    // Called 108 (=27 777/256) times per second
+    if (Timers>0) Timers-- ;
+    CC++ ;
+    if (CC>=4) {
+      TIMSK0 &= ~(1<<TOIE0) ;  // Disable Timer0 interrupt
+      sei();     // Re-Enable Interrupts
+      StepLight();  // This may take too long for BCM, so allow BCM to interrupt
+      cli() ;   // Disable timer 0 interrupts
+      TIMSK0 |= 1<<TOIE0;            // enable timer interrupt
+      CC = 0 ;
+    }
+    
+    if (Heartbeat<250) Heartbeat++ ;
 
-  if (Timers>0) Timers-- ;
-  CC++ ;
-  if (CC>=4) {
-    StepLight();
-	CC = 0 ;
-  }
-
-  if (Heartbeat<250) Heartbeat++ ;
+    if (PWM[0]) PORTD|=(uint8_t)0x01 ; // Pin0 
+    if (PWM[1]) PORTC|=(uint8_t)0x01 ; // Pin0 
+    
+  } else {
+    if (PWM[0]=PWMStep) PORTD&=(uint8_t)0xfe ;
+    if (PWM[1]=PWMStep) PORTC&=(uint8_t)0xfe ;
+  } ;
+  PWMStep++ ;
 }
+
 
 void UpdatePWM (void)
 {
@@ -328,27 +346,6 @@ void UpdatePWM (void)
     Timing=4 ;
   } ;
 }
-
-void PWMISR(void) 
-{
-  if (!PWMStep) {
-    UpdatePWM() ;
-    if (PWM[0]) PORTD|=(uint8_t)0x01 ; // Pin0 
-    if (PWM[1]) PORTC|=(uint8_t)0x01 ; // Pin0 
-    
-  } else {
-    if (PWM[0]<PWMStep) PORTD&=(uint8_t)0xfe ;
-    if (PWM[1]<PWMStep) PORTC&=(uint8_t)0xfe ;
-  } ;
-  PWMStep++ ;
-}
-
-
-
-// Interrup-Service-Routine zur PWM-Rücknahme des Haltestroms; die ersten 64 Durchlaeufe
-// bleibt das Relais eingeschaltet, danach wird mit 1:1 abgeschwaecht.
-// Routine wird mit 2kHz bei OCR1A=1000 aufgerufen 
-// (bzw. durch Vorspannen mit TCNT1=500 mit 4 kHz)
 
 
 // Hauptprogramm
@@ -409,8 +406,8 @@ int __attribute__((OS_main)) main(void)
   MasterVal = 255 ;
   
   // Timer 0 als 10 ms-Timer verwenden
-  TCCR0B = (1<<CS02)|(1<<CS00);  // divide by 1024
-  TCNT0 = (uint8_t)TIMER_PRESET; // preload for 10ms
+  TCCR0B = (1<<CS01)|(1<<CS00);  // divide by 64
+  TCNT0 = (uint8_t)TIMER_PRESET; // preload for 27 777 Hz
   TIMSK0 |= 1<<TOIE0;            // enable timer interrupt
   
   InitBCM () ;

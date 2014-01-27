@@ -50,7 +50,7 @@ L3\@:				; Schleifenbeginn
 .global LEDval
 .global LEDPWM
 .global MasterVal
-.global PWMISR
+.global UpdatePWM
 
 .comm LEDVal,24 ;		; Adresse an der die 24 Helligkeitswerte der Led's abgelegt werden muessen
 .comm LEDPWM,4*BITCOUNT;	; Adresse der Daten fuer die PWM (Ausgabe an die Ports)
@@ -493,6 +493,7 @@ Loop3:
 	in	r19,_SFR_IO_ADDR(DDRE)
 	andi r19,0xF8
 	or r24,r19
+	andi r24,0xFE ; RESET ausblenden
 	std Y+3,r24
 	andi r25,0xA1
 	in	r19,_SFR_IO_ADDR(DDRD)
@@ -504,7 +505,7 @@ Loop3:
 	dec r18
 	brne Loop3
 
-	rcall PWMISR
+	rcall UpdatePWM
 
 	out _SFR_IO_ADDR(SREG),r20
 	pop r20
