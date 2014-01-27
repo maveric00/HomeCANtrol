@@ -902,11 +902,22 @@ int HandleCommand (char *Command,int Socket)
     } ;
   } ;
 
+
   if (strcmp(Com,"led")==0) {
     int LED,r,g,b,w ;
     sscanf (Command,"led %d %d %d %d %d %d %d",&Line,&Add,&LED,&r,&g,&b,&w) ;
     if ((Line!=0)&&(Add!=0)) {
-      SendLEDCommand(SET_TO,Line,Add,LED,r,g,b,w) ;
+      SendLEDCommand(SET_TO,Line,Add,LED,r,g,b,w,0) ;
+      return (TRUE); 
+    } ;
+  } ;
+
+
+  if (strcmp(Com,"dled")==0) {
+    int LED,r,g,b,w ;
+    sscanf (Command,"dled %d %d %d %d %d %d %d %d",&Line,&Add,&LED,&r,&g,&b,&w,&i) ;
+    if ((Line!=0)&&(Add!=0)) {
+      SendLEDCommand(DIM_TO,Line,Add,LED,r,g,b,w,i) ;
       return (TRUE); 
     } ;
   } ;
@@ -915,7 +926,7 @@ int HandleCommand (char *Command,int Socket)
     int LED,r,g,b,w ;
     sscanf (Command,"hled %d %d %d %d %d %d %d",&Line,&Add,&LED,&r,&g,&b,&w) ;
     if ((Line!=0)&&(Add!=0)) {
-      SendLEDCommand(HSET_TO,Line,Add,LED,r,g,b,w) ;
+      SendLEDCommand(HSET_TO,Line,Add,LED,r,g,b,w,0) ;
       return (TRUE); 
     } ;
   } ;
@@ -926,8 +937,8 @@ int HandleCommand (char *Command,int Socket)
     sscanf (Command,"hws %d %d %d %d %d %d",&Line,&Add,&LED,&r,&g,&b) ;
     hsv_to_rgb(r,g,b,&rc,&gc,&bc) ;
     if ((Line!=0)&&(Add!=0)) {
-      SendLEDCommand(LOAD_LED,Line,Add,LED,rc,gc,bc,0) ;
-      SendLEDCommand(OUT_LED,Line,Add,LED,0,0,0,0) ;
+      SendLEDCommand(LOAD_LED,Line,Add,LED,rc,gc,bc,0,0) ;
+      SendLEDCommand(OUT_LED,Line,Add,LED,0,0,0,0,0) ;
       return (TRUE); 
     } ;
   } ;
@@ -1188,6 +1199,7 @@ int main(int argc, char **argv)
     exit(-1) ;
   } ;
 
+  fprintf (stderr,"Start1\n") ;
 
   web_options[1] = HTTP_PORT ;
 
@@ -1201,8 +1213,11 @@ int main(int argc, char **argv)
 
   // Makros starten
 
+  fprintf (stderr,"Start2\n") ;
+
   InitAlways() ;
   EveryDay () ;
+  fprintf (stderr,"Start3\n") ;
   Day.tv_sec = time(NULL) ;
   Day.tv_usec = 0 ;
 
@@ -1212,6 +1227,8 @@ int main(int argc, char **argv)
   Day.tv_sec = mktime(timeinfo) ;
 
   // Websockets starten
+
+  fprintf (stderr,"Start4\n") ;
 
   if (InitWebsocket()!=0) {
     fprintf (stderr,"Fehler in Websocket\n") ;

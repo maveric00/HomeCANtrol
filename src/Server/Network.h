@@ -75,7 +75,7 @@ void SendCommand(tCommand Command, unsigned char Linie, unsigned short Knoten, u
 /* Sendet ein LED-Setzkommando an die Adresse */
 
 void SendLEDCommand(tCommand Command, unsigned char Linie, unsigned short Knoten, unsigned char LED, unsigned char r,
-		    unsigned char g, unsigned char b, unsigned char w) ;
+		    unsigned char g, unsigned char b, unsigned char w, unsigned char dur) ;
 
 /* Netzwerk-Interface initialisieren */
 

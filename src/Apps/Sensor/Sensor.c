@@ -168,7 +168,7 @@ volatile uint8_t  key_rpt;                                 // key long press and
 // BuildCANId baut aus verschiedenen Elementen (Line & Addresse von Quelle und Ziel 
 // sowie Repeat-Flag und Gruppen-Flag) den CAN Identifier auf
 
-inline uint32_t BuildCANId (uint8_t Prio, uint8_t Repeat, uint8_t FromLine, uint16_t FromAdd, uint8_t ToLine, uint16_t ToAdd, uint8_t Group)
+uint32_t BuildCANId (uint8_t Prio, uint8_t Repeat, uint8_t FromLine, uint16_t FromAdd, uint8_t ToLine, uint16_t ToAdd, uint8_t Group)
 {
   return (((uint32_t)(Group&0x1))<<1|((uint32_t)ToAdd)<<2|((uint32_t)(ToLine&0xf))<<10|
 	  ((uint32_t)FromAdd)<<14|((uint32_t)(FromLine&0xf))<<22|
@@ -182,13 +182,6 @@ inline void GetSourceAddress (uint32_t CANId, uint8_t *FromLine, uint16_t *FromA
 {
   *FromLine = (uint8_t)((CANId>>22)&0xf) ;
   *FromAdd = (uint16_t) ((CANId>>14)&0xff) ;
-}
-
-// GetTargetAddress liefert die Addresse aus dem CAN-Identifier
-
-inline uint8_t GetTargetAddress (uint32_t CANId)
-{
-  return((uint8_t)((CANId>>2)&0xff));
 }
 
 // Alle Filter des 2515 auf die eigene Board-Addresse setzen
@@ -351,7 +344,7 @@ ISR( TIM0_OVF_vect )
     } ;
   } ;
   
-  i = key_state ^ (((PINB&0x7)<<3)|(PINA&0x7));      // key changed ?
+  i = key_state ^ ((((uint8_t)PINB&(uint8_t)0x7)<<3)|((uint8_t)PINA&(uint8_t)0x7));      // key changed ?
   ct0 = ~( ct0 & i );                             // reset or count ct0
   ct1 = ct0 ^ (ct1 & i);                          // reset or count ct1
   i &= ct0 & ct1;                                 // count until roll over ?
@@ -370,7 +363,7 @@ ISR( TIM0_OVF_vect )
 // only once
 uint8_t get_key_stat (uint8_t key_mask)
 {
-  return ((key_mask&(((PINB&0x7)<<3)|(PINA&0x7)))!=0);
+  return ((key_mask&(((PINB&(uint8_t)0x7)<<3)|(PINA&(uint8_t)0x7)))!=0);
 }
 
 
@@ -428,6 +421,7 @@ void UpdatePWM (void)
 	START_PWM[i]=SOLL_PWM[i] ;
       } ;
     }; 
+    if (PWM[i]<20) PWM[i]=0 ; // workaround
     for (j=0;j<i;j++) if (PWM[i]<=PWMTime[j]) break ;
     for (k=5;k>j;k--) { PWMTime[k] = PWMTime[k-1] ; PWMOut[k] = PWMOut[k-1] ; } ;
     PWMTime[j] = PWM[i] ;
@@ -467,11 +461,12 @@ inline void PortOff(uint8_t Port)
 ISR(TIM1_COMPA_vect) 
 {
   uint8_t i ;
-
+  
   if (!PWMStep) {
     UpdatePWM() ;
-    if (PWMTime[0]<4) TCNT1 = 0 ;            // reset Timer, else UpdatePWM might be too long
-    OCR1A = PWMTime[0]<<1 ;
+    for (;(PWMTime[PWMStep]==0)&&(PWMStep<7);PWMStep++) ;
+    if (PWMTime[PWMStep]<4) TCNT1 = 0 ;            // reset Timer, else UpdatePWM might be too long
+    OCR1A = PWMTime[PWMStep]<<1 ;
     for (i=0;i<6;i++)
       if (PWM[i]) PortOn(i) ;
     PWMStep++ ;
@@ -575,7 +570,7 @@ void InitMC (void)
       } ;
       if (i<3) {
 	// Port A
-	PWMPort[i] = &PORTA ;
+	PWMPort[i] = (uint8_t*)&PORTA ;
 	if (Type[i]==(uint8_t)O_PWM){
 	  PWMPin[i] = Bits[i] ;
 	} else {
@@ -589,7 +584,7 @@ void InitMC (void)
 	DDRA |= Bits[i] ;
       } else {
 	// Port B
-	PWMPort[i] = &PORTB ;
+	PWMPort[i] = (uint8_t*)&PORTB ;
 	if (Type[i]==(uint8_t)O_PWM){
 	  PWMPin[i] = Bits[i-3] ;
 	} else {
@@ -611,7 +606,7 @@ void InitMC (void)
 
 // Hauptprogramm
  
-int main(void) 
+int __attribute__((OS_main)) main(void) 
 {
   uint8_t r ;
   uint8_t i,j ;
@@ -656,6 +651,7 @@ int main(void)
   mcp2515_send_message(&Message) ;
 
   // Endlosschleife zur Abarbeitung der Kommandos
+
 
   while(1) {
     // Warte auf die nächste CAN-Message

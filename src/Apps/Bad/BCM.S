@@ -50,6 +50,7 @@ L3\@:				; Schleifenbeginn
 .global LEDval
 .global LEDPWM
 .global MasterVal
+.global PWMISR
 
 .comm LEDVal,24 ;		; Adresse an der die 24 Helligkeitswerte der Led's abgelegt werden muessen
 .comm LEDPWM,4*BITCOUNT;	; Adresse der Daten fuer die PWM (Ausgabe an die Ports)
@@ -483,7 +484,7 @@ Loop1Weiter:
 Loop3:
 	ldd r24,Y+1    ; C-Port Pin 1 ist Input vom Bewegungsmelder -> Eingang schalten
 	andi r24,253
-	ori r24,4       ; C-Port Pin2: LED im Bewegungsmelder -> Ausgang schalten
+	ori r24,5       ; C-Port Pin2: LED im Bewegungsmelder,Pin0: PWM-Output -> Ausgang schalten
 	std Y+1,r24
 	ldd r24,Y+2
 	mov r25,r24
@@ -496,14 +497,17 @@ Loop3:
 	andi r25,0xA1
 	in	r19,_SFR_IO_ADDR(DDRD)
 	andi r19,0x5E
+	ori r19,1        	; D-Port Pin0: PWM-Output
 	or r25,r19
 	std Y+2,r25	
 	adiw YL,4
 	dec r18
 	brne Loop3
 
-    out _SFR_IO_ADDR(SREG),r14
-    pop r20
+	rcall PWMISR
+
+	out _SFR_IO_ADDR(SREG),r20
+	pop r20
 	pop ZH
 	pop ZL
 	pop YH

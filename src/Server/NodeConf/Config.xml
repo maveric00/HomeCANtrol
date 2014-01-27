@@ -506,12 +506,59 @@
       </Makro>
     </Zimmer>
     <Zimmer name="Gaderobe">
-      <Schalter name="Deckenlicht">
-	<Adresse linie="1" knoten="102" port="6"/>
-      </Schalter>
+      <Sensor name="BWM1" typ="BWM" intervall="10">
+	<Adresse linie="1" knoten="55" port="1"/>
+	<Aktion kurz="1" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Gaderobe/BX1An"/>
+	<Aktion kurz="1" autonom="1" kommando="An" objekt="Erdgeschoss/Gaderobe/Deckenlicht1"/>
+	<Aktion kurz="0" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Gaderobe/BX1Aus"/>
+	<Aktion kurz="0" autonom="1" kommando="Rufe" objekt="Erdgeschoss/Gaderobe/Deckenlicht1"/>
+      </Sensor>
+      <Sensor name="BWM2" typ="BWM" intervall="10">
+	<Adresse linie="1" knoten="55" port="2"/>
+	<Aktion kurz="1" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Gaderobe/BX2An"/>
+	<Aktion kurz="1" autonom="1" kommando="An" objekt="Erdgeschoss/Gaderobe/Deckenlicht1"/>
+	<Aktion kurz="0" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Gaderobe/BX2Aus"/>
+	<Aktion kurz="0" autonom="1" kommando="Rufe" objekt="Erdgeschoss/Gaderobe/Deckenlicht1"/>
+      </Sensor>
+      <Sensor name="Deckenlicht1" typ="PWM" dauer="2">
+	<Adresse linie="1" knoten="55" port="4"/>
+      </Sensor>
+      <Sensor name="Deckenlicht2" typ="PWM" dauer="2">
+	<Adresse linie="1" knoten="55" port="5"/>
+      </Sensor>
+      <Variable name="BW1" wert="0"/>
+      <Variable name="BW2" wert="0"/>
+      <Makro name="BX1An">
+	<Adresse linie="0" knoten="201" port="47"/>
+	<Setze objekt="Erdgeschoss/Gaderobe/BW1" wert="1"/>
+	<Aktion kommando="An" objekt="Erdgeschoss/Gaderobe/Deckenlicht1"/>
+	<Aktion kommando="An" objekt="Erdgeschoss/Gaderobe/Deckenlicht2"/>
+      </Makro>
+      <Makro name="BX2An">
+	<Adresse linie="0" knoten="201" port="48"/>
+	<Setze objekt="Erdgeschoss/Gaderobe/BW2" wert="1"/>
+	<Aktion kommando="An" objekt="Erdgeschoss/Gaderobe/Deckenlicht1"/>
+	<Aktion kommando="An" objekt="Erdgeschoss/Gaderobe/Deckenlicht2"/>
+      </Makro>
+      <Makro name="BX1Aus">
+	<Adresse linie="0" knoten="201" port="50"/>
+	<Setze objekt="Erdgeschoss/Gaderobe/BW1" wert="0"/>
+	<Wenn wert="(Erdgeschoss/Gaderobe/BW1=0)&amp;(Erdgeschoss/Gaderobe/BW2=0)">
+	  <Aktion kommando="Aus" objekt="Erdgeschoss/Gaderobe/Deckenlicht1"/>
+	  <Aktion kommando="Aus" objekt="Erdgeschoss/Gaderobe/Deckenlicht2"/>
+	</Wenn>
+      </Makro>
+      <Makro name="BX2Aus">
+	<Adresse linie="0" knoten="201" port="51"/>
+	<Setze objekt="Erdgeschoss/Gaderobe/BW2" wert="0"/>
+	<Wenn wert="(Erdgeschoss/Gaderobe/BW1=0)&amp;(Erdgeschoss/Gaderobe/BW2=0)">
+	  <Aktion kommando="Aus" objekt="Erdgeschoss/Gaderobe/Deckenlicht1"/>
+	  <Aktion kommando="Aus" objekt="Erdgeschoss/Gaderobe/Deckenlicht2"/>
+	</Wenn>
+      </Makro>
       <Makro name="Aus">
 	<Adresse linie="0" knoten="200" port="17"/>
-	<Aktion kommando="Aus" objekt="Erdgeschoss/Gaderobe/Deckenlicht"/>
+	<Aktion kommando="Aus" objekt="Erdgeschoss/Gaderobe/Deckenlicht1"/>
       </Makro>
     </Zimmer>
     <Zimmer name="Hauswirtschaftsraum">
@@ -523,6 +570,7 @@
       <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts"/>
       <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts2"/>
       <Aktion kommando="Aus" objekt="Erdgeschoss/Esszimmer/SteckdoseFenster"/>
+      <Aktion kommando="Aus" objekt="Erdgeschoss/Esszimmer/SteckdoseTuer"/>
       <Aktion kommando="Aus" objekt="Obergeschoss/Arbeit/SteckdoseRechts"/>
     </Makro>    
     <Makro name="FestAn">
@@ -532,6 +580,7 @@
       <Aktion kommando="An" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts"/>
       <Aktion kommando="An" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts2"/>
       <Aktion kommando="An" objekt="Erdgeschoss/Esszimmer/SteckdoseFenster"/>
+      <Aktion kommando="An" objekt="Erdgeschoss/Esszimmer/SteckdoseTuer"/>
       <Aktion kommando="An" objekt="Obergeschoss/Arbeit/SteckdoseRechts"/>
     </Makro>                                             
     <Makro name="Festbeleuchtung">
@@ -541,21 +590,22 @@
       <Aktion kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts"/>
       <Aktion kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherRechts2"/>
       <Aktion kommando="Toggle" objekt="Erdgeschoss/Esszimmer/SteckdoseFenster"/>
+      <Aktion kommando="Toggle" objekt="Erdgeschoss/Esszimmer/SteckdoseTuer"/>
       <Aktion kommando="Toggle" objekt="Obergeschoss/Arbeit/SteckdoseRechts"/>
     </Makro>
     <Makro name="Gaderobenbeleuchtung">
       <Adresse linie="0" knoten="200" port="21"/>
-      <Aktion kommando="Toggle" objekt="Erdgeschoss/Gaderobe/Deckenlicht"/>
+      <Aktion kommando="Toggle" objekt="Erdgeschoss/Gaderobe/Deckenlicht1"/>
       <Aktion kommando="Toggle" objekt="Erdgeschoss/Flur/Deckenlicht"/>
     </Makro>
     <Makro name="GaderobeAus">
       <Adresse linie="0" knoten="200" port="22"/>
-      <Aktion kommando="Aus" objekt="Erdgeschoss/Gaderobe/Deckenlicht"/>
+      <Aktion kommando="Aus" objekt="Erdgeschoss/Gaderobe/Deckenlicht1"/>
       <Aktion kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht"/>
     </Makro>
     <Makro name="GaderobeAn">
       <Adresse linie="0" knoten="200" port="23"/>
-      <Aktion kommando="An" objekt="Erdgeschoss/Gaderobe/Deckenlicht"/>
+      <Aktion kommando="An" objekt="Erdgeschoss/Gaderobe/Deckenlicht1"/>
       <Aktion kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
     </Makro>
     <Makro name="Aus">
@@ -1022,7 +1072,6 @@
     <Gleichzeitig makro="TagNacht"/>
     <Gleichzeitig makro="AbendSimulation"/>
     <Gleichzeitig makro="MorgenSimulation"/>
-    <Gleichzeitig makro="AbendLicht"/>
   </Immer>
   <Start>
     <Gleichzeitig makro="Init"/>

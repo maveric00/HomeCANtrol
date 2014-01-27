@@ -67,6 +67,7 @@ EEProm-Belegung vom LED-Board:
    500 : Pin 1 Long Tic without timer running
 
    510: DelayTimer (in Sekunden)
+   511: SoftLightOn (in 0.1 Sekunden) ;
 
 */
 // globale Variablen
@@ -81,6 +82,13 @@ volatile uint16_t LEDV2[PWM_CHANNELS] ;
 volatile int16_t Delta[PWM_CHANNELS] ;
 volatile uint8_t Counter[PWM_CHANNELS] ;
 volatile uint8_t Step[PWM_CHANNELS] ;
+
+uint8_t  PWMStep ;
+volatile uint8_t PWM[2] ; // gets modified in main
+volatile uint8_t SOLL_PWM[2] ; // gets modified in main
+volatile uint8_t START_PWM[2] ; // gets modified in main
+volatile int16_t TimerPWM[2] ; // gets modified in main
+volatile int16_t DurationPWM[2] ; // gets modified in main
 
 uint8_t Inhibit[6] ;
 
@@ -98,7 +106,7 @@ uint8_t  TimerStatus ;
 // BuildCANId baut aus verschiedenen Elementen (Line & Addresse von Quelle und Ziel 
 // sowie Repeat-Flag und Gruppen-Flag) den CAN Identifier auf
 
-inline uint32_t BuildCANId (uint8_t Prio, uint8_t Repeat, uint8_t FromLine, uint16_t FromAdd, uint8_t ToLine, uint16_t ToAdd, uint8_t Group)
+uint32_t BuildCANId (uint8_t Prio, uint8_t Repeat, uint8_t FromLine, uint16_t FromAdd, uint8_t ToLine, uint16_t ToAdd, uint8_t Group)
 {
   return (((uint32_t)(Group&0x1))<<1|((uint32_t)ToAdd)<<2|((uint32_t)(ToLine&0xf))<<10|
 	  ((uint32_t)FromAdd)<<14|((uint32_t)(FromLine&0xf))<<22|
@@ -112,13 +120,6 @@ inline void GetSourceAddress (uint32_t CANId, uint8_t *FromLine, uint16_t *FromA
 {
   *FromLine = (uint8_t)((CANId>>22)&0xf) ;
   *FromAdd = (uint16_t) ((CANId>>14)&0xfff) ;
-}
-
-// GetTargetAddress liefert die Addresse aus dem CAN-Identifier
-
-inline uint8_t GetTargetAddress (uint32_t CANId)
-{
-  return((uint8_t)((CANId>>2)&0xff));
 }
 
 // Alle Filter des 2515 auf die eigene Board-Addresse setzen
@@ -306,6 +307,43 @@ ISR( TIMER0_OVF_vect )
   if (Heartbeat<250) Heartbeat++ ;
 }
 
+void UpdatePWM (void)
+{
+  uint8_t i;
+  static uint8_t Timing=0 ;
+  
+  for (i=0;i<2;i++) { // Alle durchgehen
+    if (!Timing) {
+      if (TimerPWM[i]>0) { 
+	TimerPWM[i]-- ;
+	PWM[i] = (uint8_t)(((int16_t)START_PWM[i])+(((int16_t)((int16_t)SOLL_PWM[i]-(int16_t)START_PWM[i]))*(DurationPWM[i]-TimerPWM[i])/DurationPWM[i])) ;
+      } else {
+	START_PWM[i]=SOLL_PWM[i] ;
+      } ;
+    }; 
+  } ;
+  if (Timing) {
+    Timing-- ;
+  } else {
+    Timing=4 ;
+  } ;
+}
+
+void PWMISR(void) 
+{
+  if (!PWMStep) {
+    UpdatePWM() ;
+    if (PWM[0]) PORTD|=(uint8_t)0x01 ; // Pin0 
+    if (PWM[1]) PORTC|=(uint8_t)0x01 ; // Pin0 
+    
+  } else {
+    if (PWM[0]<PWMStep) PORTD&=(uint8_t)0xfe ;
+    if (PWM[1]<PWMStep) PORTC&=(uint8_t)0xfe ;
+  } ;
+  PWMStep++ ;
+}
+
+
 
 // Interrup-Service-Routine zur PWM-Rücknahme des Haltestroms; die ersten 64 Durchlaeufe
 // bleibt das Relais eingeschaltet, danach wird mit 1:1 abgeschwaecht.
@@ -322,10 +360,11 @@ ISR( TIMER0_OVF_vect )
 
 extern void InitBCM(void);
 
-int main(void) 
+int __attribute__((OS_main)) main(void) 
 {
   uint16_t Addr ;
-  uint8_t r ;
+  uint8_t r,i,j ;
+  uint8_t Delay ;
   
   // Default-Werte:
   BoardAdd = 16 ;
@@ -356,6 +395,7 @@ int main(void)
     } ;
   } ;
   
+  Delay = eeprom_read_byte((uint8_t*)511) ;
   
   
   
@@ -471,7 +511,25 @@ int main(void)
 
       // Diese Befehle sind beim Relais nicht bekannt
     case TIME:
+      Heartbeat = 0 ;
+      break ;
       /* LED */
+    case CHANNEL_ON:
+    case CHANNEL_OFF:
+    case CHANNEL_TOGGLE:
+      j=Message.data[1]-1 ;
+      if (j>(uint8_t)1) break; // Illegaler PIN
+      if (r==(uint8_t)CHANNEL_ON) {
+	i = 255 ;
+      } else if (r==(uint8_t)CHANNEL_OFF) {
+	i = 0 ;
+      } else {
+	i =255-PWM[j] ;
+      }
+      START_PWM[j] = PWM[j] ;
+      SOLL_PWM[j] = i ;
+      TimerPWM[j] = DurationPWM[j] = Delay*5+1 ;
+      break ;
     case SET_TO:
     case HSET_TO:
     case L_AND_S:
@@ -519,6 +577,18 @@ int main(void)
       break ;
       /* Sensor */
     case SET_PIN:
+    case DIM_TO:
+      if (r==DIM_TO) {
+	r = 3 ;
+      } else {
+	r = 0 ;
+      } ;
+      j=Message.data[1]-1 ;
+      if (j>(uint8_t)1) break; // Illegaler PIN
+      START_PWM[j] = PWM[j] ;
+      SOLL_PWM[j] = Message.data[2+r] ;
+      TimerPWM[j] = DurationPWM[j] = Message.data[3+r]+1 ;
+      break ;
     case LOAD_LED:
     case OUT_LED:
       break ;
@@ -529,9 +599,6 @@ int main(void)
       if ((Message.data[1]<7)&&(Message.data[1]>0)) Inhibit[Message.data[1]-1] = 0;
       break ;
       // Relais-Befehle
-    case CHANNEL_ON:
-    case CHANNEL_OFF:
-    case CHANNEL_TOGGLE:
     case SHADE_UP_FULL:
     case SHADE_DOWN_FULL:
     case SHADE_UP_SHORT:

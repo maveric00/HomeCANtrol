@@ -237,41 +237,42 @@ int relrecvfrom (int Socket,unsigned char *Buffer, size_t Bufferlen, int flag, s
 #endif
     } ;
     if (Buf[1]==99) {
-	RelaySend.NotSeen = 0 ;
-	Host = &RelaySend ;
+      RelaySend.NotSeen = 0 ;
+      Host = &RelaySend ;
     } ;
     
     if (Host!=NULL) RelDelMessage(Host,Buf[0]) ;
-
+    
     return (0) ; // was an ack, so nothing to do any more
   } ;
-
-  // not an acknowledgement, so ack it if it not from us...
   
-  if (*Relay!=(int)Buf[1]) {
-    Ack[0] = Buf[0]&0x7F ;   // Ack original Message 
-    if (Buf[1]!=99) {
-      Ack[1] = *Relay ;
-    } else {
-      Ack[1] = 99 ;
-    }
+  // not an acknowledgement, so ack it if it not from us...
+
+  // Check if no system message or bootstrap, if yes, don't store it...  
+  if ((Buf[7]>TIME)&&(Buf[7]<SUCCESSFULL_RESPONSE)) {    
+    if (*Relay!=(int)Buf[1]) {
+      Ack[0] = Buf[0]&0x7F ;   // Ack original Message 
+      if (Buf[1]!=99) {
+	Ack[1] = *Relay ;
+      } else {
+	Ack[1] = 99 ;
+      }
 #ifdef DEBUG
-    printf ("Ack %d to %s:%d\n",Buf[0],IP,Buf[1]) ;
+      printf ("Ack %d to %s:%d\n",Buf[0],IP,Buf[1]) ;
 #endif
-    sendto(RelSendSock,Ack,2,0,RelSendInfo->ai_addr,RelSendInfo->ai_addrlen) ;
-    
-    // Check if Message has already been received
-    
+      sendto(RelSendSock,Ack,2,0,RelSendInfo->ai_addr,RelSendInfo->ai_addrlen) ;
+      
+      // Check if Message has already been received
+      
 #ifdef DEBUG
-    printf ("Received Mesg %d from %s\n",Buf[0],IP); 
+      printf ("Received Mesg %d from %s\n",Buf[0],IP); 
 #endif
-    
-    // Check if timing message, if yes, don't store it...
-    // This makes sense, as repeated time infos are not critical but are repeated
-    // often enough that a 1:3 chance exists that the ringbuffer still contains a 
-    // time info message with the same sequence number for the same CAN channel...
-    // Byte 7 in the buffer is the CAN Command
-    if (Buf[7]!=TIME) {
+      
+
+      // This makes sense, as repeated time infos are not critical but are repeated
+      // often enough that a 1:3 chance exists that the ringbuffer still contains a 
+      // time info message with the same sequence number for the same CAN channel...
+      // Byte 7 in the buffer is the CAN Command
       Host = RelFindHost(&RelFirstRec,IP) ;
       if (Host==NULL) { // This host is not registered, yet, so register it
 	Host=RelAddHost(&RelFirstRec,IP) ; // it will never be deleted, though
@@ -319,15 +320,17 @@ int relsendto (int Socket,unsigned char *Buffer, size_t Bufferlen, int flag, str
 
   memcpy (&(Buf[2]),Buffer,Bufferlen) ;
 
-  if (Relay!=99) {
-    SendCurrentSeq++ ; // Implement ringbuffer
-    if (SendCurrentSeq>=RELQLEN) SendCurrentSeq=0 ;  
-    Buf[0] = SendCurrentSeq ;
-  } else {
-    RelCurrentSeq++ ; // Implement ringbuffer
-    if (RelCurrentSeq>=RELQLEN) RelCurrentSeq=0 ;  
-    Buf[0] = RelCurrentSeq ;
-  }; 
+  if ((Buf[7]>TIME)&&(Buf[7]<SUCCESSFULL_RESPONSE)) {    
+    if (Relay!=99) {
+      SendCurrentSeq++ ; // Implement ringbuffer
+      if (SendCurrentSeq>=RELQLEN) SendCurrentSeq=0 ;  
+      Buf[0] = SendCurrentSeq ;
+    } else {
+      RelCurrentSeq++ ; // Implement ringbuffer
+      if (RelCurrentSeq>=RELQLEN) RelCurrentSeq=0 ;  
+      Buf[0] = RelCurrentSeq ;
+    }; 
+  } ;
 
 
   Buf[1] = Relay ;
@@ -345,10 +348,13 @@ int relsendto (int Socket,unsigned char *Buffer, size_t Bufferlen, int flag, str
     return(-1);
   }
 
-  if (Relay!=99) {
-    for (Host=RelFirstSend.Next;Host!=NULL;Host=Host->Next) RelAddMessage(Host,Buf,Bufferlen+2,Socket,(struct sockaddr*)tap,taplen) ;
-  } else {
-    RelAddMessage(&RelaySend,Buf,Bufferlen+2,Socket,(struct sockaddr*)tap,taplen) ;
+
+  if ((Buf[7]>TIME)&&(Buf[7]<SUCCESSFULL_RESPONSE)) {    
+    if (Relay!=99) {
+      for (Host=RelFirstSend.Next;Host!=NULL;Host=Host->Next) RelAddMessage(Host,Buf,Bufferlen+2,Socket,(struct sockaddr*)tap,taplen) ;
+    } else {
+      RelAddMessage(&RelaySend,Buf,Bufferlen+2,Socket,(struct sockaddr*)tap,taplen) ;
+    } ;
   } ;
 
   return (numbytes-2); 

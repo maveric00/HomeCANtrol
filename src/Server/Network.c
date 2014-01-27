@@ -457,7 +457,7 @@ void SendCommand(tCommand Command, unsigned char Linie, unsigned short Knoten, u
 }
 
 void SendLEDCommand(tCommand Command, unsigned char Linie, unsigned short Knoten, unsigned char LED, unsigned char r,
-		    unsigned char g, unsigned char b, unsigned char w)
+		    unsigned char g, unsigned char b, unsigned char w, unsigned char dur)
 {
   ULONG CANID ;
   unsigned char Data[8]; 
@@ -470,7 +470,8 @@ void SendLEDCommand(tCommand Command, unsigned char Linie, unsigned short Knoten
   Data[3] = (char)g ;
   Data[4] = (char)b ;
   Data[5] = (char)w ;
-  Len=6 ;
+  Data[6] = (char)dur ;
+  Len=7 ;
   SendCANMessage(CANID,Len,Data) ;
 }
 
@@ -508,22 +509,35 @@ void SendAction (struct Node *Action)
     Len=2 ;
     break ;
   case N_SENSOR:
-    if (Action->Data.Aktion.Type==A_ON) { Command = SET_PIN ; Data[2] = 0xFF ; Action->Data.Aktion.Unit->Value=1 ; } ;
-    if (Action->Data.Aktion.Type==A_OFF) { Command = SET_PIN ; Data[2] = 0x00 ; Action->Data.Aktion.Unit->Value=0 ; } ;
+    if (Action->Data.Aktion.Type==A_ON) { 
+      Command = SET_PIN ; Data[2] = 0xFF ; Data[3] = 0x15 ;
+      Len=4 ;
+      Action->Data.Aktion.Unit->Value=1 ; 
+    } ;
+    if (Action->Data.Aktion.Type==A_OFF) { 
+      Command = SET_PIN ; Data[2] = 0x00 ; Data[3] = 0x15 ;
+      Len=4 ;
+      Action->Data.Aktion.Unit->Value=0 ; 
+    } ;
     if (Action->Data.Aktion.Type==A_TOGGLE) { 
       Command = SET_PIN ; 
       Data[2] = Action->Data.Aktion.Unit->Value==0?0xFF:0x00 ; 
+      Data[3] = 0x15 ;
+      Len=4 ;
       Action->Data.Aktion.Unit->Value=1-Action->Data.Aktion.Unit->Value ; 
     } ;
     if (Action->Data.Aktion.Type==A_SEND_VAL) {
       Data[2] = Action->Data.Aktion.Unit->Value ;
+      Len=3 ;
     } ;
-    if (Action->Data.Aktion.Type==A_HEARTBEAT) Command = TIME ;
+    if (Action->Data.Aktion.Type==A_HEARTBEAT) {
+      Command = TIME ;
+      Len=2 ;
+    } ;
     if (GetNodeAdress(Action->Data.Aktion.Unit,&Linie,&Knoten,&Port)!=0) break ;
     CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
     Data[0] = Command ;
     Data[1] = (char)Port ;
-    Len=(Action->Data.Aktion.Type==A_HEARTBEAT)?2:3 ;
     break ;
   case N_SHADE:
     if (Action->Data.Aktion.Type==A_SHADE_UP_FULL) { Command = SHADE_UP_FULL ; Action->Data.Aktion.Unit->Value=0 ; } ;    

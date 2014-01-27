@@ -509,24 +509,24 @@ void AddConstants (struct Node *Root)
   struct Node *This ;
 
   This = NewChild(Root) ;
-  strcpy (Current->Name,"wahr") ;
-  Current->Type=N_VAR ;
-  Current->Value = (1==1) ;
+  strcpy (This->Name,"wahr") ;
+  This->Type=N_VAR ;
+  This->Value = (1==1) ;
 
   This = NewChild(Root) ;
-  strcpy (Current->Name,"true") ;
-  Current->Type=N_VAR ;
-  Current->Value = (1==1) ;
+  strcpy (This->Name,"true") ;
+  This->Type=N_VAR ;
+  This->Value = (1==1) ;
 
   This = NewChild(Root) ;
-  strcpy (Current->Name,"falsch") ;
-  Current->Type=N_VAR ;
-  Current->Value = (1==0) ;
+  strcpy (This->Name,"falsch") ;
+  This->Type=N_VAR ;
+  This->Value = (1==0) ;
 
   This = NewChild(Root) ;
-  strcpy (Current->Name,"false") ;
-  Current->Type=N_VAR ;
-  Current->Value = (1==0) ;
+  strcpy (This->Name,"false") ;
+  This->Type=N_VAR ;
+  This->Value = (1==0) ;
 } ;
 
 /* Parse a document from the open file descriptor 'fd' until the parse

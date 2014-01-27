@@ -8,7 +8,10 @@
 struct RelMsg {
   int len ;
   unsigned char Buffer[RELBUFLEN] ;
+  struct timeval Time ;
 } ;
+
+extern struct timeval Now ;
 
 struct RelUDPHost {
   struct RelUDPHost *Next ;
