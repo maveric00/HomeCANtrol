@@ -293,9 +293,9 @@ void SendPinMessage (uint8_t Long, uint8_t Timer)
 
 ISR( TIMER0_OVF_vect )                           
 {
-  static int CC=0 ;
+  static uint8_t CC=0 ;
+  uint8_t j ;
   
-  TCNT0 = (uint8_t)TIMER_PRESET;  // preload for 10ms
   
   // Called 27 777 times per second (16 Mhz/64/9)
   
@@ -318,10 +318,18 @@ ISR( TIMER0_OVF_vect )
     if (PWM[1]) PORTC|=(uint8_t)0x01 ; // Pin0 
     
   } else {
-    if (PWM[0]==PWMStep) PORTD&=(uint8_t)0xfe ;
-    if (PWM[1]==PWMStep) PORTC&=(uint8_t)0xfe ;
+    if (PWM[0]<=PWMStep) PORTD&=(uint8_t)0xfe ;
+    if (PWM[1]<=PWMStep) PORTC&=(uint8_t)0xfe ;
   } ;
+
+  j=TCNT0>>3 ;
+
+  PWMStep=(255-PWMStep)>j?PWMStep+j:255 ; // Skip the time that might be used by BCM
+
   PWMStep++ ;
+
+  TCNT0 = (uint8_t)TIMER_PRESET;  // preload for 10ms
+
 }
 
 

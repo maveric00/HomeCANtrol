@@ -80,13 +80,6 @@ inline void GetSourceAddress (uint32_t CANId, uint8_t *FromLine, uint16_t *FromA
   *FromAdd = (uint16_t) ((CANId>>14)&0xfff) ;
 }
 
-// GetTargetAddress liefert die Addresse aus dem CAN-Identifier
-
-inline uint8_t GetTargetAddress (uint32_t CANId)
-{
-  return((uint8_t)((CANId>>2)&0xff));
-}
-
 // Alle Filter des 2515 auf die eigene Board-Addresse setzen
 
 void SetFilter(uint8_t BoardLine,uint16_t BoardAdd)
@@ -399,7 +392,7 @@ int main(void)
   sei();                  // Interrupts gloabl einschalten
 
   // Endlosschleife zur Abarbeitung der Kommandos
-
+  
   while(1) {
     // Warte auf die nächste CAN-Message
     while ((LastCommand=mcp2515_get_message(&Message)) == NO_MESSAGE) {
@@ -572,33 +565,33 @@ int main(void)
     case SHADE_UP_FULL:
       i = Message.data[1]-1 ;
       if (i<6) {
-		if (eeprom_read_byte((uint8_t*)(uint16_t)i+30)==0) {
-			Direction = 1 ;
-		} else {
-			Direction = 2 ;
-		} ; 
-		if ((State[i]>0)&&(UpDown[i]==Direction)) { // Bewegt sich gerade, also schauen ob er anhalten soll, oder in die andere Richtung fahren... 
-			State[i] = 6 ;
-		} else {
-			State[i] = 0 ;
-			UpDown[i] = Direction ;
-		} ;
+	if (eeprom_read_byte((uint8_t*)(uint16_t)i+30)==0) {
+	  Direction = 1 ;
+	} else {
+	  Direction = 2 ;
+	} ; 
+	if ((State[i]>0)&&(UpDown[i]==Direction)) { // Bewegt sich gerade, also schauen ob er anhalten soll, oder in die andere Richtung fahren... 
+	  State[i] = 6 ;
+	} else {
+	  State[i] = 0 ;
+	  UpDown[i] = Direction ;
+	} ;
       }
       break ;
     case SHADE_DOWN_FULL:
       i = Message.data[1]-1 ;
       if (i<6) {
-		if (eeprom_read_byte((uint8_t*)(uint16_t)i+30)==0) {
-			Direction = 2 ;
-		} else {
-			Direction = 1 ;
-		} ; 
-		if ((State[i]>0)&&(UpDown[i]==Direction)) { // Bewegt sich gerade, also schauen ob er anhalten soll, oder in die andere Richtung fahren... 
-			State[i] = 6 ;
-		} else {
-			State[i] = 0 ;
-			UpDown[i] = Direction ;
-		} ;
+	if (eeprom_read_byte((uint8_t*)(uint16_t)i+30)==0) {
+	  Direction = 2 ;
+	} else {
+	  Direction = 1 ;
+	} ; 
+	if ((State[i]>0)&&(UpDown[i]==Direction)) { // Bewegt sich gerade, also schauen ob er anhalten soll, oder in die andere Richtung fahren... 
+	  State[i] = 6 ;
+	} else {
+	  State[i] = 0 ;
+	  UpDown[i] = Direction ;
+	} ;
       }
       break ;
     case SHADE_UP_SHORT:
