@@ -461,9 +461,6 @@
       </Makro>
     </Zimmer>
     <Zimmer name="Bad">
-      <Schalter name="Deckenlicht">
-	<Adresse linie="1" knoten="102" port="8"/>
-      </Schalter>
       <Bad name="BadSensor" dauer="64">
 	<Adresse linie="1" knoten="60" port="0"/>
 	<Programm port="1" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
@@ -473,7 +470,7 @@
 	<Programm port="5" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="6" data="2895DE70DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="7" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="8" data="2895DE70DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="8" data="28FF00280000DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="9" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="10" data="2895DE30DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="11" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
@@ -481,7 +478,7 @@
 	<Programm port="13" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="14" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="15" data="2895DE70DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="16" data="2895DE30DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="16" data="28B400280000DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="17" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="18" data="2895DE70DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="19" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
@@ -490,19 +487,21 @@
 	<Programm port="22" data="2895DE30DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="23" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
 	<Aktion kurz="1" autonom="0" kommando="Rufe"  objekt="Erdgeschoss/Bad/An"/>
-	<Aktion kurz="0" autonom="0" kommando="Aus" objekt="Erdgeschoss/Bad/Deckenlicht"/>
-	<Aktion kurz="1" autonom="1" kommando="An"  objekt="Erdgeschoss/Bad/Deckenlicht"/>
-	<Aktion kurz="0" autonom="1" kommando="Aus" objekt="Erdgeschoss/Bad/Deckenlicht"/>
+	<Aktion kurz="0" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Bad/Aus"/>
+	<Aktion kurz="1" autonom="1" kommando="Rufe"  objekt="Erdgeschoss/Bad/An"/>
+	<Aktion kurz="0" autonom="1" kommando="Rufe" objekt="Erdgeschoss/Bad/Aus"/>
       </Bad>
       <Makro name="An">
         <Adresse linie="0" knoten="200" port="53"/>
         <Wenn wert="nicht(Tag)">
-           <Aktion kommando="An" objekt="Erdgeschoss/Bad/Deckenlicht"/>
+           <Aktion kommando="StarteLED" objekt="Erdgeschoss/Bad/BadSensor:8"/>
+           <Aktion kommando="StarteLED" objekt="Erdgeschoss/Bad/BadSensor:16"/>
         </Wenn>
       </Makro>
       <Makro name="Aus">
 	<Adresse linie="0" knoten="200" port="16"/>
-	<Aktion kommando="Aus" objekt="Erdgeschoss/Bad/Deckenlicht"/>
+           <Aktion kommando="StarteLED" schritt="3" objekt="Erdgeschoss/Bad/BadSensor:8"/>
+           <Aktion kommando="StarteLED" schritt="3" objekt="Erdgeschoss/Bad/BadSensor:116"/>
       </Makro>
     </Zimmer>
     <Zimmer name="Gaderobe">

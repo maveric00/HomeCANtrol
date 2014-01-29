@@ -26,7 +26,7 @@ struct Node *CreateNode (void)
   This->Name[0] = 0 ;
   This->TypeDef[0] = 0 ;
   This->Value = 0 ;
-  for (i=0;i<NAMELEN*5;i++) This->Data.PAD[i] = 0 ;
+  for (i=0;i<NAMELEN*6;i++) This->Data.PAD[i] = 0 ;
   return (This) ;
 }
 

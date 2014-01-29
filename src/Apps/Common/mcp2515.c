@@ -204,7 +204,7 @@ void mcp2515_bit_modify(uint8_t adress, uint8_t mask, uint8_t data)
 
 uint8_t mcp2515_get_message(can_t *msg)
 {
-	uint8_t addr;
+  uint8_t addr,i;
 	
 	if (IS_SET(MCP2515_INT)) return(NO_MESSAGE); // Kein Interrupt gesetzt, damit auch keine Nachricht vorhanden...
 
@@ -236,9 +236,11 @@ uint8_t mcp2515_get_message(can_t *msg)
 	length &= 0x0f;
 	msg->length = length;
 	// Daten auslesen
-	for (uint8_t i=0;i<length;i++) {
+	for (i=0;i<length;i++) {
 		msg->data[i] = spi_putc(0xff);
 	}
+	for (;i<8;i++) msg->data[i]=0 ; // Rest der Nachricht nullen
+
 	SET(MCP2515_CS);
 	
 	// Interrupt zuruecksetzen

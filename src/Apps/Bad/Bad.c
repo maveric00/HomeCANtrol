@@ -72,7 +72,7 @@ EEProm-Belegung vom LED-Board:
 */
 // globale Variablen
 #define PWM_CHANNELS 24
-#define TIMER_PRESET 246
+#define TIMER_PRESET 99
 
 
 extern volatile uint8_t LEDVal[PWM_CHANNELS] ;
@@ -82,13 +82,6 @@ volatile uint16_t LEDV2[PWM_CHANNELS] ;
 volatile int16_t Delta[PWM_CHANNELS] ;
 volatile uint8_t Counter[PWM_CHANNELS] ;
 volatile uint8_t Step[PWM_CHANNELS] ;
-
-uint8_t  PWMStep ;
-volatile uint8_t PWM[2] ; // gets modified in main
-volatile uint8_t SOLL_PWM[2] ; // gets modified in main
-volatile uint8_t START_PWM[2] ; // gets modified in main
-volatile int16_t TimerPWM[2] ; // gets modified in main
-volatile int16_t DurationPWM[2] ; // gets modified in main
 
 uint8_t Inhibit[6] ;
 
@@ -290,71 +283,24 @@ void SendPinMessage (uint8_t Long, uint8_t Timer)
   } ;
 }
 
+ISR( TIMER0_OVF_vect )
+{ 
+  static int CC=0 ; 
+  TCNT0 = (uint8_t)TIMER_PRESET;  // preload for 10ms  
+  if (Timers>0) Timers-- ;  
+  CC++ ;  
 
-ISR( TIMER0_OVF_vect )                           
-{
-  static uint8_t CC=0 ;
-  uint8_t j ;
-  
-  
-  // Called 27 777 times per second (16 Mhz/64/9)
-  
-  if (!PWMStep) {
-    // Called 108 (=27 777/256) times per second
-    if (Timers>0) Timers-- ;
-    CC++ ;
-    if (CC>=4) {
-      TIMSK0 &= ~(1<<TOIE0) ;  // Disable Timer0 interrupt
-      sei();     // Re-Enable Interrupts
-      StepLight();  // This may take too long for BCM, so allow BCM to interrupt
-      cli() ;   // Disable timer 0 interrupts
-      TIMSK0 |= 1<<TOIE0;            // enable timer interrupt
-      CC = 0 ;
-    }
-    
-    if (Heartbeat<250) Heartbeat++ ;
+  if (CC>=4) {   
+    TIMSK0 &= ~(1<<TOIE0) ;  // Disable Timer0 interrupt
+    sei();     // Re-Enable Interrupts
+    StepLight();  
+    cli() ;   // Disable timer 0 interrupts
+    TIMSK0 |= 1<<TOIE0;            // enable timer interrupt
+    CC = 0 ;  
+  }  
 
-    if (PWM[0]) PORTD|=(uint8_t)0x01 ; // Pin0 
-    if (PWM[1]) PORTC|=(uint8_t)0x01 ; // Pin0 
-    
-  } else {
-    if (PWM[0]<=PWMStep) PORTD&=(uint8_t)0xfe ;
-    if (PWM[1]<=PWMStep) PORTC&=(uint8_t)0xfe ;
-  } ;
-
-  j=TCNT0>>3 ;
-
-  PWMStep=(255-PWMStep)>j?PWMStep+j:255 ; // Skip the time that might be used by BCM
-
-  PWMStep++ ;
-
-  TCNT0 = (uint8_t)TIMER_PRESET;  // preload for 10ms
-
+  if (Heartbeat<250) Heartbeat++ ;
 }
-
-
-void UpdatePWM (void)
-{
-  uint8_t i;
-  static uint8_t Timing=0 ;
-  
-  for (i=0;i<2;i++) { // Alle durchgehen
-    if (!Timing) {
-      if (TimerPWM[i]>0) { 
-	TimerPWM[i]-- ;
-	PWM[i] = (uint8_t)(((int16_t)START_PWM[i])+(((int16_t)((int16_t)SOLL_PWM[i]-(int16_t)START_PWM[i]))*(DurationPWM[i]-TimerPWM[i])/DurationPWM[i])) ;
-      } else {
-	START_PWM[i]=SOLL_PWM[i] ;
-      } ;
-    }; 
-  } ;
-  if (Timing) {
-    Timing-- ;
-  } else {
-    Timing=4 ;
-  } ;
-}
-
 
 // Hauptprogramm
 
@@ -414,8 +360,8 @@ int __attribute__((OS_main)) main(void)
   MasterVal = 255 ;
   
   // Timer 0 als 10 ms-Timer verwenden
-  TCCR0B = (1<<CS01)|(1<<CS00);  // divide by 64
-  TCNT0 = (uint8_t)TIMER_PRESET; // preload for 27 777 Hz
+  TCCR0B = (1<<CS02)|(1<<CS00);  // divide by 1024
+  TCNT0 = (uint8_t)TIMER_PRESET; // preload for 100 Hz
   TIMSK0 |= 1<<TOIE0;            // enable timer interrupt
   
   InitBCM () ;
@@ -434,9 +380,11 @@ int __attribute__((OS_main)) main(void)
 	if (Timers==0) {
 	  SendPinMessage(0,(Heartbeat>200)?1:0) ;
 	  //Programm starten
-	  for (r=0;r<PWM_CHANNELS;r++) {
-	    Step[r] = 0 ;
-	    Counter[r] = 0 ;
+	  if (Heartbeat>200) {
+	    for (r=0;r<PWM_CHANNELS;r++) {
+	      Step[r] = 0 ;
+	      Counter[r] = 0 ;
+	    } ;
 	  } ;
 	} ;
 	SET(LEDPORT);
@@ -450,11 +398,13 @@ int __attribute__((OS_main)) main(void)
 	  SendPinMessage(1,(Heartbeat>200)?1:0) ;
 	  TimerStatus = 0 ;
 	  // Programm stoppen
-	  for (r=0;r<PWM_CHANNELS;r++) {
-	    Step[r] = 22 ;
-	    Counter[r] = 0 ;
-	    LEDVal[r] = 0 ;
-	    LEDV2[r] = 0 ;
+	  if (Heartbeat>200) {
+	    for (r=0;r<PWM_CHANNELS;r++) {
+	      Step[r] = 22 ;
+	      Counter[r] = 0 ;
+	      LEDVal[r] = 0 ;
+	      LEDV2[r] = 0 ;
+	    } ;
 	  } ;
 	} ;
       } ;	 
@@ -522,18 +472,6 @@ int __attribute__((OS_main)) main(void)
     case CHANNEL_ON:
     case CHANNEL_OFF:
     case CHANNEL_TOGGLE:
-      j=Message.data[1]-1 ;
-      if (j>(uint8_t)1) break; // Illegaler PIN
-      if (r==(uint8_t)CHANNEL_ON) {
-	i = 255 ;
-      } else if (r==(uint8_t)CHANNEL_OFF) {
-	i = 0 ;
-      } else {
-	i =255-PWM[j] ;
-      }
-      START_PWM[j] = PWM[j] ;
-      SOLL_PWM[j] = i ;
-      TimerPWM[j] = DurationPWM[j] = Delay*5+1 ;
       break ;
     case SET_TO:
     case HSET_TO:
@@ -543,29 +481,30 @@ int __attribute__((OS_main)) main(void)
     case SET_TO_G3:
       break ;
     case LOAD_PROG:
-      if (Message.data[1]>=PWM_CHANNELS) {
+      if (Message.data[1]>PWM_CHANNELS) {
 	for (r=0;r<PWM_CHANNELS;r++) {
 	  Message.data[1] = r ;
 	  StoreProgram () ;
 	} ;
       } else {
+	Message.data[1]-- ;
 	StoreProgram() ;
       } ;
       break ;
     case START_PROG:
-      if (Message.data[1]>=PWM_CHANNELS) {
+      if (Message.data[1]>PWM_CHANNELS) {
 	for (r=0;r<PWM_CHANNELS;r++) {
-	  Step[r] = 0 ;
+	  Step[r] = Message.data[2] ;
 	  Counter[r] = 0 ;
 	} ;
       } else {
-	r = Message.data[1] ;
-	Step[r] = 0 ;
+	r = Message.data[1]-1 ;
+	Step[r] = Message.data[2] ;
 	Counter[r] = 0 ; 
       } ;
       break ;
     case STOP_PROG:
-      if (Message.data[1]>=PWM_CHANNELS) {
+      if (Message.data[1]>PWM_CHANNELS) {
 	for (r=0;r<PWM_CHANNELS;r++) {
 	  Step[r] = 22 ;
 	  Counter[r] = 0 ;
@@ -573,7 +512,7 @@ int __attribute__((OS_main)) main(void)
 	  LEDV2[r] = 0 ;
 	} ;
       } else {
-	r = Message.data[1] ;
+	r = Message.data[1]-1 ;
 	Step[r] = 22 ;
 	Counter[r] = 0 ; 
 	LEDVal[r] = 0 ; 
@@ -583,16 +522,6 @@ int __attribute__((OS_main)) main(void)
       /* Sensor */
     case SET_PIN:
     case DIM_TO:
-      if (r==DIM_TO) {
-	r = 3 ;
-      } else {
-	r = 0 ;
-      } ;
-      j=Message.data[1]-1 ;
-      if (j>(uint8_t)1) break; // Illegaler PIN
-      START_PWM[j] = PWM[j] ;
-      SOLL_PWM[j] = Message.data[2+r] ;
-      TimerPWM[j] = DurationPWM[j] = Message.data[3+r]+1 ;
       break ;
     case LOAD_LED:
     case OUT_LED:

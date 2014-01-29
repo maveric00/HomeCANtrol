@@ -123,6 +123,7 @@ struct Aktion {
   unsigned char B ;
   unsigned char W ;
   unsigned char Delay ;
+  unsigned char Step ;
 } ;
 
 struct Werte {
@@ -177,7 +178,7 @@ struct Node {
     struct timeval Time ;
     struct Program Program ;
     char UnitName[NAMELEN*4] ;
-    char PAD[NAMELEN*5] ;
+    char PAD[NAMELEN*6] ;
     struct Werte Wert ;
     struct Reaction Reaction ;
   } Data ;

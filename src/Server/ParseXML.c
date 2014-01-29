@@ -242,6 +242,9 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       if ((strcmp(attr[i],"dauer")==0)||(strcmp(attr[i],"time")==0)) {
 	sscanf(attr[i+1],"%hhi",&(Current->Data.Aktion.Delay)) ;
       } ;
+      if ((strcmp(attr[i],"schritt")==0)||(strcmp(attr[i],"step")==0)) {
+	sscanf(attr[i+1],"%hhi",&(Current->Data.Aktion.Step)) ;
+      } ;
       break ;
     case N_SENSOR:
     case N_SENS2:

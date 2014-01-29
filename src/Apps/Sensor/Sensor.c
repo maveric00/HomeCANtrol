@@ -141,14 +141,6 @@ uint8_t  PWM2[6] ; // gets modified in main
 uint8_t  PWMTime2[7] ;
 uint8_t  PWMOut2[6] ;
 
-uint8_t *IntPWM ;
-uint8_t *IntPWMTime ;
-uint8_t *IntPWMOut ;
-
-uint8_t *MainPWM ;
-uint8_t *MainPWMTime ;
-uint8_t *MainPWMOut ;
-
 volatile uint8_t SyncPWM ;
 
 uint8_t* PWMPort[6] ;
@@ -310,28 +302,28 @@ void UpdatePWM (void)
   
   if (PWMSync) return ; // Has not been send out yet
   
-  for (i=0;i<6;i++) { MainPWMTime[i] = 255 ; MainPWMOut[i] = 0 ; } ;
+  for (i=0;i<6;i++) { PWMTime[i] = 255 ; PWMOut[i] = 0 ; } ;
   for (i=0;i<6;i++) { // Alle durchgehen
     if (TimerPWM[i]>0) { 
       TimerPWM[i]-- ;
-      MainPWM[i] = (uint8_t)(((int16_t)START_PWM[i])+(((int16_t)((int16_t)SOLL_PWM[i]-(int16_t)START_PWM[i]))*(DurationPWM[i]-TimerPWM[i])/DurationPWM[i])) ;
-      if (MainPWM[i]<4) MainPWM[i]=0 ;  // Don't exceed current driver frequency limitations
-      if (MainPWM[i]>251) MainPWM[i]=255 ;
+      PWM[i] = (uint8_t)(((int16_t)START_PWM[i])+(((int16_t)((int16_t)SOLL_PWM[i]-(int16_t)START_PWM[i]))*(DurationPWM[i]-TimerPWM[i])/DurationPWM[i])) ;
+      if (PWM[i]<4) PWM[i]=0 ;  // Don't exceed current driver frequency limitations
+      if (PWM[i]>251) PWM[i]=255 ;
     } else {
       START_PWM[i]=SOLL_PWM[i] ;
     } ;
-    for (j=0;j<i;j++) if (MainPWM[i]<=MainPWMTime[j]) break ;
-    for (k=5;k>j;k--) { MainPWMTime[k] = MainPWMTime[k-1] ; MainPWMOut[k] = MainPWMOut[k-1] ; } ;
-    MainPWMTime[j] = MainPWM[i] ;
-    if (MainPWM[i]==(uint8_t)255) {  
-      MainPWMOut[j]=6 ; // If full on never switch off
+    for (j=0;j<i;j++) if (PWM[i]<=PWMTime[j]) break ;
+    for (k=5;k>j;k--) { PWMTime[k] = PWMTime[k-1] ; PWMOut[k] = PWMOut[k-1] ; } ;
+    PWMTime[j] = PWM[i] ;
+    if (PWM[i]==(uint8_t)255) {  
+      PWMOut[j]=6 ; // If full on never switch off
     } else {
-      MainPWMOut[j] = i ;
+      PWMOut[j] = i ;
     } ;
   } ;
-  for (i=1;i<6;i++) PT[i] = MainPWMTime[i]-MainPWMTime[i-1] ;
-  for (i=1,k=0;i<6;i++) k+=(MainPWMTime[i] = PT[i]) ;
-  MainPWMTime[6] = 255-k-MainPWMTime[0] ;
+  for (i=1;i<6;i++) PT[i] = PWMTime[i]-PWMTime[i-1] ;
+  for (i=1,k=0;i<6;i++) k+=(PWMTime[i] = PT[i]) ;
+  PWMTime[6] = 255-k-PWMTime[0] ;
   PWMSync = 1 ;
 }
 
@@ -473,20 +465,11 @@ inline void PortOff(uint8_t Port)
   
 void SwapPWM(void)
 {
-  if (IntPWM==PWM) {
-    IntPWM = PWM2 ;
-    IntPWMTime = PWMTime2 ;
-    IntPWMOut = PWMOut2 ;
-    MainPWM = PWM ;
-    MainPWMTime = PWMTime ;
-    MainPWMOut = PWMOut ;
-  } else {
-    IntPWM = PWM ;
-    IntPWMTime = PWMTime ;
-    IntPWMOut = PWMOut ;
-    MainPWM = PWM2 ;
-    MainPWMTime = PWMTime2 ;
-    MainPWMOut = PWMOut2 ;
+  uint8_t i ;
+  for (i=0;i<6:i++){
+    PWM2[i]=PWM[i] ;
+    PWMTime2[i]=PWMTime[i] ;
+    PWMOut2[i]=PWMOut[i] ;
   }
 }
 
@@ -501,19 +484,19 @@ ISR( TIM1_OVF_vect )
       SwapPWM () ;
       PWMSync=0 ;
     }
-    for (;(IntPWMTime[PWMStep]==0)&&(PWMStep<7);PWMStep++) ;
-    TCNT1=65535-(IntPWMTime[PWMStep]<<1) ;
+    for (;(PWMTime2[PWMStep]==0)&&(PWMStep<7);PWMStep++) ;
+    TCNT1=65535-(PWMTime2[PWMStep]<<1) ;
     for (i=0;i<6;i++)
-      if (IntPWM[i]) PortOn(i) ;
+      if (!PWM2[i]) PortOn(i) ;
     PWMStep++ ;
-    for (;(IntPWMTime[PWMStep]==0)&&(PWMStep<7);PWMStep++) ; // Delete trailing zeros
+    for (;(PWMTime2[PWMStep]==0)&&(PWMStep<7);PWMStep++) ; // Delete trailing zeros
   } else {
     do {
-      PortOff(IntPWMOut[IntPWMStep-1]) ;
+      PortOff(PWMOut2[PWMStep-1]) ;
       PWMStep++ ;
-    } while ((IntPWMTime[PWMStep-1]==(uint8_t)0)&&(PWMStep<7)) ;
-    TCNT1=65535-(IntPWMTime[PWMStep-1]<<1) ;
-    for (i=PWMStep;i<7;i++) if (IntPWMTime[i]) break ; // If no further shut off follows, set to PWMStep7
+    } while ((PWMTime2[PWMStep-1]==(uint8_t)0)&&(PWMStep<7)) ;
+    TCNT1=65535-(PWMTime2[PWMStep-1]<<1) ;
+    for (i=PWMStep;i<7;i++) if (PWMTime2[i]) break ; // If no further shut off follows, set to PWMStep7
   } ;
   if ((i==(uint8_t)7)||(PWMStep==(uint8_t)7)) {
     PWMStep = 0 ;
@@ -815,9 +798,9 @@ int __attribute__((OS_main)) main(void)
       } else if (r==(uint8_t)CHANNEL_OFF) {
 	i = 0 ;
       } else {
-	i =255-MainPWM[j] ;
+	i =255-PWM[j] ;
       }
-      START_PWM[j] = MainPWM[j] ;
+      START_PWM[j] = PWM[j] ;
       SOLL_PWM[j] = i ;
       if (Config[j]) {
 	TimerPWM[j] = DurationPWM[j] = Config[j] ;
@@ -836,7 +819,7 @@ int __attribute__((OS_main)) main(void)
       j-- ;
       if (j>(uint8_t)5) break; // Illegaler PIN
       if ((Type[j]!=O_ONOFF)&&(Type[j]!=O_PWM)) break ; // Illegaler PIN
-      START_PWM[j] = MainPWM[j] ;
+      START_PWM[j] = PWM[j] ;
       SOLL_PWM[j] = Message.data[2+r] ;
       TimerPWM[j] = DurationPWM[j] = Message.data[3+r]*5+1 ;
       break ;

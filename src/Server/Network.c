@@ -488,6 +488,8 @@ void SendAction (struct Node *Action)
     ExecuteSeq(Action) ;
     return ;
   } ;
+  
+  for (i=0;i<8;i++) Data[i] = 0 ;
 
   Command = 0 ;
   switch (Action->Data.Aktion.Unit->Type) {
@@ -586,6 +588,7 @@ void SendAction (struct Node *Action)
       Data[6] = Action->Data.Aktion.Delay ;
       Len=7 ;
     } else if (Command==START_PROG) {
+      Data[2] = Action->Data.Aktion.Step ;
       Data[7] = GlobalTime ;
       Len=8 ;
     }else {

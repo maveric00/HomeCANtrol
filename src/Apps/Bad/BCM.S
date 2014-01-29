@@ -413,6 +413,16 @@ Loop2:
 // Tabellenwert der logarithmischen Tabelle entsprechend dem Led-Wert und der Tabelle (angepasst, unangepasst) holen	
 	lpm r0,Z+						;Tabellenwert lesen low
 	lpm r1,Z						;Tabellenwert lesen high
+// Port C0 und D0 die untersten 6 Bit loeschen um den Treiber nicht zu ueberlasten, dann negieren
+	cpi r19,8
+	brne NotPWM
+	and r18,r18
+	brne NotPWM
+// Erstes Bit des 2. oder 3. Bytes -> C0 oder D0
+	andi r0,0xC0
+	com r0
+	com r1
+NotPWM:	
 // durch rotieren aus den 8*10-16Bit log-Werten 10-16*8Bit PWM-Werte erstellen
 	lsr r0
 	ror r2
@@ -484,7 +494,6 @@ Loop1Weiter:
 Loop3:
 	ldd r24,Y+1    ; C-Port Pin 1 ist Input vom Bewegungsmelder -> Eingang schalten
 	andi r24,253
-	ori r24,5       ; C-Port Pin2: LED im Bewegungsmelder,Pin0: PWM-Output -> Ausgang schalten
 	std Y+1,r24
 	ldd r24,Y+2
 	mov r25,r24
@@ -498,14 +507,11 @@ Loop3:
 	andi r25,0xA1
 	in	r19,_SFR_IO_ADDR(DDRD)
 	andi r19,0x5E
-	ori r19,1        	; D-Port Pin0: PWM-Output
 	or r25,r19
 	std Y+2,r25	
 	adiw YL,4
 	dec r18
 	brne Loop3
-
-	rcall UpdatePWM
 
 	out _SFR_IO_ADDR(SREG),r20
 	pop r20

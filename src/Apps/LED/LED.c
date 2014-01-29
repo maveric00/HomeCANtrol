@@ -481,33 +481,34 @@ int main(void)
       SetLED (6,Message.data[5],Message.data[6],Message.data[7],0,0) ;
       break ;
     case LOAD_PROG:
-      if (Message.data[1]>=PWM_CHANNELS) {
+      if (Message.data[1]>PWM_CHANNELS) {
 	for (r=0;r<PWM_CHANNELS;r++) {
 	  Message.data[1] = r ;
 	  StoreProgram () ;
 	} ;
       } else {
+	Message.data[1]-- ;
 	StoreProgram() ;
       } ;
       break ;
     case START_PROG:
-      if (Message.data[1]>=PWM_CHANNELS) {
+      if (Message.data[1]>PWM_CHANNELS) {
 	for (r=0;r<PWM_CHANNELS;r++) {
-	  Step[r] = 0 ;
+	  Step[r] = Message.data[2] ;
 	  Counter[r] = Message.data[7] ;
 	  LastTime[r] = Counter[r] ;
 	  Delta[r]=0x7FFF ;
 	} ;
       } else {
-	r = Message.data[1] ;
-        Step[r] = 0 ;
+	r = Message.data[1]-1 ;
+        Step[r] = Message.data[2] ;
 	Counter[r] = Message.data[7] ;
 	LastTime[r] = Counter[r] ;
 	Delta[r]=0x7FFF ;
       } ;
       break ;
     case STOP_PROG:
-      if (Message.data[1]>=PWM_CHANNELS) {
+      if (Message.data[1]>PWM_CHANNELS) {
 	for (r=0;r<PWM_CHANNELS;r++) {
 	  Step[r] = 22 ;
 	  Counter[r] = 0 ;
@@ -515,7 +516,7 @@ int main(void)
 	  LEDV2[r] = 0 ;
 	} ;
       } else {
-	r = Message.data[1] ;
+	r = Message.data[1]-1 ;
 	Step[r] = 22 ;
 	Counter[r] = 0 ; 
 	LEDVal[r] = 0 ; 
