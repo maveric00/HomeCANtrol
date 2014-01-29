@@ -470,16 +470,16 @@
 	<Programm port="5" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="6" data="2895DE70DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="7" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="8" data="28FF00280000DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="9" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="8" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="9" data="28FF000028000000DE60E008FFDE040895CB0000"/>
 	<Programm port="10" data="2895DE30DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="11" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="12" data="2895DE70DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="13" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="14" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="15" data="2895DE70DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="16" data="28B400280000DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="17" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="16" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="17" data="28B4000028000000DE60E008FFDE040895CB0000"/>
 	<Programm port="18" data="2895DE70DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="19" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
 	<Programm port="20" data="2895DE70DE40DE50DE60E008FFDE040895CB0000"/>
@@ -494,14 +494,19 @@
       <Makro name="An">
         <Adresse linie="0" knoten="200" port="53"/>
         <Wenn wert="nicht(Tag)">
-           <Aktion kommando="StarteLED" objekt="Erdgeschoss/Bad/BadSensor:8"/>
-           <Aktion kommando="StarteLED" objekt="Erdgeschoss/Bad/BadSensor:16"/>
+           <Aktion kommando="StarteLED" objekt="Erdgeschoss/Bad/BadSensor:9"/>
+           <Aktion kommando="StarteLED" objekt="Erdgeschoss/Bad/BadSensor:17"/>
         </Wenn>
       </Makro>
       <Makro name="Aus">
 	<Adresse linie="0" knoten="200" port="16"/>
-           <Aktion kommando="StarteLED" schritt="3" objekt="Erdgeschoss/Bad/BadSensor:8"/>
-           <Aktion kommando="StarteLED" schritt="3" objekt="Erdgeschoss/Bad/BadSensor:116"/>
+           <Aktion kommando="StarteLED" schritt="4" objekt="Erdgeschoss/Bad/BadSensor:9"/>
+           <Aktion kommando="StarteLED" schritt="4" objekt="Erdgeschoss/Bad/BadSensor:17"/>
+      </Makro>
+      <Makro name="GanzAus">
+	<Adresse linie="0" knoten="201" port="16"/>
+           <Aktion kommando="StoppLED" objekt="Erdgeschoss/Bad/BadSensor:9"/>
+           <Aktion kommando="StoppLED" objekt="Erdgeschoss/Bad/BadSensor:17"/>
       </Makro>
     </Zimmer>
     <Zimmer name="Gaderobe">

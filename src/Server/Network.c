@@ -562,6 +562,7 @@ void SendAction (struct Node *Action)
     Len=2 ;
     break ;
   case N_LED:
+  case N_BAD:
     if (Action->Data.Aktion.Type==A_ON) { Command = CHANNEL_ON ; Action->Data.Aktion.Unit->Value=1 ; } ;
     if (Action->Data.Aktion.Type==A_OFF) { Command = CHANNEL_OFF ; Action->Data.Aktion.Unit->Value=0 ; } ;
     if (Action->Data.Aktion.Type==A_TOGGLE) { Command = CHANNEL_TOGGLE ; Action->Data.Aktion.Unit->Value=1-Action->Data.Aktion.Unit->Value ; } ;

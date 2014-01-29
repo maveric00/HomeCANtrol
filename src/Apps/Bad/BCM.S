@@ -398,6 +398,12 @@ Loop2:
 // Offset (entspricht dem Helligkeitswert 0-255)*(MasterHelligkeit+1(1-256)/256 der Adresse der logarithmischen Tabelle in ZL laden 
 	lds r24,MasterVal			; Master Helligkeit
 	ld  r25,Y+				; Led Helligkeit
+	cpi r19,8
+	brne NotPower
+	and r18,r18
+	breq NotPower
+	com r25
+NotPower:	
 	mul r24,r25			; Master * Led
 	clr r24
 	add r0,r25				; + Led
@@ -413,15 +419,15 @@ Loop2:
 // Tabellenwert der logarithmischen Tabelle entsprechend dem Led-Wert und der Tabelle (angepasst, unangepasst) holen	
 	lpm r0,Z+						;Tabellenwert lesen low
 	lpm r1,Z						;Tabellenwert lesen high
-// Port C0 und D0 die untersten 6 Bit loeschen um den Treiber nicht zu ueberlasten, dann negieren
+// Port C0 und D0 die untersten 6 Bit loeschen um den Treiber nicht zu ueberlasten
 	cpi r19,8
 	brne NotPWM
 	and r18,r18
-	brne NotPWM
+	breq NotPWM
 // Erstes Bit des 2. oder 3. Bytes -> C0 oder D0
-	andi r0,0xC0
-	com r0
-	com r1
+	mov ZL,r0
+	andi ZL,0xC0
+	mov r0,ZL
 NotPWM:	
 // durch rotieren aus den 8*10-16Bit log-Werten 10-16*8Bit PWM-Werte erstellen
 	lsr r0
@@ -494,6 +500,7 @@ Loop1Weiter:
 Loop3:
 	ldd r24,Y+1    ; C-Port Pin 1 ist Input vom Bewegungsmelder -> Eingang schalten
 	andi r24,253
+	ori r24,4 		;C-Port Pin 2 ist Output, immer auf Output schalten
 	std Y+1,r24
 	ldd r24,Y+2
 	mov r25,r24

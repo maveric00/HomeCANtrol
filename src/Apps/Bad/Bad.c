@@ -174,7 +174,7 @@ inline void StepLight (void)
       Command = GetProgram (Channel,Step[Channel]) ;
       Step[Channel]++ ;
       if (Command==0) { // Programm Ende  
-	Step[Channel] = 20 ;
+	Step[Channel] = 22 ;
       } else if	(Command<201) { // DimTo 
 	Counter[Channel] = Command ;                                 //40 180 222 240 222 240 222 240 10 255 222 10 10 180 203
 	Command = GetProgram(Channel,Step[Channel]) ;                //28B4DEF0DEF0DEF0DFDFDF0AFFDE0A0AB4CB0000
@@ -314,7 +314,7 @@ extern void InitBCM(void);
 int __attribute__((OS_main)) main(void) 
 {
   uint16_t Addr ;
-  uint8_t r,i,j ;
+  uint8_t r ;
   uint8_t Delay ;
   
   // Default-Werte:
@@ -471,6 +471,7 @@ int __attribute__((OS_main)) main(void)
       /* LED */
     case CHANNEL_ON:
     case CHANNEL_OFF:
+      break ;
     case CHANNEL_TOGGLE:
       break ;
     case SET_TO:
