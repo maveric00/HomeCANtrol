@@ -398,11 +398,11 @@ Loop2:
 // Offset (entspricht dem Helligkeitswert 0-255)*(MasterHelligkeit+1(1-256)/256 der Adresse der logarithmischen Tabelle in ZL laden 
 	lds r24,MasterVal			; Master Helligkeit
 	ld  r25,Y+				; Led Helligkeit
-	cpi r19,8
-	brne NotPower
-	and r18,r18
-	breq NotPower
-	com r25
+//	cpi r19,8
+//	brne NotPower
+//	and r18,r18
+//	breq NotPower
+//	com r25
 NotPower:	
 	mul r24,r25			; Master * Led
 	clr r24
@@ -425,8 +425,10 @@ NotPower:
 	and r18,r18
 	breq NotPWM
 // Erstes Bit des 2. oder 3. Bytes -> C0 oder D0
+	com r0
+	com r1
 	mov ZL,r0
-	andi ZL,0xC0
+	ori ZL,0x1F
 	mov r0,ZL
 NotPWM:	
 // durch rotieren aus den 8*10-16Bit log-Werten 10-16*8Bit PWM-Werte erstellen
