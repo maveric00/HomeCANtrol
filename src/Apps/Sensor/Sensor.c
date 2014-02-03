@@ -791,21 +791,23 @@ int __attribute__((OS_main)) main(void)
     case CHANNEL_OFF:
     case CHANNEL_TOGGLE:
       j-- ;
-      if (j>(uint8_t)5) break; // Illegaler PIN
-      if ((Type[j]!=O_ONOFF)&&(Type[j]!=O_PWM)) break ; // Illegaler PIN
-      if (r==(uint8_t)CHANNEL_ON) {
-	i = 255 ;
-      } else if (r==(uint8_t)CHANNEL_OFF) {
-	i = 0 ;
-      } else {
-	i =255-PWM[j] ;
-      }
-      START_PWM[j] = PWM[j] ;
-      SOLL_PWM[j] = i ;
-      if (Config[j]) {
-	TimerPWM[j] = DurationPWM[j] = Config[j] ;
-      } else {
-	TimerPWM[j] = DurationPWM[j] = 1 ;
+      if (j>(uint8_t)5) j=0 ;
+      for (;(j<Message.data[1])&&(j<6);j++) { // Wenn Port = 1..6, dann nur diesen, sonst alle
+	if ((Type[j]!=O_ONOFF)&&(Type[j]!=O_PWM)) break ; // Illegaler PIN
+	if (r==(uint8_t)CHANNEL_ON) {
+	  i = 255 ;
+	} else if (r==(uint8_t)CHANNEL_OFF) {
+	  i = 0 ;
+	} else {
+	  i =255-PWM[j] ;
+	}
+	START_PWM[j] = PWM[j] ;
+	SOLL_PWM[j] = i ;
+	if (Config[j]) {
+	  TimerPWM[j] = DurationPWM[j] = Config[j] ;
+	} else {
+	  TimerPWM[j] = DurationPWM[j] = 1 ;
+	} ;
       } ;
       break ;
       // Nun die Sensor-Befehle

@@ -132,6 +132,24 @@
   </Etage>
   <Etage name="Erdgeschoss">
     <Zimmer name="Kueche">
+      <Sensor name="Deckenlicht1" typ="PWM" dauer="2">
+	<Adresse linie="1" knoten="56" port="1"/>
+      </Sensor>
+      <Sensor name="Deckenlicht2" typ="PWM" dauer="2">
+	<Adresse linie="1" knoten="56" port="2"/>
+      </Sensor>
+      <Sensor name="Deckenlicht3" typ="PWM" dauer="2">
+	<Adresse linie="1" knoten="56" port="3"/>
+      </Sensor>
+      <Sensor name="Deckenlicht4" typ="PWM" dauer="2">
+	<Adresse linie="1" knoten="56" port="4"/>
+      </Sensor>
+      <Sensor name="Deckenlicht5" typ="PWM" dauer="2">
+	<Adresse linie="1" knoten="56" port="5"/>
+      </Sensor>
+      <Sensor name="Deckenlicht6" typ="PWM" dauer="2">
+	<Adresse linie="1" knoten="56" port="6"/>
+      </Sensor>
       <Schalter name="Deckenlicht">
 	<Adresse linie="1" knoten="101" port="5"/>
       </Schalter>
@@ -158,8 +176,8 @@
       </Rollo>
       <Sensor name="Tuer1" typ="Einfach">
 	<Adresse linie="1" knoten="51" port="1"/>
-	<Aktion autonom="0" kommando="Toggle" objekt="Erdgeschoss/Kueche/Deckenlicht"/>
-	<Aktion autonom="1" kommando="Toggle" objekt="Erdgeschoss/Kueche/Deckenlicht"/>
+	<Aktion autonom="0" kommando="Rufe" objekt="Erdgeschoss/Kueche/DeckeToggle"/>
+	<Aktion autonom="1" kommando="Toggle" objekt="Erdgeschoss/Kueche/Deckenlicht1:7"/>
       </Sensor>
       <Sensor name="Tuer2" typ="KurzLang" lang="5" ende="100">
 	<Adresse linie="1" knoten="51" port="6"/>
@@ -188,9 +206,35 @@
 	<Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/SteckdoseFensterAussen"/>
 	<Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/SteckdoseFensterMitte"/>
       </Makro>
+      <Variable name="BW1" wert="0"/>
+      <Makro name="DeckeToggle">
+	<Adresse linie="0" knoten="201" port="8"/>
+	<Wenn wert="(Erdgeschoss/Kueche/BW1=0)">
+           <Setze objekt="Erdgeschoss/Gaderobe/BW1" wert="1"/>
+           <Aktion kommando="DIMRGB" W="255" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht1"/>
+	   <Aktion kommando="DIMRGB" W="255" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht2"/>
+           <Aktion kommando="DIMRGB" W="255" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht3"/>
+	   <Aktion kommando="DIMRGB" W="255" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht4"/>
+	   <Aktion kommando="DIMRGB" W="180" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht5"/>
+	   <Aktion kommando="DIMRGB" W="180" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht6"/>
+        <Sonst/>
+           <Setze objekt="Erdgeschoss/Gaderobe/BW1" wert="1"/>
+           <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht1"/>
+           <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht2"/>
+           <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht3"/>
+           <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht4"/>
+           <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht5"/>
+           <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht6"/>
+	</Wenn>
+      </Makro>
       <Makro name="Aus">
 	<Adresse linie="0" knoten="200" port="9"/>
-	<Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht"/>
+	<Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht1"/>
+	<Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht2"/>
+	<Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht3"/>
+	<Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht4"/>
+	<Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht5"/>
+	<Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht6"/>
 	<Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Tresenlicht"/>
 	<Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/SteckdoseTresen"/>
 	<Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/SteckdoseFensterAussen"/>
@@ -463,29 +507,29 @@
     <Zimmer name="Bad">
       <Bad name="BadSensor" dauer="64">
 	<Adresse linie="1" knoten="60" port="0"/>
-	<Programm port="1" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="2" data="2895DE70DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="3" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="4" data="2895DE30DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="5" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="6" data="2895DE70DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="7" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="8" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="9" data="28C0000028000000DE60E008FFDE040895CB0000"/>
-	<Programm port="10" data="2895DE30DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="11" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="12" data="2895DE70DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="13" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="14" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="15" data="2895DE70DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="16" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="17" data="28FF000028000000DE60E008FFDE040895CB0000"/>
-	<Programm port="18" data="2895DE70DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="19" data="2895DE90DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="20" data="2895DE70DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="21" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="22" data="2895DE30DE40DE50DE60E008FFDE040895CB0000"/>
-	<Programm port="23" data="2895DE50DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="1" data="1495DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="2" data="1495DE70DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="3" data="1495DE50DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="4" data="1495DE30DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="5" data="1495DE50DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="6" data="1495DE70DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="7" data="1495DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="8" data="1495DE50DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="9" data="14C0000014000000DE60E008FFDE040895CB0000"/>
+	<Programm port="10" data="1495DE30DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="11" data="1495DE50DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="12" data="1495DE70DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="13" data="1495DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="14" data="1495DE50DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="15" data="1495DE70DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="16" data="1495DE50DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="17" data="14FF000014000000DE60E008FFDE040895CB0000"/>
+	<Programm port="18" data="1495DE70DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="19" data="1495DE90DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="20" data="1495DE70DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="21" data="1495DE50DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="22" data="1495DE30DE40DE50DE60E008FFDE040895CB0000"/>
+	<Programm port="23" data="1495DE50DE40DE50DE60E008FFDE040895CB0000"/>
 	<Aktion kurz="1" autonom="0" kommando="Rufe"  objekt="Erdgeschoss/Bad/An"/>
 	<Aktion kurz="0" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Bad/Aus"/>
 	<Aktion kurz="1" autonom="1" kommando="Rufe"  objekt="Erdgeschoss/Bad/An"/>

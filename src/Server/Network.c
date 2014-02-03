@@ -546,6 +546,14 @@ void SendAction (struct Node *Action)
       Len=2 ;
     } ;
     if (GetNodeAdress(Action->Data.Aktion.Unit,&Linie,&Knoten,&Port)!=0) break ;
+    
+    // direkte Port-Adressierung mit ":" etage/Raum/Schalter:Port
+
+    for (i=0;(Action->Data.Aktion.UnitName[i]!='\0')&&(Action->Data.Aktion.UnitName[i]!=':');i++) ;
+    if (Action->Data.Aktion.UnitName[i]==':') {
+      sscanf(&(Action->Data.Aktion.UnitName[i+1]),"%d",&Port) ;
+    } ;
+
     CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
     Data[0] = Command ;
     Data[1] = (char)Port ;
@@ -574,6 +582,7 @@ void SendAction (struct Node *Action)
     if (Action->Data.Aktion.Type==A_STOPLED) { Command = STOP_PROG ; Action->Data.Aktion.Unit->Value=1 ; } ;
     if (Action->Data.Aktion.Type==A_PROGLED) { Command = LOAD_PROG ; Action->Data.Aktion.Unit->Value=1 ; } ;
     if (GetNodeAdress(Action->Data.Aktion.Unit,&Linie,&Knoten,&Port)!=0) break ;
+
     for (i=0;(Action->Data.Aktion.UnitName[i]!='\0')&&(Action->Data.Aktion.UnitName[i]!=':');i++) ;
     if (Action->Data.Aktion.UnitName[i]==':') {
       sscanf(&(Action->Data.Aktion.UnitName[i+1]),"%d",&Port) ;
