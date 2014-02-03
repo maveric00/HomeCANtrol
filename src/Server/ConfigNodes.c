@@ -541,6 +541,9 @@ void SendConfigByte (char Linie, USHORT Knoten)
   if (((Config->Package==0)&&(Config->Counter>=sizeof(struct EEPROM)))||
       ((Config->Package==1)&&(Config->Counter>=10))) {
     // das letzte Byte wurde bestätigt, nun noch den Knoten zurücksetzen um die Konfiguration zu laden.
+#ifdef DEBUG
+    fprintf (stderr,"\nConfiguration transferred, resetting node\n") ;
+#endif
     CANID = BuildCANId(0,0,0,2,Linie,Knoten,0) ;
     Data[0] = START_BOOT ;
     Data[1] = 0 ;

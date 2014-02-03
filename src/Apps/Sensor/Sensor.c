@@ -141,7 +141,7 @@ uint8_t  PWM2[6] ; // gets modified in main
 uint8_t  PWMTime2[7] ;
 uint8_t  PWMOut2[6] ;
 
-volatile uint8_t SyncPWM ;
+volatile uint8_t PWMSync ;
 
 uint8_t* PWMPort[6] ;
 uint8_t  PWMPin[7] ;
@@ -295,7 +295,7 @@ void ws2801_writeByte(uint8_t Send)
 } // ws2801_writeByte
 
 // Sortieren der PWM-Tabelle und bestimmen der Einschaltzeiten
-void UpdatePWM (void)
+inline void UpdatePWM (void)
 {
   uint8_t i,j,k ;
   uint8_t PT[6] ;
@@ -341,8 +341,8 @@ ISR( TIM0_OVF_vect )
  
   TCNT0 = (uint8_t)TIMER_PRESET;  // preload for 10ms
 
-  TIMSK0 &= ~(1<<TOIE0);            // disable timer 0 interrupt
-  sei () ;                          // enable PWM interrupt
+  //  TIMSK0 &= ~(1<<TOIE0);            // disable timer 0 interrupt
+  //  sei () ;                          // enable PWM interrupt
 
   if (Heartbeat<=TIMEOUT+1) Heartbeat++ ;
   for (i=0;i<6;i++) if (Timers[i]) Timers[i]-- ;
@@ -400,8 +400,8 @@ ISR( TIM0_OVF_vect )
     key_rpt |= key_state & REPEAT_MASK;
   }
 
-  cli() ;                        // disable global interrupts
-  TIMSK0 |= 1<<TOIE0;            // enable timer 0 interrupt
+  //  cli() ;                        // disable global interrupts
+  //TIMSK0 |= 1<<TOIE0;            // enable timer 0 interrupt
   // Interrupts will be enabled by the rti at the end of the function
 }
  
@@ -466,7 +466,7 @@ inline void PortOff(uint8_t Port)
 void SwapPWM(void)
 {
   uint8_t i ;
-  for (i=0;i<6:i++){
+  for (i=0;i<6;i++){
     PWM2[i]=PWM[i] ;
     PWMTime2[i]=PWMTime[i] ;
     PWMOut2[i]=PWMOut[i] ;
@@ -793,7 +793,7 @@ int __attribute__((OS_main)) main(void)
       j-- ;
       if (j>(uint8_t)5) j=0 ;
       for (;(j<Message.data[1])&&(j<6);j++) { // Wenn Port = 1..6, dann nur diesen, sonst alle
-	if ((Type[j]!=O_ONOFF)&&(Type[j]!=O_PWM)) break ; // Illegaler PIN
+	if ((Type[j]!=(uint8_t)O_ONOFF)&&(Type[j]!=(uint8_t)O_PWM)) continue ; // Illegaler PIN
 	if (r==(uint8_t)CHANNEL_ON) {
 	  i = 255 ;
 	} else if (r==(uint8_t)CHANNEL_OFF) {

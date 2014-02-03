@@ -1199,7 +1199,6 @@ int main(int argc, char **argv)
     exit(-1) ;
   } ;
 
-  fprintf (stderr,"Start1\n") ;
 
   web_options[1] = HTTP_PORT ;
 
@@ -1213,11 +1212,9 @@ int main(int argc, char **argv)
 
   // Makros starten
 
-  fprintf (stderr,"Start2\n") ;
 
   InitAlways() ;
   EveryDay () ;
-  fprintf (stderr,"Start3\n") ;
   Day.tv_sec = time(NULL) ;
   Day.tv_usec = 0 ;
 
@@ -1228,7 +1225,6 @@ int main(int argc, char **argv)
 
   // Websockets starten
 
-  fprintf (stderr,"Start4\n") ;
 
   if (InitWebsocket()!=0) {
     fprintf (stderr,"Fehler in Websocket\n") ;
