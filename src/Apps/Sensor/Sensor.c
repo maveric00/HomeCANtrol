@@ -470,7 +470,8 @@ void SwapPWM(void)
     PWM2[i]=PWM[i] ;
     PWMTime2[i]=PWMTime[i] ;
     PWMOut2[i]=PWMOut[i] ;
-  }
+  } ;
+  PWMTime2[6]=PWMTime[6];
 }
 
 // Timer1-Interrup-Service-Routine der PWM-Generierung
@@ -487,7 +488,7 @@ ISR( TIM1_OVF_vect )
     for (;(PWMTime2[PWMStep]==0)&&(PWMStep<7);PWMStep++) ;
     TCNT1=65535-(PWMTime2[PWMStep]<<1) ;
     for (i=0;i<6;i++)
-      if (!PWM2[i]) PortOn(i) ;
+      if (PWM2[i]) PortOn(i) ;
     PWMStep++ ;
     for (;(PWMTime2[PWMStep]==0)&&(PWMStep<7);PWMStep++) ; // Delete trailing zeros
   } else {
@@ -525,8 +526,7 @@ void InitMC (void)
   
   // Port-Konfiguration durchgehen
   PWMPin[6]=0 ;
-  SwapPWM() ;
-
+  PWMTime2[6]=255 ;
 
   for (i=0;i<6;i++) {
     // Konfigurations-Byte lesen
