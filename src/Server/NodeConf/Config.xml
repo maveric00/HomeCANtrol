@@ -132,22 +132,22 @@
   </Etage>
   <Etage name="Erdgeschoss">
     <Zimmer name="Kueche">
-      <Sensor name="Deckenlicht1" typ="PWM" dauer="2">
+      <Sensor name="Deckenlicht1" typ="PWM" dauer="10">
 	<Adresse linie="1" knoten="56" port="1"/>
       </Sensor>
-      <Sensor name="Deckenlicht2" typ="PWM" dauer="2">
+      <Sensor name="Deckenlicht2" typ="PWM" dauer="10">
 	<Adresse linie="1" knoten="56" port="2"/>
       </Sensor>
-      <Sensor name="Deckenlicht3" typ="PWM" dauer="2">
+      <Sensor name="Deckenlicht3" typ="PWM" dauer="10">
 	<Adresse linie="1" knoten="56" port="3"/>
       </Sensor>
-      <Sensor name="Deckenlicht4" typ="PWM" dauer="2">
+      <Sensor name="Deckenlicht4" typ="PWM" dauer="10">
 	<Adresse linie="1" knoten="56" port="4"/>
       </Sensor>
-      <Sensor name="Deckenlicht5" typ="PWM" dauer="2">
+      <Sensor name="Deckenlicht5" typ="PWM" dauer="10">
 	<Adresse linie="1" knoten="56" port="5"/>
       </Sensor>
-      <Sensor name="Deckenlicht6" typ="PWM" dauer="2">
+      <Sensor name="Deckenlicht6" typ="PWM" dauer="10">
 	<Adresse linie="1" knoten="56" port="6"/>
       </Sensor>
       <Schalter name="Deckenlicht">
@@ -174,10 +174,12 @@
       <Rollo name="Fenster" kurz="60" lang="60" vertauschen="1">
 	<Adresse linie="1" knoten="101" port="1"/>
       </Rollo>
-      <Sensor name="Tuer1" typ="Einfach">
+      <Sensor name="Tuer1" typ="KurzLang">
 	<Adresse linie="1" knoten="51" port="1"/>
-	<Aktion autonom="0" kommando="Rufe" objekt="Erdgeschoss/Kueche/DeckeToggle"/>
-	<Aktion autonom="1" kommando="Toggle" objekt="Erdgeschoss/Kueche/Deckenlicht1:7"/>
+	<Aktion kurz="1" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Kueche/DeckeToggleDunkel"/>
+	<Aktion kurz="1" autonom="1" kommando="Toggle" objekt="Erdgeschoss/Kueche/Deckenlicht1:7"/>
+	<Aktion kurz="0" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Kueche/DeckeToggleHell"/>
+	<Aktion kurz="0" autonom="1" kommando="Toggle" objekt="Erdgeschoss/Kueche/Deckenlicht1:7"/>
       </Sensor>
       <Sensor name="Tuer2" typ="KurzLang" lang="5" ende="100">
 	<Adresse linie="1" knoten="51" port="6"/>
@@ -207,24 +209,44 @@
 	<Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/SteckdoseFensterMitte"/>
       </Makro>
       <Variable name="BW1" wert="0"/>
-      <Makro name="DeckeToggle">
-	<Adresse linie="0" knoten="201" port="8"/>
+      <Makro name="DeckeToggleHell">
+	<Adresse linie="0" knoten="202" port="8"/>
 	<Wenn wert="(Erdgeschoss/Kueche/BW1=0)">
-           <Setze objekt="Erdgeschoss/Gaderobe/BW1" wert="1"/>
-           <Aktion kommando="DIMRGB" W="255" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht1"/>
+           <Setze objekt="Erdgeschoss/Kueche/BW1" wert="1"/>
+           <Aktion kommando="DIMRGB" W="180" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht1"/>
 	   <Aktion kommando="DIMRGB" W="255" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht2"/>
            <Aktion kommando="DIMRGB" W="255" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht3"/>
 	   <Aktion kommando="DIMRGB" W="255" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht4"/>
-	   <Aktion kommando="DIMRGB" W="180" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht5"/>
+	   <Aktion kommando="DIMRGB" W="255" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht5"/>
 	   <Aktion kommando="DIMRGB" W="180" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht6"/>
         <Sonst/>
-           <Setze objekt="Erdgeschoss/Gaderobe/BW1" wert="1"/>
-           <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht1"/>
-           <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht2"/>
-           <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht3"/>
-           <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht4"/>
-           <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht5"/>
-           <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/Deckenlicht6"/>
+           <Setze objekt="Erdgeschoss/Kueche/BW1" wert="0"/>
+           <Aktion kommando="DIMRGB" W="0" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht1"/>
+           <Aktion kommando="DIMRGB" W="0" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht2"/>
+           <Aktion kommando="DIMRGB" W="0" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht3"/>
+           <Aktion kommando="DIMRGB" W="0" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht4"/>
+           <Aktion kommando="DIMRGB" W="0" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht5"/>
+           <Aktion kommando="DIMRGB" W="0" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht6"/>
+	</Wenn>
+      </Makro>
+      <Makro name="DeckeToggleDunkel">
+	<Adresse linie="0" knoten="201" port="8"/>
+	<Wenn wert="(Erdgeschoss/Kueche/BW1=0)">
+           <Setze objekt="Erdgeschoss/Kueche/BW1" wert="1"/>
+           <Aktion kommando="DIMRGB" W="80" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht1"/>
+	   <Aktion kommando="DIMRGB" W="200" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht2"/>
+           <Aktion kommando="DIMRGB" W="200" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht3"/>
+	   <Aktion kommando="DIMRGB" W="200" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht4"/>
+	   <Aktion kommando="DIMRGB" W="200" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht5"/>
+	   <Aktion kommando="DIMRGB" W="80" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht6"/>
+        <Sonst/>
+           <Setze objekt="Erdgeschoss/Kueche/BW1" wert="0"/>
+           <Aktion kommando="DIMRGB" W="0" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht1"/>
+           <Aktion kommando="DIMRGB" W="0" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht2"/>
+           <Aktion kommando="DIMRGB" W="0" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht3"/>
+           <Aktion kommando="DIMRGB" W="0" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht4"/>
+           <Aktion kommando="DIMRGB" W="0" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht5"/>
+           <Aktion kommando="DIMRGB" W="0" dauer="10" objekt="Erdgeschoss/Kueche/Deckenlicht6"/>
 	</Wenn>
       </Makro>
       <Makro name="Aus">

@@ -18,6 +18,12 @@
 #include "../Common/mcp2515.h"
 #include "../Common/utils.h"
 
+#undef cli
+#undef sei
+
+#define cli() __asm volatile( "cli" ::: "memory" )
+#define sei() __asm volatile( "sei" ::: "memory" )
+
 /* EEProm-Belegung vom Boot-Loader:
    0   0xba
    1   0xca
@@ -133,11 +139,10 @@ uint8_t  Config[6];
 uint8_t  Running[6] ;
 
 uint8_t  PWMStep ;
-uint8_t  PWM[6] ; // gets modified in main
+volatile uint8_t  PWM[6] ; // gets modified in main
 uint8_t  PWMTime[7] ;
 uint8_t  PWMOut[6] ;
 
-uint8_t  PWM2[6] ; // gets modified in main
 uint8_t  PWMTime2[7] ;
 uint8_t  PWMOut2[6] ;
 
@@ -145,20 +150,20 @@ volatile uint8_t PWMSync ;
 
 uint8_t* PWMPort[6] ;
 uint8_t  PWMPin[7] ;
-volatile uint8_t SOLL_PWM[6] ; // gets modified in main
-volatile uint8_t START_PWM[6] ; // gets modified in main
-volatile int16_t TimerPWM[6] ; // gets modified in main
-volatile int16_t DurationPWM[6] ; // gets modified in main
+uint8_t SOLL_PWM[6] ; // gets modified in main, secure it with a memory barrier
+uint8_t START_PWM[6] ; // gets modified in main
+uint16_t TimerPWM[6] ; // gets modified in main
+uint16_t DurationPWM[6] ; // gets modified in main
 
-volatile uint8_t  SOLL_WS[MAX_LEDS*3] ; // gets modified in main
-volatile uint8_t  START_WS[MAX_LEDS*3] ; // gets modified in main
-volatile int16_t TimerLED[MAX_LEDS] ; // gets modified in main
-volatile int16_t DurationLED[MAX_LEDS] ; // gets modified in main
+uint8_t  SOLL_WS[MAX_LEDS*3] ; // gets modified in main
+uint8_t  START_WS[MAX_LEDS*3] ; // gets modified in main
+uint16_t TimerLED[MAX_LEDS] ; // gets modified in main
+uint16_t DurationLED[MAX_LEDS] ; // gets modified in main
 uint8_t ChangedLED ;
 volatile uint8_t  NumLED ; // gets modified in main
 
-uint8_t* PIX_Clock ;
-uint8_t* PIX_Data ;
+volatile uint8_t* PIX_Clock ;
+volatile uint8_t* PIX_Data ;
 uint8_t  PIX_CL ;
 uint8_t  PIX_DA ;
 
@@ -281,12 +286,12 @@ void ws2801_writeByte(uint8_t Send)
 {
   register uint8_t BitCount = 8; // store variable BitCount in a cpu register
   do {
-    PIX_Clock[0] &= (uint8_t)~(PIX_CL);	// set clock LOW
+    PIX_Clock[0] &= ~(PIX_CL);	// set clock LOW
     // send bit to ws2801. we do MSB first
-    if (Send & (uint8_t)0x80) {
+    if (Send & 0x80) {
       PIX_Data[0] |= (PIX_DA); // set output HIGH
     } else {
-      PIX_Data[0] &= (uint8_t)~(PIX_DA); // set output LOW
+      PIX_Data[0] &= ~(PIX_DA); // set output LOW
     } ;
     PIX_Clock[0] |= (PIX_CL); // set clock HIGH
     // next bit
@@ -294,44 +299,39 @@ void ws2801_writeByte(uint8_t Send)
   } while (--BitCount);
 } // ws2801_writeByte
 
+
 // Sortieren der PWM-Tabelle und bestimmen der Einschaltzeiten
 inline void UpdatePWM (void)
 {
   uint8_t i,j,k ;
-  uint8_t PT[6] ;
   
   if (PWMSync) return ; // Has not been send out yet
   
-  for (i=0;i<6;i++) { PWMTime[i] = 255 ; PWMOut[i] = 0 ; } ;
-  for (i=0;i<6;i++) { // Alle durchgehen
+  for (i=0;i<(uint8_t)6;i++) { PWMTime[i] = (uint8_t)255 ; PWMOut[i] = (uint8_t)0 ; } ;
+  for (i=0;i<(uint8_t)6;i++) { // Alle durchgehen
     if (TimerPWM[i]>0) { 
       TimerPWM[i]-- ;
-      PWM[i] = (uint8_t)(((int16_t)START_PWM[i])+(((int16_t)((int16_t)SOLL_PWM[i]-(int16_t)START_PWM[i]))*(DurationPWM[i]-TimerPWM[i])/DurationPWM[i])) ;
-      if (PWM[i]<4) PWM[i]=0 ;  // Don't exceed current driver frequency limitations
-      if (PWM[i]>251) PWM[i]=255 ;
-    } else {
-      START_PWM[i]=SOLL_PWM[i] ;
+      PWM[i] = (uint8_t)((int16_t)START_PWM[i]+(int16_t)(((int32_t)SOLL_PWM[i]-(int32_t)START_PWM[i])*
+							 ((int32_t)DurationPWM[i]-(int32_t)TimerPWM[i])/(int32_t)DurationPWM[i])) ;
+      if (PWM[i]<(uint8_t)4) PWM[i]=(uint8_t)0 ;  // Don't exceed current driver frequency limitations
+      if (PWM[i]>(uint8_t)251) PWM[i]=(uint8_t)255 ;
     } ;
     for (j=0;j<i;j++) if (PWM[i]<=PWMTime[j]) break ;
-    for (k=5;k>j;k--) { PWMTime[k] = PWMTime[k-1] ; PWMOut[k] = PWMOut[k-1] ; } ;
+    for (k=(uint8_t)5;k>j;k--) { PWMTime[k] = PWMTime[k-1] ; PWMOut[k] = PWMOut[k-1] ; } ;
     PWMTime[j] = PWM[i] ;
-    if (PWM[i]==(uint8_t)255) {  
-      PWMOut[j]=6 ; // If full on never switch off
-    } else {
-      PWMOut[j] = i ;
-    } ;
+    PWMOut[j] = i ;
   } ;
-  for (i=1;i<6;i++) PT[i] = PWMTime[i]-PWMTime[i-1] ;
-  for (i=1,k=0;i<6;i++) k+=(PWMTime[i] = PT[i]) ;
-  PWMTime[6] = 255-k-PWMTime[0] ;
+  for (i=(uint8_t)5,k=(uint8_t)0;i>0;i--) k+= (PWMTime[i]-=PWMTime[i-1]) ;
+  PWMTime[6] = (uint8_t)255-k-PWMTime[0] ;
   PWMSync = 1 ;
 }
+
 
 // Haupt-Timer-Interrupt, wird alle 10 ms aufgerufen
 // Setzt den Heartbeat, die Timer, das Dimmen der WS2801 und sorgt fuer das Tastenentprellen
 // der an (a0:a3) und (b0:b3) angeschlossenen Tasten (wenn entsprechend konfiguriert)
 
-ISR( TIM0_OVF_vect )                           
+ISR( TIM0_OVF_vect,ISR_NOBLOCK )                           
 {
   static uint8_t ct0, ct1;
   static uint16_t rpt;
@@ -341,8 +341,7 @@ ISR( TIM0_OVF_vect )
  
   TCNT0 = (uint8_t)TIMER_PRESET;  // preload for 10ms
 
-  //  TIMSK0 &= ~(1<<TOIE0);            // disable timer 0 interrupt
-  //  sei () ;                          // enable PWM interrupt
+  TIMSK0 &= ~(1<<TOIE0);            // disable timer 0 interrupt
 
   if (Heartbeat<=TIMEOUT+1) Heartbeat++ ;
   for (i=0;i<6;i++) if (Timers[i]) Timers[i]-- ;
@@ -357,14 +356,20 @@ ISR( TIM0_OVF_vect )
     for (i=0;i<NumLED;i++) if (TimerLED[i]>0) break ;
     
     if (i<NumLED) {
+      cli () ;
       for (i=0,k=0,j=0;i<NumLED*3;i++) {
-	if (!k) {
-	  if (TimerLED[j]>0) TimerLED[j]-- ;
+	if (k==3) {
+	  k = 0 ;
 	  j++ ;
+	}  ;
+	if (!k) {
+	  if (TimerLED[j]>0) {
+	    TimerLED[j]-- ;
+	  } ;
 	} ;
 	k++ ;
-	if (k==3) k=0 ;
-	WSByte = (uint8_t)(((int16_t)START_WS[i])+(((int16_t)((int16_t)SOLL_WS[i]-(int16_t)START_WS[i]))*(DurationLED[j]-TimerLED[j])/DurationLED[j])) ;
+	WSByte = (uint8_t)((int16_t)START_WS[i]+(int16_t)(((int32_t)SOLL_WS[i]-(int32_t)START_WS[i])*
+							  ((int32_t)DurationLED[j]-(int32_t)TimerLED[j])/(int32_t)DurationLED[j])) ;
 	ws2801_writeByte(WSByte) ;
 	if (!TimerLED[j]) {
 	  DurationLED[j] = 1 ;
@@ -373,15 +378,18 @@ ISR( TIM0_OVF_vect )
 	ChangedLED=1 ;
       } ;
       PIX_Clock[0] &= (uint8_t)~(PIX_CL) ; //Clock Low zum Latchen
+      sei () ;
     } else {
       if (ChangedLED){
 	ChangedLED=0 ;
 	// Noch einmal den letzten Wert ausgeben, damit der Wert übernommen wird (das Pixel übernimmt erst mit
 	// Beginn des nächsten Frames die Werte in die Ausgabe.
+	cli () ;
 	for (i=0;i<NumLED*3;i++) {
 	  ws2801_writeByte(START_WS[i]) ;
 	} ;
 	PIX_Clock[0] &= (uint8_t)~(PIX_CL) ; //Clock Low zum Latchen
+	sei () ;
       } ;
     } ;
   } ;
@@ -400,8 +408,7 @@ ISR( TIM0_OVF_vect )
     key_rpt |= key_state & REPEAT_MASK;
   }
 
-  //  cli() ;                        // disable global interrupts
-  //TIMSK0 |= 1<<TOIE0;            // enable timer 0 interrupt
+  TIMSK0 |= 1<<TOIE0;            // enable timer 0 interrupt
   // Interrupts will be enabled by the rti at the end of the function
 }
  
@@ -463,20 +470,30 @@ inline void PortOff(uint8_t Port)
   if (PWMPin[Port]) PWMPort[Port][0]&=(uint8_t)~(PWMPin[Port]) ;
 }
   
-void SwapPWM(void)
+inline void SwapPWM(void)
 {
-  uint8_t i ;
-  for (i=0;i<6;i++){
-    PWM2[i]=PWM[i] ;
+  /*  for (i=0;i<6;i++){
     PWMTime2[i]=PWMTime[i] ;
     PWMOut2[i]=PWMOut[i] ;
-  } ;
+    } ; */
+  PWMOut2[0]=PWMOut[0] ;
+  PWMOut2[1]=PWMOut[1] ;
+  PWMOut2[2]=PWMOut[2] ;
+  PWMOut2[3]=PWMOut[3] ;
+  PWMOut2[4]=PWMOut[4] ;
+  PWMOut2[5]=PWMOut[5] ;
+  PWMTime2[0]=PWMTime[0];
+  PWMTime2[1]=PWMTime[1];
+  PWMTime2[2]=PWMTime[2];
+  PWMTime2[3]=PWMTime[3];
+  PWMTime2[4]=PWMTime[4];
+  PWMTime2[5]=PWMTime[5];
   PWMTime2[6]=PWMTime[6];
 }
 
 // Timer1-Interrup-Service-Routine der PWM-Generierung
 
-ISR( TIM1_OVF_vect )                           
+ISR ( TIM1_OVF_vect )     
 {
   uint8_t i ;
   
@@ -486,17 +503,15 @@ ISR( TIM1_OVF_vect )
       PWMSync=0 ;
     }
     for (;(PWMTime2[PWMStep]==0)&&(PWMStep<7);PWMStep++) ;
-    TCNT1=65535-(PWMTime2[PWMStep]<<1) ;
-    for (i=0;i<6;i++)
-      if (PWM2[i]) PortOn(i) ;
+    TCNT1=65535-(PWMTime2[PWMStep]<<2) ;
+    for (i=PWMStep;i<6;i++) PortOn(PWMOut2[i]) ;
     PWMStep++ ;
-    for (;(PWMTime2[PWMStep]==0)&&(PWMStep<7);PWMStep++) ; // Delete trailing zeros
   } else {
     do {
       PortOff(PWMOut2[PWMStep-1]) ;
       PWMStep++ ;
     } while ((PWMTime2[PWMStep-1]==(uint8_t)0)&&(PWMStep<7)) ;
-    TCNT1=65535-(PWMTime2[PWMStep-1]<<1) ;
+    TCNT1=65535-(PWMTime2[PWMStep-1]<<2) ;
     for (i=PWMStep;i<7;i++) if (PWMTime2[i]) break ; // If no further shut off follows, set to PWMStep7
   } ;
   if ((i==(uint8_t)7)||(PWMStep==(uint8_t)7)) {
@@ -532,7 +547,7 @@ void InitMC (void)
     // Konfigurations-Byte lesen
     Type[i] = eeprom_read_byte((uint8_t*)(300+(i<<1))) ;
     Config[i] = eeprom_read_byte((uint8_t*)(301+(i<<1))) ;
-    PWM[i]=PWM2[i] = 0 ;
+    PWM[i]= 0 ;
 
     switch (Type[i]) {
     case I_SIMPLE: // Klick-Input
@@ -801,6 +816,7 @@ int __attribute__((OS_main)) main(void)
 	} else {
 	  i =255-PWM[j] ;
 	}
+	cli (); 
 	START_PWM[j] = PWM[j] ;
 	SOLL_PWM[j] = i ;
 	if (Config[j]) {
@@ -808,6 +824,7 @@ int __attribute__((OS_main)) main(void)
 	} else {
 	  TimerPWM[j] = DurationPWM[j] = 1 ;
 	} ;
+	sei () ;
       } ;
       break ;
       // Nun die Sensor-Befehle
@@ -819,14 +836,19 @@ int __attribute__((OS_main)) main(void)
 	r = 0 ;
       } ;
       j-- ;
-      if (j>(uint8_t)5) break; // Illegaler PIN
-      if ((Type[j]!=O_ONOFF)&&(Type[j]!=O_PWM)) break ; // Illegaler PIN
-      START_PWM[j] = PWM[j] ;
-      SOLL_PWM[j] = Message.data[2+r] ;
-      TimerPWM[j] = DurationPWM[j] = Message.data[3+r]*5+1 ;
+      if (j>(uint8_t)5) j=0 ;
+      for (;(j<Message.data[1])&&(j<6);j++) { // Wenn Port = 1..6, dann nur diesen, sonst alle
+	if ((Type[j]!=O_ONOFF)&&(Type[j]!=O_PWM)) break ; // Illegaler PIN
+	cli () ;
+	START_PWM[j] = PWM[j] ;
+	SOLL_PWM[j] = Message.data[2+r] ;
+	TimerPWM[j] = DurationPWM[j] = (Message.data[3+r]<<2)+1 ;
+	sei () ;
+      } ;
       break ;
     case LOAD_LED:
       if ((j+1)>(uint8_t)MAX_LEDS) break; // Zu hohe LED-Nummer
+      cli () ;
       NumLED = (j+1)>NumLED?(j+1):NumLED ; // Set Max used LED
       START_WS[j*3] = SOLL_WS[j*3] ;
       START_WS[j*3+1] = SOLL_WS[j*3+1] ;
@@ -834,7 +856,8 @@ int __attribute__((OS_main)) main(void)
       SOLL_WS[j*3] = Message.data[2] ;
       SOLL_WS[j*3+1] = Message.data[3] ;
       SOLL_WS[j*3+2] = Message.data[4] ;
-      DurationLED[j] = TimerLED[j] = Message.data[5]*5+1 ;
+      DurationLED[j] = TimerLED[j] = (Message.data[5]<<2)+1 ;
+      sei () ;
       break ;
     case START_SENSOR:
       Running[(int)j-1] = 1 ;
