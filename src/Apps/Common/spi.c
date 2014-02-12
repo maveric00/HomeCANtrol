@@ -46,6 +46,7 @@ uint8_t spi_putc(uint8_t data)
   // als die HW-Unterstuetze Variante
   
   asm volatile (
+  "cli     ; Block interrupts\n\t"
   "ldi r25,0x00 ; Initialize result\n\t"
   "in r18,0x1b ; read port setting\n\t"
   "andi r18,0xef; mask P_SCK\n\t"
@@ -125,6 +126,7 @@ uint8_t spi_putc(uint8_t data)
   "rol r25        ; rotate left with carry 1  low\n\t"
 
   "mov r24,r25    ; copy to output \n\t"
+  "sei            ; enable interrupt \n\t"
   
   ::) ;
 
