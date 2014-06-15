@@ -2,7 +2,10 @@
 #define	MCP2515_H
 
 #include "config.h"
+
+#ifndef SERVER_INCLUDE
 #include "mcp2515_defs.h"
+#endif
 
 #include <inttypes.h>
 

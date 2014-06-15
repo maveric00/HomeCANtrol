@@ -24,7 +24,7 @@ MEMORY
 /* Define output sections */
 SECTIONS
 {
-  .eeprom:
+  .eeprom :
   {
     . = ALIGN(4);
     KEEP(*(.eeprom))

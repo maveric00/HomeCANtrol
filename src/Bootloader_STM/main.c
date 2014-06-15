@@ -3,11 +3,13 @@
 *********************************************************************************/
 #include "stdio.h"
 #include "string.h"
-#include "stm32f1xx.h"
+#include "stm32f10x.h"
 #include "main.h"
 #include "flash.h"
 #include "CANLib.h"
 #include "EEProm.h"
+#define PAGESIZE_IDENTIFIER 0x77
+#define RWW_PAGES 0x77
 
 CAN_InitTypeDef        CAN_InitStructure;
 
@@ -31,8 +33,6 @@ void delay_ms(uint32_t time_ms)
     time_ms--;
   }
 }
-
-void boot_jump_to_application(void) __attribute__ ((noreturn));
 
 void boot_jump_to_application(void) 
 {
@@ -58,35 +58,34 @@ void boot_jump_to_application(void)
 
 int main(void)
 {
-  enum { 
-    IDLE,
-    COLLECT_DATA,
-    RECEIVED_PAGE
-  } state = IDLE;
 
-  CanTxMes OutMessage ;
+  CanTxMsg OutMessage ;
   CanRxMsg InMessage ;
   uint8_t next_message_number = -1;
+  uint8_t message_number = -1;
   uint8_t BootLine,BoardLine ;
   uint8_t BootAdd,BoardAdd ;
   uint8_t BoardType ;
   uint8_t Counter ;
-  uint8_t Temp ;
   uint8_t Mailbox ;
   uint32_t* FlashAddress ;
+  uint32_t FlashData ;
+  uint8_t* FlashDataPointer ;
   
   BoardAdd = 0xff ; // um zu kennzeichnen, dass das Board noch nicht 
   BoardLine = 0xf ; // spezifiziert ist
   BootAdd = 1 ;
   BootLine = 0 ;
   BoardType = 0xff ;
+  FlashDataPointer = (uint8_t*)&FlashData ;
 
   EEPromInit () ;
+  SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK);
   
   if (EEprom!=NULL) {
-    BoardAdd = EEprom[2]+EEprom[3]<<8 ;
+    BoardAdd = EEprom[2]+(EEprom[3]<<8) ;
     BoardLine = EEprom[4] ;
-    BootAdd = EEprom[5]+EEProm[6]<<8 ;
+    BootAdd = EEprom[5]+(EEprom[6]<<8) ;
     BootLine = EEprom[7] ;
     BoardType = EEprom[8] ;
   } ;
@@ -98,7 +97,7 @@ int main(void)
   
   /* Message configuration */
   Init_TxMessage (&OutMessage) ;
-  OutMessage.ExtID = BuildCANId (0,0,BoardLine,BoardAdd,BootLine,BootAdd,0) ;
+  OutMessage.ExtId = BuildCANId (0,0,BoardLine,BoardAdd,BootLine,BootAdd,0) ;
 
   Counter = 0 ;
   
@@ -126,7 +125,9 @@ int main(void)
 	delay_ms(200) ;
 	if (Counter++>5) {
 	  // 1 sekunde gewartet, kein Update vorhanden, Applikation anspringen
-	  boot_jump_to_application () ;
+	  if (((*(__IO uint32_t*)APPLICATION_ADDRESS) & 0x2FFE0000 ) == 0x20000000) { 
+	    boot_jump_to_application () ;
+	  } ;
 	  Counter=0 ; // in case that no application available, carry on
 	  delay_ms(2000+BoardAdd*10); // Address specific delay to avoid bus cluttering at power on
 	} ;
@@ -182,9 +183,8 @@ int main(void)
     case SET_ADDRESS:
       
       page = (InMessage.Data[2] << 8) | InMessage.Data[3];      
-      FlashAddress = (uint32_t*)(page*2048+(InMessage.Data[4]<<8+InMessage.Data[5])) ;
+      FlashAddress = (uint32_t*)(page*2048+((InMessage.Data[4]<<8)+InMessage.Data[5])) ;
       if (InMessage.DLC == 6 && (FlashAddress<(uint32_t*)(APPLICATION_ADDRESS+RWW_PAGES*2048))) {
-	state = COLLECT_DATA;
 	// If address is set, programming will occur, so unlock and erase flash - this takes some time...
 	FLASH_Boot_Init () ;
 	FLASH_Boot_Erase () ;
@@ -201,11 +201,13 @@ int main(void)
       
     case DATA:
       if (InMessage.DLC != 6 || (FlashAddress<(uint32_t*)(APPLICATION_ADDRESS+RWW_PAGES*2048))) {
-	state = IDLE;
 	goto error_response;
       }
-      if (FLASH_Boot_Write(&FlashAddress,&(InMessage.Data[2]))) {
-	state = IDLE;
+      FlashDataPointer[0]=InMessage.Data[2] ;
+      FlashDataPointer[1]=InMessage.Data[3] ;
+      FlashDataPointer[2]=InMessage.Data[4] ;
+      FlashDataPointer[3]=InMessage.Data[5] ;
+      if (FLASH_Boot_Write(FlashAddress,&FlashData) ){
 	goto error_response;
       }
       // copy data
@@ -225,10 +227,12 @@ int main(void)
       OutMessage.DLC = 2 ;
       Mailbox = CAN_TransmitWait (CAN1,&OutMessage) ;
       // wait for the mcp2515 to send the message
-      while (CAN_TransmitStatus(CAN1,Mailbox)==CAN_TxStatusPending) ;
+      while (CAN_TransmitStatus(CAN1,Mailbox)==CAN_TxStatus_Pending) ;
       delay_ms(10);
       // start application
-      boot_jump_to_application();
+      if (((*(__IO uint32_t*)APPLICATION_ADDRESS) & 0x2FFE0000 ) == 0x20000000) { 
+	boot_jump_to_application();
+      } ;
       break;
       
       

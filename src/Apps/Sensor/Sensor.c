@@ -236,8 +236,9 @@ void SendPinMessage (uint8_t Pin, uint8_t Long,uint8_t SendData)
   Data = (uint8_t*)10 ;
   Data += Pin*40 ;
   if (Heartbeat>TIMEOUT) Data +=20 ;
+
   if (!Running[(int)Pin]) return ; // Dieser Pin ist ausgeschaltet worden
-  
+
   Command = eeprom_read_byte(Data+3) ;
   SendLine = eeprom_read_byte(Data+2) ;
 
@@ -266,7 +267,7 @@ void SendPinMessage (uint8_t Pin, uint8_t Long,uint8_t SendData)
     SendAdd = eeprom_read_byte(Data) ;
     SendAdd += ((uint16_t)eeprom_read_byte(Data+1))<<8 ;
     
-    if (!SendAdd) return ;
+    if (!(SendAdd||SendLine)) return ;
     
     Message.id = BuildCANId (0,0,BoardLine,BoardAdd,SendLine,SendAdd,0) ;
     Message.data[0] = Command ;
@@ -330,6 +331,7 @@ inline void UpdatePWM (void)
 // Haupt-Timer-Interrupt, wird alle 10 ms aufgerufen
 // Setzt den Heartbeat, die Timer, das Dimmen der WS2801 und sorgt fuer das Tastenentprellen
 // der an (a0:a3) und (b0:b3) angeschlossenen Tasten (wenn entsprechend konfiguriert)
+
 
 ISR( TIM0_OVF_vect,ISR_NOBLOCK )                           
 {
@@ -469,7 +471,7 @@ inline void PortOff(uint8_t Port)
 {
   if (PWMPin[Port]) PWMPort[Port][0]&=(uint8_t)~(PWMPin[Port]) ;
 }
-  
+
 inline void SwapPWM(void)
 {
   /*  for (i=0;i<6;i++){
@@ -673,7 +675,7 @@ int __attribute__((OS_main)) main(void)
   SetFilter(BoardLine,BoardAdd) ;
 
   for (r=0;r<6;r++) Running[r] = 1 ; // Alle Eingänge sind aktiv
-  
+
   // Ports, Timer, ADC initialisieren
   InitMC() ;
  
@@ -690,6 +692,7 @@ int __attribute__((OS_main)) main(void)
 
 
   while(1) {
+
     // Warte auf die nächste CAN-Message
     while ((LastCommand=mcp2515_get_message(&Message)) == (uint8_t)NO_MESSAGE) {
       /* Ports verarbeiten */

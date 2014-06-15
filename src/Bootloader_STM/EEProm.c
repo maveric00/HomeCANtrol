@@ -4,7 +4,7 @@
 
 #include "stdio.h"
 #include "string.h"
-#include "stm32f1xx.h"
+#include "stm32f10x.h"
 #include "EEProm.h"
 
 volatile uint8_t *EEprom ;
@@ -16,13 +16,13 @@ void EEPromInit ()
   EEprom = NULL ;
 
   for (There = (uint8_t*) 0x8003000;
-       ((There[0]!=0xba)||(There[1]!=0xca))&&(There<0x8004000);
+       ((There[0]!=0xba)||(There[1]!=0xca))&&((uint32_t)There<0x8004000);
        There=There+0x200) ;
 
-  if (There==0x8004000) return ; // no valid configuration, yet
+  if ((uint32_t)There==0x8004000) return ; // no valid configuration, yet
 
   for (There = There+0x200;
-       ((There[0]==0xba)&&(There[1]==0xca))&&(There<0x8004000);
+       ((There[0]==0xba)&&(There[1]==0xca))&&((uint32_t)There<0x8004000);
        There=There+0x200) ;
 
   EEprom = There-0x200 ; // Point to last configuration

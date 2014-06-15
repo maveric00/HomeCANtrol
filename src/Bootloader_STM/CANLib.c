@@ -3,6 +3,8 @@
 #include "stdio.h"
 #include "string.h"
 #include "stm32f10x.h"
+#define SERVER_INCLUDE 1
+#include "../Apps/Common/mcp2515.h"
 
 #include "CANLib.h"
 
@@ -30,8 +32,8 @@ void SetOutMessage (CanRxMsg * RxMessage, CanTxMsg * TxMessage,uint8_t BoardLine
   uint8_t SendLine ;
   uint16_t SendAdd ;
   
-  GetSourceAddress(RxMessage->ExtID,&SendLine,&SendAdd) ;
-  TxMessage->ExtID = BuildCANId (0,0,BoardLine,BoardAdd,SendLine,SendAdd,0) ;
+  GetSourceAddress(RxMessage->ExtId,&SendLine,&SendAdd) ;
+  TxMessage->ExtId = BuildCANId (0,0,BoardLine,BoardAdd,SendLine,SendAdd,0) ;
   TxMessage->Data[0] = RxMessage->Data[0]|SUCCESSFULL_RESPONSE ;
   TxMessage->IDE = CAN_Id_Extended ;
   TxMessage->DLC = 1 ;
@@ -73,7 +75,7 @@ void SetFilter(uint8_t BoardLine,uint16_t BoardAdd)
   InitStruct.CAN_FilterNumber = 0;
   InitStruct.CAN_FilterMode = CAN_FilterMode_IdMask;
   InitStruct.CAN_FilterScale = CAN_FilterScale_32bit;
-  Convert_ID(FilterID,InitStruct.CAN_FilterIdHigh,&InitStruct.CAN_FilterIdLow);
+  Convert_ID(FilterID,&InitStruct.CAN_FilterIdHigh,&InitStruct.CAN_FilterIdLow);
   Convert_ID(0x3FFC,&InitStruct.CAN_FilterMaskIdHigh,&InitStruct.CAN_FilterMaskIdLow) ;
   InitStruct.CAN_FilterFIFOAssignment = 0;
   InitStruct.CAN_FilterActivation = ENABLE;
@@ -85,7 +87,7 @@ void SetFilter(uint8_t BoardLine,uint16_t BoardAdd)
   InitStruct.CAN_FilterNumber = 1;
   InitStruct.CAN_FilterMode = CAN_FilterMode_IdMask;
   InitStruct.CAN_FilterScale = CAN_FilterScale_32bit;
-  Convert_ID(FilterID,InitStruct.CAN_FilterIdHigh,&InitStruct.CAN_FilterIdLow);
+  Convert_ID(FilterID,&InitStruct.CAN_FilterIdHigh,&InitStruct.CAN_FilterIdLow);
   Convert_ID(0x3FFC,&InitStruct.CAN_FilterMaskIdHigh,&InitStruct.CAN_FilterMaskIdLow) ;
   InitStruct.CAN_FilterFIFOAssignment = 1;
   InitStruct.CAN_FilterActivation = ENABLE;
@@ -96,26 +98,28 @@ void SetFilter(uint8_t BoardLine,uint16_t BoardAdd)
 void CAN_Config(void)
 {
   GPIO_InitTypeDef  GPIO_InitStructure;
+  CAN_InitTypeDef CAN_InitStructure ;
   
   /* GPIO clock enable */
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD, ENABLE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+  /* CANx Periph clock enable */
+
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN1, ENABLE);
 
   /* Configure CAN pin: RX */
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
-  GPIO_Init(GPIOD, &GPIO_InitStructure);
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
   
   /* Configure CAN pin: TX */
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_Init(GPIOD, &GPIO_InitStructure);
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
   
-  GPIO_PinRemapConfig(GPIO_Remap2_CAN1 , ENABLE);
+  GPIO_PinRemapConfig(GPIO_Remap1_CAN1 , ENABLE);
   
-  /* CANx Periph clock enable */
-  RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN1, ENABLE);
   
   /* CAN register init */
   CAN_DeInit(CAN1);
@@ -138,7 +142,7 @@ void CAN_Config(void)
   CAN_Init(CAN1, &CAN_InitStructure);
 }
 
-uint8_t CAN_TransmitWait(CAN_Typedef* CANx, CanTxMsg* TxMessage) 
+uint8_t CAN_TransmitWait(CAN_TypeDef* CANx, CanTxMsg* TxMessage) 
 {
   uint8_t Mailbox ;
   while ((Mailbox=CAN_Transmit(CANx,TxMessage))==CAN_TxStatus_NoMailBox) ;
@@ -155,5 +159,5 @@ tCommand CAN_get_message (CanRxMsg* RxMessage)
     CAN_Receive(CAN1,CAN_FIFO1,RxMessage) ;
     return (REQUEST) ;
   } ;
-  return (NO_MESSAGE)
+  return (NO_MESSAGE) ;
 }
