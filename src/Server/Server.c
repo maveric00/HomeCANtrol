@@ -837,11 +837,11 @@ int HandleCommand (char *Command,int Socket)
   if (strcmp(Com,"add")==0) {
     sscanf (Command,"add %d %d",&Line,&Add) ;
     if ((Line!=0)&&(Add!=0)) {
-      // Send out Bootstrap firmware
-      SendFirmware(0xF,0xFF) ;
       // Create Configuration for the Board; bootstrap firmware will ask for it
       MakeConfig (Line,Add,&EEprom) ;
       WriteConfig (&EEprom) ;
+      // Send out Bootstrap firmware
+      SendFirmware(0xF,0xFF) ;
       SendConfig(&EEprom,0xF,0xFF) ;
       // Line up application firmware delivery; board will be reset after configuration
       // which restarts bootloader requesting firmware.

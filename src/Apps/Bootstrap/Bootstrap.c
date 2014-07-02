@@ -119,16 +119,6 @@ int main(void)
 
   // Lesen der EEProm-Konfiguration
   
-  r = eeprom_read_byte((uint8_t*)0) ;
-  if (r==0xba) {
-    r = eeprom_read_byte((uint8_t*)1) ;
-    if (r==0xca) {
-      // Config has been written - restart Bootloader to enable upload of main application
-      wdt_enable(WDTO_250MS) ;
-      while(1) ;
-    } ;
-  } ;
-
   eeprom_write_byte((uint8_t*)0,0xba) ; // erstes byte schreiben
 
   // Initialisieren des CAN-Controllers

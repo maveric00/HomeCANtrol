@@ -1,6 +1,6 @@
 /* EEProm routines*/
 /* Layout: 512 Bytes of Data , valid data is marked with 0xbaca at beginn */
-/* Maximum of 8 pages (4 kB), pages are erased if a new page is begun*/
+/* Maximum of 8 Sets, 2 pages used (4 kB), pages are erased if a new page is begun*/
 
 #include "stdio.h"
 #include "string.h"
@@ -51,16 +51,21 @@ void EEPromFlush (void)
   uint8_t *Data ;
   uint8_t *Flash ;
 
-  if (EEPromDirty=0) return ; // Not modified
+  if (EEPromDirty==0) return ; // Not modified
+  
+  FLASH_Unlock() ; // unlock FLASH for programming
+  FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_WRPRTERR | FLASH_FLAG_PGERR );   // Clear pending flags (if any)
   
   if (EEPromFlash==0x8003D00) { // Last of Last Page
     Flash = (uint8_t*)0x8003000 ;
-    FLASH_Unlock() ;
     FLASH_Erase_Page(0x8003800) ;
   } else if (EEPromFlash==0x8003600) {
     Flash = (uint8_t*)0x8003800 ;
-    FLASH_Unlock() ;
     FLASH_Erase_Page(0x8003000) ;
+  } else if (EEPromFlash==NULL) {
+    Flash = (uint8_t*)0x8003000 ;
+    FLASH_Erase_Page(0x8003000) ;
+    FLASH_Erase_Page(0x8003800) ;
   } else {
     Flash = EEPromFlash+0x200 ;
   } ;
@@ -73,22 +78,25 @@ void EEPromFlush (void)
       if (*(uint32_t*)*Flash != *(uint32_t*)(Data)) {
 	/* Flash content doesn't match SRAM content */
 	/* Delete EEProm Area to enable Bootstrapping */
-	FLASH_Unlock() ;
 	FLASH_Erase_Page(0x8003000) ;
 	FLASH_Erase_Page(0x8003800) ;
+	FLASH_Lock() ;
 	return;
       }
       /* Increment FLASH destination address */
-      *FlashAddress += 4;
+      *Flash += 4;
+      *Data += 4;
     } else {
       /* Error occurred while writing data in Flash memory */
       /* Delete EEProm Area to enable Bootstrapping */
-      FLASH_Unlock() ;
       FLASH_Erase_Page(0x8003000) ;
       FLASH_Erase_Page(0x8003800) ;
+      FLASH_Lock() ;
       return (1);
     }
   }
+  // Lock Flash again
+  FLASH_Lock() ;
 }
   
 
