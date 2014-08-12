@@ -39,6 +39,26 @@
       </Makro>
     </Zimmer>
     <Zimmer name="Sport">
+      <Sensor name="FlurTuer1" typ="Einfach">
+	<Adresse linie="5" knoten="53" port="1"/>
+	<Aktion autonom="0" kommando="Toggle" objekt="Keller/Sport/Deckenlicht"/>
+	<Aktion autonom="1" kommando="Toggle" objekt="Keller/Sport/Deckenlicht"/> 
+      </Sensor>
+      <Sensor name="FlurTuer2" typ="Einfach">
+	<Adresse linie="5" knoten="53" port="2"/>
+	<Aktion autonom="0" kommando="Toggle" objekt="Keller/Sport/Deckenlicht"/>
+	<Aktion autonom="1" kommando="Toggle" objekt="Keller/Sport/Deckenlicht"/> 
+      </Sensor>
+      <Sensor name="FlurTuer3" typ="Einfach">
+	<Adresse linie="5" knoten="53" port="3"/>
+	<Aktion autonom="0" kommando="Toggle" objekt="Keller/Sport/Deckenlicht"/>
+	<Aktion autonom="1" kommando="Toggle" objekt="Keller/Sport/Deckenlicht"/> 
+      </Sensor>
+      <Sensor name="FlurTuer4" typ="Einfach">
+	<Adresse linie="5" knoten="53" port="4"/>
+	<Aktion autonom="0" kommando="Toggle" objekt="Keller/Sport/Deckenlicht"/>
+	<Aktion autonom="1" kommando="Toggle" objekt="Keller/Sport/Deckenlicht"/> 
+      </Sensor>
       <Schalter name="Deckenlicht">
 	<Adresse linie="5" knoten="100" port="4"/>
       </Schalter>
@@ -435,6 +455,30 @@
       </Makro>
     </Zimmer>
     <Zimmer name="Flur">
+      <Sensor name="Deckenlicht1" typ="PWM" dauer="10">
+	<Adresse linie="1" knoten="57" port="1"/>
+      </Sensor>
+      <Sensor name="Deckenlicht2" typ="PWM" dauer="10">
+	<Adresse linie="1" knoten="57" port="2"/>
+      </Sensor>
+      <Sensor name="Deckenlicht3" typ="PWM" dauer="10">
+	<Adresse linie="1" knoten="57" port="3"/>
+      </Sensor>
+      <Sensor name="Klingel" typ="Einfach">
+	<Adresse linie="1" knoten="57" port="4"/>
+	<Aktion autonom="0" kommando="Rufe" objekt="Erdgeschoss/Flur/KlingelProg"/>
+	<Aktion autonom="1" kommando="Rufe" objekt="Erdgeschoss/Flur/KlingelProg"/>
+      </Sensor>
+      <Sensor name="Klingel2" typ="Einfach">
+	<Adresse linie="1" knoten="57" port="5"/>
+	<Aktion autonom="0" kommando="Rufe" objekt="Erdgeschoss/Flur/KlingelProg2"/>
+	<Aktion autonom="1" kommando="Rufe" objekt="Erdgeschoss/Flur/KlingelProg2"/>
+      </Sensor>
+      <Sensor name="Klingel3" typ="Einfach">
+	<Adresse linie="1" knoten="57" port="6"/>
+	<Aktion autonom="0" kommando="Rufe" objekt="Erdgeschoss/Flur/KlingelProg3"/>
+	<Aktion autonom="1" kommando="Rufe" objekt="Erdgeschoss/Flur/KlingelProg3"/>
+      </Sensor>
       <Schalter name="Deckenlicht">
 	<Adresse linie="1" knoten="102" port="2"/>
       </Schalter>
@@ -448,23 +492,23 @@
       <Sensor name="BWM2" typ="BWM" intervall="60">
         <Adresse linie="1" knoten="54" port="1"/>
         <Aktion kurz="1" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Flur/BX1An"/>
-        <Aktion kurz="1" autonom="1" kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+        <Aktion kurz="1" autonom="1" kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht1:8"/>
         <Aktion kurz="0" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Flur/BX1Aus"/>
-        <Aktion kurz="0" autonom="1" kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+        <Aktion kurz="0" autonom="1" kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht1:8"/>
       </Sensor>
       <Sensor name="BWM3" typ="BWM" intervall="60">
         <Adresse linie="1" knoten="54" port="3"/>
         <Aktion kurz="1" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Flur/BX2An"/>
-        <Aktion kurz="1" autonom="1" kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+        <Aktion kurz="1" autonom="1" kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht1:8"/>
         <Aktion kurz="0" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Flur/BX2Aus"/>
-        <Aktion kurz="0" autonom="1" kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+        <Aktion kurz="0" autonom="1" kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht1:8"/>
       </Sensor>
       <Sensor name="BWM4" typ="BWM" intervall="60">
         <Adresse linie="1" knoten="54" port="4"/>
         <Aktion kurz="1" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Flur/BX3An"/>
-        <Aktion kurz="1" autonom="1" kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+        <Aktion kurz="1" autonom="1" kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht1:8"/>
         <Aktion kurz="0" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Flur/BX3Aus"/>
-        <Aktion kurz="0" autonom="1" kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+        <Aktion kurz="0" autonom="1" kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht1:8"/>
       </Sensor>
       <Sensor name="Decke1" typ="WSData">
 	<Adresse linie="1" knoten="54" port="6"/>
@@ -479,51 +523,78 @@
       <Variable name="HueAus" wert="27"/>
       <Variable name="SatAn" wert="175"/>
       <Variable name="SatAus" wert="237"/>
+      <Makro name="KlingelProg">
+	<Adresse linie="0" knoten="204" port="1"/>
+      </Makro>
+      <Makro name="KlingelProg2">
+	<Adresse linie="0" knoten="205" port="1"/>
+      </Makro>
+      <Makro name="KlingelProg3">
+	<Adresse linie="0" knoten="206" port="1"/>
+      </Makro>
+      <Makro name="DeckeAnHell">
+	<Adresse linie="0" knoten="204" port="2"/>
+	<Aktion kommando="DIMRGB" W="180" dauer="10" objekt="Erdgeschoss/Flur/Deckenlicht1"/>
+	<Aktion kommando="DIMRGB" W="255" dauer="10" objekt="Erdgeschoss/Flur/Deckenlicht2"/>
+	<Aktion kommando="DIMRGB" W="255" dauer="10" objekt="Erdgeschoss/Flur/Deckenlicht3"/>
+      </Makro>
+      <Makro name="DeckeAus">
+	<Adresse linie="0" knoten="204" port="3"/>
+	<Aktion kommando="DIMRGB" W="0" dauer="10" objekt="Erdgeschoss/Flur/Deckenlicht1"/>
+	<Aktion kommando="DIMRGB" W="0" dauer="10" objekt="Erdgeschoss/Flur/Deckenlicht2"/>
+	<Aktion kommando="DIMRGB" W="0" dauer="10" objekt="Erdgeschoss/Flur/Deckenlicht3"/>
+      </Makro>
+      <Makro name="DeckeAnDunkel">
+	<Adresse linie="0" knoten="204" port="4"/>
+	<Aktion kommando="DIMRGB" W="80" dauer="10" objekt="Erdgeschoss/Flur/Deckenlicht1"/>
+	<Aktion kommando="DIMRGB" W="200" dauer="10" objekt="Erdgeschoss/Flur/Deckenlicht2"/>
+	<Aktion kommando="DIMRGB" W="200" dauer="10" objekt="Erdgeschoss/Flur/Deckenlicht3"/>
+      </Makro>
       <Makro name="BX1An">
 	<Adresse linie="0" knoten="200" port="47"/>
 	<Setze objekt="Erdgeschoss/Flur/BW1" wert="1"/>
         <Wenn wert="nicht(Tag)">
-        	<Aktion kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+	  <Sub makro="Erdgeschoss/Flur/DeckeAnHell"/>
         </Wenn>
       </Makro>
       <Makro name="BX2An">
 	<Adresse linie="0" knoten="200" port="48"/>
 	<Setze objekt="Erdgeschoss/Flur/BW2" wert="1"/>
         <Wenn wert="nicht(Tag)">
-        	<Aktion kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+	  <Sub makro="Erdgeschoss/Flur/DeckeAnHell"/>
         </Wenn>
       </Makro>
       <Makro name="BX3An">
 	<Adresse linie="0" knoten="200" port="49"/>
 	<Setze objekt="Erdgeschoss/Flur/BW3" wert="1"/>
         <Wenn wert="nicht(Tag)">
-        	<Aktion kommando="An" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+	  <Sub makro="Erdgeschoss/Flur/DeckeAnHell"/>
         </Wenn>
       </Makro>
       <Makro name="BX1Aus">
 	<Adresse linie="0" knoten="200" port="50"/>
 	<Setze objekt="Erdgeschoss/Flur/BW1" wert="0"/>
 	<Wenn wert="(Erdgeschoss/Flur/BW1=0)&amp;(Erdgeschoss/Flur/BW2=0)&amp;(Erdgeschoss/Flur/BW3=0)">
-	  <Aktion kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+	  <Sub makro="Erdgeschoss/Flur/DeckeAus"/>
 	</Wenn>
       </Makro>
       <Makro name="BX2Aus">
 	<Adresse linie="0" knoten="200" port="51"/>
 	<Setze objekt="Erdgeschoss/Flur/BW2" wert="0"/>
 	<Wenn wert="(Erdgeschoss/Flur/BW1=0)&amp;(Erdgeschoss/Flur/BW2=0)&amp;(Erdgeschoss/Flur/BW3=0)">
-	  <Aktion kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+	  <Sub makro="Erdgeschoss/Flur/DeckeAus"/>
 	</Wenn>
       </Makro>
       <Makro name="BX3Aus">
 	<Adresse linie="0" knoten="200" port="52"/>
 	<Setze objekt="Erdgeschoss/Flur/BW3" wert="0"/>
 	<Wenn wert="(Erdgeschoss/Flur/BW1=0)&amp;(Erdgeschoss/Flur/BW2=0)&amp;(Erdgeschoss/Flur/BW3=0)">
-	  <Aktion kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+	  <Sub makro="Erdgeschoss/Flur/DeckeAus"/>
 	</Wenn>
       </Makro>
       <Makro name="Aus">
 	<Adresse linie="0" knoten="200" port="15"/>
-	<Aktion kommando="Aus" objekt="Erdgeschoss/Flur/Deckenlicht"/>
+	<Sub makro="Erdgeschoss/Flur/DeckeAus"/>
       </Makro>
     </Zimmer>
     <Zimmer name="Bad">
