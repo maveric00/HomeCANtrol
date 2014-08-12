@@ -112,6 +112,7 @@ struct TypSel Types[] = {
   {"PWM",S_PWM},
   {"WSData",S_WSDATA},
   {"WSClock",S_WSCLOCK},
+  {"STM32",S_EXTENDED},
   {"An",A_ON},
   {"On",A_ON},
   {"Aus",A_OFF},

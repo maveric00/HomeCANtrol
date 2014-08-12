@@ -4,6 +4,6 @@ void SetOutMessage (CanRxMsg * RxMessage, CanTxMsg * TxMessage,uint8_t BoardLine
 void Init_TxMessage(CanTxMsg *TxMessage) ;
 void SetFilter(uint8_t BoardLine,uint16_t BoardAdd) ;
 void CAN_Config(void) ;
-uint8_t CAN_TransmitWait(CAN_TypeDef* CANx, CanTxMsg* TxMessage)  ;
+uint8_t CAN_TransmitWait(CanTxMsg* TxMessage)  ;
 tCommand CAN_get_message (CanRxMsg* RxMessage) ;
 

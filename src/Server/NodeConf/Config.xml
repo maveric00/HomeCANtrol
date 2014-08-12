@@ -308,6 +308,9 @@
 	<Aktion autonom="0" kommando="Hoch" objekt="Erdgeschoss/Esszimmer/Fenster"/>
 	<Aktion autonom="1" kommando="Hoch" objekt="Erdgeschoss/Esszimmer/Fenster"/>
       </Sensor>
+      <Sensor name="Lichtband" typ="STM32">
+         <Adresse linie="1" knoten="57" port="1"/>
+      </Sensor>
       <Makro name="Aus">
 	<Adresse linie="0" knoten="200" port="10"/>
 	<Aktion kommando="Aus" objekt="Erdgeschoss/Esszimmer/SteckdoseEcke"/>
@@ -1204,6 +1207,8 @@
   <Firmware name="NodeConf/Licht.hex" id="0"/>
   <Firmware name="NodeConf/Sensor.hex" id="32"/>
   <Firmware name="NodeConf/I2CSensor.hex" id="33"/>
+  <Firmware name="NodeConf/Sensor_STM.hex" id="34"/>
+  <Firmware name="NodeConf/Bootstrap_STM.hex" id="254"/>
   <Firmware name="NodeConf/Bootstrap.hex" id="255"/>
   <Seq name="TestS" datei="NodeConf/Test.seq"/>
   <Seq name="TreppeH" datei="NodeConf/TreppeHoch.seq"/>

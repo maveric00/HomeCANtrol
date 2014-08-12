@@ -404,18 +404,26 @@ int MakeConfig (int Linie, int Knoten, struct EEPROM *EEprom)
     case N_SENSOR:
       if (EEprom->BoardType==0xFF) {
 	if (ANodes[i]->Data.Sensor.SensorTyp!=S_LIGHT) {
-	  EEprom->BoardType = 32 ;
+	  if (ANodes[i]->Data.Sensor.SensorTyp!=S_EXTENDED) {
+	    EEprom->BoardType = 32 ;
+	  } else {
+	    EEprom->BoardType = 34 ;
+	  } ;
 	} else {
 	  EEprom->BoardType = 33 ;
 	} ;
       } else {
-	if ((EEprom->BoardType!=32)&&(EEprom->BoardType!=33)) {
+	if ((EEprom->BoardType!=32)&&(EEprom->BoardType!=33)&&(EEprom->BoardType!=34)) {
 	  fprintf (stderr,"Inconsistent board L:%d, K:%d definition for sensor %s\n",Linie,Knoten,ANodes[i]->Name) ;
 	  return (0) ;
 	};
       } ;
       if (ANodes[i]->Data.Sensor.SensorTyp==S_LIGHT) {
 	EEprom->BoardType = 33 ;
+      } ;
+      if (ANodes[i]->Data.Sensor.SensorTyp==S_EXTENDED) {
+	EEprom->BoardType = 34 ;
+	break ; // Extended Sensor only marks type of board
       } ;
       
       MakeSensorConfig(ANodes[i],EEprom,0) ;

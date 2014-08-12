@@ -5,7 +5,7 @@
 
 typedef  void (*pFunction)(void);
 
-#define APPLICATION_ADDRESS   0x8003000
+#define APPLICATION_ADDRESS   0x8004000
 #define PAGE_SIZE                         (0x800)    /* 2 Kbytes */
 #define FLASH_SIZE                        (0x40000)  /* 256 KBytes */
 

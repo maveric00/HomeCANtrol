@@ -8,8 +8,8 @@
 #include "flash.h"
 #include "CANLib.h"
 #include "EEProm.h"
-#define PAGESIZE_IDENTIFIER 0x77
-#define RWW_PAGES 0x77
+#define PAGESIZE_IDENTIFIER 0x06
+#define RWW_PAGES 0x78
 
 CAN_InitTypeDef        CAN_InitStructure;
 
@@ -76,7 +76,7 @@ int main(void)
   BoardLine = 0xf ; // spezifiziert ist
   BootAdd = 1 ;
   BootLine = 0 ;
-  BoardType = 0xff ;
+  BoardType = 0xfe ; // Raw STM32F103 board
   FlashDataPointer = (uint8_t*)&FlashData ;
 
   EEPromInit () ;
@@ -121,7 +121,7 @@ int main(void)
 	OutMessage.Data[4] = 0;
 	OutMessage.Data[5] = RWW_PAGES;
 	OutMessage.DLC = 6 ;
-	CAN_TransmitWait (CAN1,&OutMessage) ;
+	CAN_TransmitWait (&OutMessage) ;
 	delay_ms(200) ;
 	if (Counter++>5) {
 	  // 1 sekunde gewartet, kein Update vorhanden, Applikation anspringen
@@ -156,7 +156,7 @@ int main(void)
       OutMessage.Data[0] = WRONG_NUMBER_REPSONSE ;
       OutMessage.Data[1] = next_message_number+1 ;
       OutMessage.DLC = 2 ;
-      CAN_TransmitWait (CAN1,&OutMessage) ;
+      CAN_TransmitWait (&OutMessage) ;
       continue;
     }
     
@@ -174,7 +174,7 @@ int main(void)
       OutMessage.Data[4] = 0;
       OutMessage.Data[5] = RWW_PAGES;
       OutMessage.DLC = 6 ;
-      CAN_TransmitWait (CAN1,&OutMessage) ;
+      CAN_TransmitWait (&OutMessage) ;
       break;
       
       // --------------------------------------------------------------------
@@ -190,7 +190,7 @@ int main(void)
 	FLASH_Boot_Erase () ;
 	OutMessage.Data[0] = SET_ADDRESS|SUCCESSFULL_RESPONSE ;
 	OutMessage.DLC = 2 ;
-	CAN_TransmitWait (CAN1,&OutMessage) ;
+	CAN_TransmitWait (&OutMessage) ;
       } else {
 	goto error_response;
       }
@@ -216,7 +216,7 @@ int main(void)
       OutMessage.Data[2] = 0;
       OutMessage.Data[3] = 0 ;
       OutMessage.DLC = 5 ;
-      CAN_TransmitWait (CAN1,&OutMessage) ;
+      CAN_TransmitWait (&OutMessage) ;
       break;
       
       // --------------------------------------------------------------------
@@ -225,7 +225,7 @@ int main(void)
     case START_APP:
       OutMessage.Data[0] =  START_APP | SUCCESSFULL_RESPONSE ;
       OutMessage.DLC = 2 ;
-      Mailbox = CAN_TransmitWait (CAN1,&OutMessage) ;
+      Mailbox = CAN_TransmitWait (&OutMessage) ;
       // wait for the mcp2515 to send the message
       while (CAN_TransmitStatus(CAN1,Mailbox)==CAN_TxStatus_Pending) ;
       delay_ms(10);
@@ -240,7 +240,7 @@ int main(void)
     default:
       OutMessage.Data[0] = command|ERROR_RESPONSE ;
       OutMessage.DLC = 2 ;
-      CAN_TransmitWait (CAN1,&OutMessage) ;
+      CAN_TransmitWait (&OutMessage) ;
       break;
     } ;
   }

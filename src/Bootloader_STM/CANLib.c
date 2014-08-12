@@ -142,10 +142,10 @@ void CAN_Config(void)
   CAN_Init(CAN1, &CAN_InitStructure);
 }
 
-uint8_t CAN_TransmitWait(CAN_TypeDef* CANx, CanTxMsg* TxMessage) 
+uint8_t CAN_TransmitWait(CanTxMsg* TxMessage) 
 {
   uint8_t Mailbox ;
-  while ((Mailbox=CAN_Transmit(CANx,TxMessage))==CAN_TxStatus_NoMailBox) ;
+  while ((Mailbox=CAN_Transmit(CAN1,TxMessage))==CAN_TxStatus_NoMailBox) ;
   return (Mailbox) ;
 } 
 

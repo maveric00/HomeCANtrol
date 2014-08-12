@@ -124,7 +124,7 @@ void main(void)
   BoardLine = 0xf ; // spezifiziert ist
   BootAdd = 1 ;
   BootLine = 0 ;
-  BoardType = 0xff ;
+  BoardType = 0xff ; // raw atmel board
   
   Temp = eeprom_read_byte((uint8_t*)0) ;
   if (Temp==0xba) {
