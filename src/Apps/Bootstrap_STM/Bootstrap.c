@@ -9,8 +9,7 @@
  
 #include <stdint.h>
 #include <string.h>
-#include "stm32f1xx.h"
-#include "main.h"
+#include "stm32f10x.h"
 #include "CANLib.h"
 #include "EEProm.h"
 
@@ -32,7 +31,7 @@
  
 int main(void) 
 {
-  CanTxMes Message ;
+  CanTxMsg Message ;
   CanRxMsg InMessage ;
   uint8_t BoardLine ;
   uint16_t BoardAdd ;
@@ -63,7 +62,7 @@ int main(void)
 
   // Endlosschleife zur Abarbeitung der Kommandos
   
-  Message.ExtID = BuildCANId (0,0,BoardLine,BoardAdd,0,1,0) ;
+  Message.ExtId = BuildCANId (0,0,BoardLine,BoardAdd,0,1,0) ;
   Message.Data[0] = SET_VAR|SUCCESSFULL_RESPONSE ;
   Message.Data[1] = 0 ;
   Message.Data[2] = 0 ;
@@ -80,7 +79,7 @@ int main(void)
 
     // Sende-Addresse zusammenstoepseln (enthält auch die Quelladdresse aus Message,
     // ueberschreibt dann die In-Message)
-    SetOutMessage(InMessage,Message,BoardLine,BoardAdd) ;
+    SetOutMessage(&InMessage,&Message,BoardLine,BoardAdd) ;
 
     // Befehl abarbeiten
     switch (r) {

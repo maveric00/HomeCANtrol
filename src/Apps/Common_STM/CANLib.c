@@ -159,7 +159,7 @@ tCommand CAN_get_message (CanRxMsg* RxMessage)
     CAN_Receive(CAN1,CAN_FIFO1,RxMessage) ;
     return (REQUEST) ;
   } ;
-  return (NO_MESSAGE)
+  return (NO_MESSAGE) ;
 }
 
 

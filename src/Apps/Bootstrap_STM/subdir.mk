@@ -4,10 +4,9 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-main.c \
+Bootstrap.c \
 ../Common_STM/CANLib.c \
 ../Common_STM/EEProm.c \
-../Common_STM/flash.c \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_can.c \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/CMSIS/CM3/CoreSupport/core_cm3.c \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_exti.c \
@@ -21,10 +20,9 @@ S_UPPER_SRCS += \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/CMSIS/CM3/DeviceSupport/ST/STM32F10x/startup/gcc_ride7/startup_stm32f10x_hd.s 
 
 OBJS += \
-./main.o \
+./Bootstrap.o \
 ../Common_STM/CANLib.o \
 ../Common_STM/EEProm.o \
-../Common_STM/flash.o \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_can.o \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/CMSIS/CM3/CoreSupport/core_cm3.o \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_exti.o \
@@ -36,10 +34,9 @@ OBJS += \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/CMSIS/CM3/DeviceSupport/ST/STM32F10x/system_stm32f10x.o 
 
 C_DEPS += \
-./main.d \
+./Bootstrap.d \
 ../Common_STM/CANLib.d \
 ../Common_STM/EEProm.d \
-../Common_STM/flash.d \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_can.d \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/CMSIS/CM3/CoreSupport/core_cm3.d \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_exti.d \

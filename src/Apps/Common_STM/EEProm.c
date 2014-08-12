@@ -4,7 +4,7 @@
 
 #include "stdio.h"
 #include "string.h"
-#include "stm32f1xx.h"
+#include "stm32f10x.h"
 #include "EEProm.h"
 
 volatile uint8_t *EEProm ;
@@ -19,13 +19,13 @@ void EEPromInit ()
   EEPromFlash = EEProm = NULL ;
 
   for (There = (uint8_t*) 0x8003000;
-       ((There[0]!=0xba)||(There[1]!=0xca))&&(There<0x8004000);
+       ((There[0]!=0xba)||(There[1]!=0xca))&&(There<(uint8_t*)0x8004000);
        There=There+0x200) ;
 
-  if (There==0x8004000) return ; // no valid configuration, yet
+  if (There==(uint8_t*)0x8004000) return ; // no valid configuration, yet
 
   for (There = There+0x200;
-       ((There[0]==0xba)&&(There[1]==0xca))&&(There<0x8004000);
+       ((There[0]==0xba)&&(There[1]==0xca))&&(There<(uint8_t*)0x8004000);
        There=There+0x200) ;
 
   EEPromFlash = EEProm = There-0x200 ; // Point to last configuration
@@ -56,16 +56,16 @@ void EEPromFlush (void)
   FLASH_Unlock() ; // unlock FLASH for programming
   FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_WRPRTERR | FLASH_FLAG_PGERR );   // Clear pending flags (if any)
   
-  if (EEPromFlash==0x8003D00) { // Last of Last Page
+  if (EEPromFlash==(uint8_t*)0x8003D00) { // Last of Last Page
     Flash = (uint8_t*)0x8003000 ;
-    FLASH_Erase_Page(0x8003800) ;
-  } else if (EEPromFlash==0x8003600) {
+    FLASH_ErasePage((uint8_t*)0x8003800) ;
+  } else if (EEPromFlash==(uint8_t*)0x8003600) {
     Flash = (uint8_t*)0x8003800 ;
-    FLASH_Erase_Page(0x8003000) ;
+    FLASH_ErasePage((uint8_t*)0x8003000) ;
   } else if (EEPromFlash==NULL) {
     Flash = (uint8_t*)0x8003000 ;
-    FLASH_Erase_Page(0x8003000) ;
-    FLASH_Erase_Page(0x8003800) ;
+    FLASH_ErasePage((uint8_t*)0x8003000) ;
+    FLASH_ErasePage((uint8_t*)0x8003800) ;
   } else {
     Flash = EEPromFlash+0x200 ;
   } ;
@@ -78,8 +78,8 @@ void EEPromFlush (void)
       if (*(uint32_t*)*Flash != *(uint32_t*)(Data)) {
 	/* Flash content doesn't match SRAM content */
 	/* Delete EEProm Area to enable Bootstrapping */
-	FLASH_Erase_Page(0x8003000) ;
-	FLASH_Erase_Page(0x8003800) ;
+	FLASH_ErasePage(0x8003000) ;
+	FLASH_ErasePage(0x8003800) ;
 	FLASH_Lock() ;
 	return;
       }
@@ -89,8 +89,8 @@ void EEPromFlush (void)
     } else {
       /* Error occurred while writing data in Flash memory */
       /* Delete EEProm Area to enable Bootstrapping */
-      FLASH_Erase_Page(0x8003000) ;
-      FLASH_Erase_Page(0x8003800) ;
+      FLASH_ErasePage(0x8003000) ;
+      FLASH_ErasePage(0x8003800) ;
       FLASH_Lock() ;
       return (1);
     }
