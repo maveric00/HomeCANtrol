@@ -71,6 +71,7 @@ typedef enum {
   S_BWM2 = 111,
   S_LIGHT = 112,
   S_PWM = 113,
+  S_EXTENDED = 114,
   A_ON = 200,
   A_OFF = 201,
   A_TOGGLE = 202,

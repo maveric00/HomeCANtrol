@@ -4,7 +4,7 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-Bootstrap_STM.c \
+Bootstrap.c \
 ../Common_STM/CANLib.c \
 ../Common_STM/EEProm.c \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_can.c \
@@ -20,7 +20,7 @@ S_UPPER_SRCS += \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/CMSIS/CM3/DeviceSupport/ST/STM32F10x/startup/gcc_ride7/startup_stm32f10x_hd.s 
 
 OBJS += \
-./Bootstrap_STM.o \
+./Bootstrap.o \
 ../Common_STM/CANLib.o \
 ../Common_STM/EEProm.o \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_can.o \
@@ -34,7 +34,7 @@ OBJS += \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/CMSIS/CM3/DeviceSupport/ST/STM32F10x/system_stm32f10x.o 
 
 C_DEPS += \
-./Bootstrap_STM.d \
+./Bootstrap.d \
 ../Common_STM/CANLib.d \
 ../Common_STM/EEProm.d \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_can.d \
