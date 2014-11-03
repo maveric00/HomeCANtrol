@@ -7,7 +7,7 @@
 #include "stm32f10x.h"
 #include "EEProm.h"
 
-volatile uint8_t *EEProm ;
+uint8_t *EEProm ;
 uint8_t *EEPromFlash ;
 uint8_t EEPromDirty=0 ;
 uint8_t EEPromBuffer[512] ;
@@ -58,14 +58,14 @@ void EEPromFlush (void)
   
   if (EEPromFlash==(uint8_t*)0x8003D00) { // Last of Last Page
     Flash = (uint8_t*)0x8003000 ;
-    FLASH_ErasePage((uint8_t*)0x8003800) ;
+    FLASH_ErasePage(0x8003800) ;
   } else if (EEPromFlash==(uint8_t*)0x8003600) {
     Flash = (uint8_t*)0x8003800 ;
-    FLASH_ErasePage((uint8_t*)0x8003000) ;
+    FLASH_ErasePage(0x8003000) ;
   } else if (EEPromFlash==NULL) {
     Flash = (uint8_t*)0x8003000 ;
-    FLASH_ErasePage((uint8_t*)0x8003000) ;
-    FLASH_ErasePage((uint8_t*)0x8003800) ;
+    FLASH_ErasePage(0x8003000) ;
+    FLASH_ErasePage(0x8003800) ;
   } else {
     Flash = EEPromFlash+0x200 ;
   } ;
@@ -73,9 +73,9 @@ void EEPromFlush (void)
   Data = EEProm ;
 
   for (i=0;i<128;i++) {
-    if (FLASH_ProgramWord(*Flash, *(uint32_t*)(Data)) == FLASH_COMPLETE) {
+    if (FLASH_ProgramWord((uint32_t)Flash, *(uint32_t*)(Data)) == FLASH_COMPLETE) {
       /* Check the written value */
-      if (*(uint32_t*)*Flash != *(uint32_t*)(Data)) {
+      if (*(uint32_t*)Flash != *(uint32_t*)(Data)) {
 	/* Flash content doesn't match SRAM content */
 	/* Delete EEProm Area to enable Bootstrapping */
 	FLASH_ErasePage(0x8003000) ;
@@ -84,15 +84,15 @@ void EEPromFlush (void)
 	return;
       }
       /* Increment FLASH destination address */
-      *Flash += 4;
-      *Data += 4;
+      Flash += 4;
+      Data += 4;
     } else {
       /* Error occurred while writing data in Flash memory */
       /* Delete EEProm Area to enable Bootstrapping */
       FLASH_ErasePage(0x8003000) ;
       FLASH_ErasePage(0x8003800) ;
       FLASH_Lock() ;
-      return (1);
+      return ;
     }
   }
   // Lock Flash again

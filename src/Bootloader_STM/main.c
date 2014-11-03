@@ -68,7 +68,7 @@ int main(void)
   uint8_t BoardType ;
   uint8_t Counter ;
   uint8_t Mailbox ;
-  uint32_t* FlashAddress ;
+  uint32_t FlashAddress ;
   uint32_t FlashData ;
   uint8_t* FlashDataPointer ;
   
@@ -148,17 +148,21 @@ int main(void)
     command &= COMMAND_MASK;
     
     // check message number
-    next_message_number++;
-    if (message_number != next_message_number) {
-      // wrong message number => send NACK
-      message_number = next_message_number;
-      next_message_number--;
-      OutMessage.Data[0] = WRONG_NUMBER_REPSONSE ;
-      OutMessage.Data[1] = next_message_number+1 ;
-      OutMessage.DLC = 2 ;
-      CAN_TransmitWait (&OutMessage) ;
-      continue;
-    }
+    if (command==IDENTIFY) {
+      next_message_number=0 ;
+    } else {
+      next_message_number++;
+      if (message_number != next_message_number) {
+	// wrong message number => send NACK
+	message_number = next_message_number;
+	next_message_number--;
+	OutMessage.Data[0] = WRONG_NUMBER_REPSONSE ;
+	OutMessage.Data[1] = next_message_number+1 ;
+	OutMessage.DLC = 2 ;
+	CAN_TransmitWait (&OutMessage) ;
+	continue;
+      }
+    } ;
     
     OutMessage.Data[1] = next_message_number+1 ;
     
@@ -183,8 +187,9 @@ int main(void)
     case SET_ADDRESS:
       
       page = (InMessage.Data[2] << 8) | InMessage.Data[3];      
-      FlashAddress = (uint32_t*)(page*2048+((InMessage.Data[4]<<8)+InMessage.Data[5])) ;
-      if (InMessage.DLC == 6 && (FlashAddress<(uint32_t*)(APPLICATION_ADDRESS+RWW_PAGES*2048))) {
+      FlashAddress = (page*2048+((InMessage.Data[4]<<8)+InMessage.Data[5])) ;
+      if (FlashAddress<0x08000000) FlashAddress+=0x08004000 ;
+      if (InMessage.DLC == 6 && (FlashAddress<(APPLICATION_ADDRESS+RWW_PAGES*2048))) {
 	// If address is set, programming will occur, so unlock and erase flash - this takes some time...
 	FLASH_Boot_Init () ;
 	FLASH_Boot_Erase () ;
@@ -200,14 +205,14 @@ int main(void)
       // collect data
       
     case DATA:
-      if (InMessage.DLC != 6 || (FlashAddress<(uint32_t*)(APPLICATION_ADDRESS+RWW_PAGES*2048))) {
+      if (InMessage.DLC != 6 || (FlashAddress>(APPLICATION_ADDRESS+RWW_PAGES*2048))) {
 	goto error_response;
       }
       FlashDataPointer[0]=InMessage.Data[2] ;
       FlashDataPointer[1]=InMessage.Data[3] ;
       FlashDataPointer[2]=InMessage.Data[4] ;
       FlashDataPointer[3]=InMessage.Data[5] ;
-      if (FLASH_Boot_Write(FlashAddress,&FlashData) ){
+      if (FLASH_Boot_Write(&FlashAddress,&FlashData) ){
 	goto error_response;
       }
       // copy data

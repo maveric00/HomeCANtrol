@@ -150,6 +150,9 @@ int LoadIHexFile (char *FileName, u_char** FileBuffer)
     //affect only low 16 bits of address
     laddr &= 0xFFFF0000;
     laddr |= addr;
+    // laddr anpassen, wenn STM32, sonst wird an die falsche stelle geladen (-0x8004000)
+
+    if (laddr>=0x8004000) laddr-=0x8004000 ;
     
     //Record Type
     if ( ScanHex(&s, 2, &rectype) != OK ) {
@@ -202,6 +205,7 @@ int LoadIHexFile (char *FileName, u_char** FileBuffer)
 	checksum += (u_char)addr;
 	
 	laddr = (long)addr << 4;
+	if (laddr>=0x8004000) laddr-=0x8004000 ;
       }
     } else if (rectype == LIN_ADDR_RECORD) {
       if (bcount != 2) {
@@ -218,6 +222,7 @@ int LoadIHexFile (char *FileName, u_char** FileBuffer)
 	checksum += (u_char)addr;
 	
 	laddr = (long)addr << 16;
+	if (laddr>=0x8004000) laddr-=0x8004000 ;
       }
     } else {	// Unknown record type: discard data bytes (but check for validity)
       char ok = TRUE;

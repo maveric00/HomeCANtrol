@@ -1029,6 +1029,48 @@ int IsFunction (char *Token)
   return TRUE ;
 }
 
+int CalcVar (char *Name)
+{
+  struct Node *Var ;
+  struct tm *tim ;
+  time_t CurrentTime ;
+  
+  if ((strcmp(Name,"heute")==0)||(strcmp(Name,"today")==0)) {
+    time (&CurrentTime) ;
+    tim = gmtime(&CurrentTime) ;
+    return (tim->tm_wday) ;
+  } ;
+  if ((strcmp(Name,"sonntag")==0)||(strcmp(Name,"sunday")==0)) {
+    return(0) ;
+  } ;
+  if ((strcmp(Name,"montag")==0)||(strcmp(Name,"monday")==0)) {
+    return(1) ;
+  } ;
+  if ((strcmp(Name,"dienstag")==0)||(strcmp(Name,"tuesday")==0)) {
+    return(2) ;
+  } ;
+  if ((strcmp(Name,"mittwoch")==0)||(strcmp(Name,"wensday")==0)) {
+    return(3) ;
+  } ;
+  if ((strcmp(Name,"donnerstag")==0)||(strcmp(Name,"thursday")==0)) {
+    return(4) ;
+  } ;
+  if ((strcmp(Name,"freitag")==0)||(strcmp(Name,"friday")==0)) {
+    return(5) ;
+  } ;
+  if ((strcmp(Name,"samstag")==0)||(strcmp(Name,"saturday")==0)) {
+    return(6) ;
+  } ;
+
+  Var = FindNode(Haus->Child,Name) ;
+  if (Var!=NULL) {
+    return(Var->Value) ;
+  } else {
+    printf ("Unknown variable: %s\n",Name) ;
+    return(0) ;
+  } ;
+}
+
 int CalcValue (char *Expression)
 {
   int i ;
@@ -1037,7 +1079,6 @@ int CalcValue (char *Expression)
   int Stack[NAMELEN] ;
   int SP ;
   char Tok ;
-  struct Node *Var ;
   
   for (i=0;i<NAMELEN*8;i++) CalcStack[i]=0 ;
   CalcStackPointer = CalcStack ;
@@ -1144,15 +1185,8 @@ int CalcValue (char *Expression)
       } ;
     } else if (isalpha(Token[0])) {
       // Variable einlesen
-      Var = FindNode(Haus->Child,Token) ;
-      if (Var!=NULL) {
-	SP++ ;
-	Stack[SP] = Var->Value ;
-      } else {
-	printf ("Unknown variable: %s\n",Token) ;
-	SP++ ;
-	Stack[SP]=0 ;
-      } ;
+      SP++ ;
+      Stack[SP] = CalcVar (Token) ;
     } else {
       SP++ ;
       sscanf (Token,"%d",&Stack[SP]) ;
