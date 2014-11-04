@@ -491,7 +491,7 @@ void SendAction (struct Node *Action)
   
   for (i=0;i<8;i++) Data[i] = 0 ;
 
-  Command = 0 ;
+  Command = 0 ; Len = 0 ; CANID = 0 ;
   switch (Action->Data.Aktion.Unit->Type) {
   case N_ONOFF:
     if (Action->Data.Aktion.Type==A_ON) { Command = CHANNEL_ON ; Action->Data.Aktion.Unit->Value=1 ; } ;
@@ -606,6 +606,7 @@ void SendAction (struct Node *Action)
     } ;
     break ;
   default:
+    Len = 0 ; CANID = 0 ;
     break ;
   } ;
   if (Command==0) return;

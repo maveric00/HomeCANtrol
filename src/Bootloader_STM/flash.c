@@ -17,12 +17,11 @@ void FLASH_Boot_Init(void)
 /* Erase complete flash */
 uint32_t FLASH_Boot_Erase()
 {
-  uint32_t UserStartPage;
   uint32_t i = 0;
   FLASH_Status FLASHStatus=FLASH_COMPLETE ;
 
   /* Get the sector where start the user flash area */
-  for(i = 0; (i < (FLASH_SIZE-(APPLICATION_ADDRESS-0x8003000))/PAGE_SIZE)&&(FLASHStatus==FLASH_COMPLETE); i ++) {
+  for(i = 0; (i < (FLASH_SIZE-(APPLICATION_ADDRESS-0x8000000))/PAGE_SIZE)&&(FLASHStatus==FLASH_COMPLETE); i ++) {
     FLASHStatus = FLASH_ErasePage(APPLICATION_ADDRESS + (PAGE_SIZE * i));
   }
   
@@ -33,9 +32,9 @@ uint32_t FLASH_Boot_Erase()
 
 uint32_t FLASH_Boot_Write(__IO uint32_t* FlashAddress, uint32_t* Data)
 {
-  if (FLASH_ProgramWord(*FlashAddress, *(uint32_t*)(Data)) == FLASH_COMPLETE) {
+  if (FLASH_ProgramWord(*FlashAddress, *Data) == FLASH_COMPLETE) {
     /* Check the written value */
-    if (*(uint32_t*)*FlashAddress != *(uint32_t*)(Data)) {
+    if (*(uint32_t*)*FlashAddress != *Data) {
       /* Flash content doesn't match SRAM content */
       return(2);
     }

@@ -1079,7 +1079,6 @@ int CalcValue (char *Expression)
   int Stack[NAMELEN] ;
   int SP ;
   char Tok ;
-  struct Node *Var ;
   
   for (i=0;i<NAMELEN*8;i++) CalcStack[i]=0 ;
   CalcStackPointer = CalcStack ;

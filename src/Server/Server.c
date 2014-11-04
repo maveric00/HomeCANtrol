@@ -837,11 +837,25 @@ int HandleCommand (char *Command,int Socket)
   if (strcmp(Com,"add")==0) {
     sscanf (Command,"add %d %d",&Line,&Add) ;
     if ((Line!=0)&&(Add!=0)) {
+      struct Node *ANodes[MAX_ADD_PER_NODE*4] ;
+      int ANumber ;
+      int i,Type ;
+   
+      ANumber = 0 ; 
+      Type = 0 ;
+
+      CollectAdress(Haus,Line,Add,ANodes,&ANumber) ;
+      for (i=0;i<ANumber;i++) if (ANodes[i]->Type==S_EXTENDED) Type = 1 ;
+      
       // Create Configuration for the Board; bootstrap firmware will ask for it
       MakeConfig (Line,Add,&EEprom) ;
       WriteConfig (&EEprom) ;
       // Send out Bootstrap firmware
-      SendFirmware(0xF,0xFF) ;
+      if (Type==0) {
+	SendFirmware(0xF,0xFF) ;
+      } else {
+	SendFirmware(0xF,0xFE) ;
+      } ;
       SendConfig(&EEprom,0xF,0xFF) ;
       // Line up application firmware delivery; board will be reset after configuration
       // which restarts bootloader requesting firmware.

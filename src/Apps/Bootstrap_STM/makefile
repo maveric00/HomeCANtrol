@@ -49,7 +49,7 @@ Bootstrap_STM.elf: $(OBJS) $(USER_OBJS)
 
 Bootstrap_STM.hex: Bootstrap_STM.elf
 	@echo 'Invoking: ARM Sourcery Linux GNU Create Flash Image'
-	arm-none-eabi-objcopy -O binary Bootstrap_STM.elf  "Bootstrap_STM.hex"
+	arm-none-eabi-objcopy -O ihex Bootstrap_STM.elf  "Bootstrap_STM.hex"
 	@echo 'Finished building: $@'
 	@echo ' '
 
