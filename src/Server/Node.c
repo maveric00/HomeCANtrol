@@ -108,6 +108,22 @@ int GetNodeAdress (struct Node *Node, int *Linie, int *Knoten, int *Port)
   return (0) ;
 }
 
+int FindGlobalNode (struct Node *Root, char *Unit)
+{
+  struct Node *This,*That ;
+  
+  if (Root==NULL) return (NULL) ;
+
+  // Knoten mit dem ersten Bezeichner finden; 
+  for(This = Root ;This!=NULL;This=This->Next) {
+    if (strcmp(This->Name,Unit)==0) {
+      return (This) ;
+    } ;
+    That = FindGlobalNode(This->Child,Unit) ;
+    if (That!=NULL) return (That) ;
+  } 
+  return (NULL) ;
+}
   
 struct Node *FindNodeAdress (struct Node *Root,int Linie, int Knoten, int Port,struct Node *Except)
 {

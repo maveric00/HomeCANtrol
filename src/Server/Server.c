@@ -1042,6 +1042,113 @@ int HandleCommand (char *Command,int Socket)
   return (TRUE) ;
 }
 
+static const char delimiter[] = " ,;." ;
+
+int Handle_NaturalCommand (char *Command)
+{
+  NodeType Com ;
+  char CC[NAMELEN*4] ;
+  char *NextWord ;
+  char Polite ;
+  int Line,Add,Port ;
+
+  struct Node *Actual ;
+  struct Node *Floor ;
+  struct Node *Room ;
+  struct Node *Item ;
+
+  // Parse each word and see, if it is an required element
+
+  Com = Polite = 0 ;
+  Floor = Room = Item = NULL ;
+  
+  // Search for floor
+
+  strcpy (CC,Command) ;
+  NextWord = strtok (CC,delimiter) ;
+  while (NextWord) {
+    Actual = FindNode(Haus->Child,NextWord) ;
+    if (Actual!=NULL) {
+      if (Actual->Type==N_STRUCTURE) {
+	Floor = Actual ;
+	break ;
+      } ;
+    } ;
+    NextWord = strtok (NULL,delimiter) ;
+  } ;  
+
+  // search for Room
+
+  strcpy (CC,Command) ;
+  NextWord = strtok (CC,delimiter) ;
+  while (NextWord) {
+    if (Floor) {
+      Actual = FindNode(Floor,NextWord) ;
+    } else if (DefaultFloor) {
+      Actual = FindNode(DefaultFloor,NextWord) ;
+    } else {
+      Actual = FindGlobalNode (Haus->Child,NextWord) ;
+    } ;
+    if (Actual!=NULL) {
+      if (Actual->Type==N_STRUCTURE) {
+	Room = Actual ;
+	break ;
+      } ;
+    } ;
+    NextWord = strtok (NULL,delimiter) ;
+  } ;  
+
+  // search for Item
+  strcpy (CC,Command) ;
+  NextWord = strtok (CC,delimiter) ;
+  while (NextWord) {
+    NextWord = strtok (NULL,delimiter) ;
+  } ;  
+
+  // Find Action
+
+  strcpy (CC,Command) ;
+  NextWord = strtok (CC,delimiter) ;
+  while (NextWord) {
+    if (Room) {
+      Actual = FindNode(Room,NextWord) ;
+    } else {
+      // Find global makro
+    } ;
+    if (Actual==NULL) {
+      if (strstr(NextWord,"an")||strstr(NextWord,"on")||
+	  strstr(NextWord,"anmachen")||strstr(NextWord,"anschalten")) {
+	Com = A_ON ;
+      } else if (strstr(NextWord,"aus")||strstr(NextWord,"off")||
+		 strstr(NextWord,"ausmachen")||strstr(NextWord,"ausschalten")) {
+	Com = A_Off ;
+      } else if (strstr(NextWord,"hoch")||strstr(NextWord,"up")||
+		 strstr(NextWord,"auf")||strstr(NextWord,"aufmachen")||strstr(NextWord,"open")) {
+	Com = A_SHADE_UP_FULL ;
+      } else if (strstr(NextWord,"runter")||strstr(NextWord,"down")||
+		 strstr(NextWord,"herunter")||strstr(NextWord,"schlieﬂen")||strstr(NextWord,"close")) {
+	Com = A_SHADE_DOWN_FULL;
+      } else if ((strstr(NextWord,"bitte"))||(strstr(NextWord,"please"))) {
+	Polite = 1 ;
+      }  ;
+    } else {
+      Item = Actual ;
+    } 
+    NextWord = strtok(NUL,delimiter) ;
+  } ;
+  
+  if ((Item!=NULL)&&(Polite!=0)&&(Com!=0)) {
+    // Full command has been given, execute
+    if (IsMakro(Item)) {
+      ExecuteMakro (Item) ;
+    } else {
+      if (GetNodeAdress(Item,&Line,&Add,&Port)==0) {
+	SendCommand(Com,Line,Add,Port) ;
+      } ;
+    }  ;
+  } ;
+}
+
 static void *Handle_Webserver(enum mg_event event, struct mg_connection *conn) 
 {
   const struct mg_request_info *ri = mg_get_request_info(conn); 

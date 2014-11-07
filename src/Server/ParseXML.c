@@ -19,6 +19,7 @@
 //#define DEBUG 1
 
 struct Node *Haus=NULL ;
+struct Node *DefaultFloor=NULL ;
 struct Node *Current=NULL ;
 struct SeqList *Sequences=NULL ;
 struct NodeList *Reactions=NULL ;
@@ -201,6 +202,11 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       sscanf(attr[i+1],"%d",&(Current->Value)) ;
     } ;
     switch (Current->Type) {
+    case N_STRUCTURE:
+      if ((strcmp(attr[i],"default")==0)||(strcmp(attr[i],"default")==0)) {
+	DefaultFloor = Current ;
+      }  ;
+      break ;
     case N_ADRESS:
       if ((strcmp(attr[i],"linie")==0)||(strcmp(attr[i],"line")==0)) {
 	sscanf(attr[i+1],"%d",&(Current->Data.Adresse.Linie)) ;
