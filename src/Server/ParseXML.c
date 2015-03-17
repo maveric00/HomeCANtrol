@@ -69,6 +69,8 @@ struct TypSel Types[] = {
   {"Active",N_ACTIVE},
   {"Start",N_STARTUP},
   {"Startup",N_STARTUP},
+  {"Taeglich",N_DAILY},
+  {"Daily",N_DAILY},
   {"Wenn",N_IF},
   {"Sonst",N_ELSE},
   {"If",N_IF},
@@ -357,6 +359,10 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       if (strcmp(attr[i],"COM")==0) {
 	strncpy(COM_PORT,attr[i+1],19) ;
 	sscanf (COM_PORT,"%d",&COM_PORT_NUM) ;
+      } ;
+      if (strcmp(attr[i],"VOICE")==0) {
+	strncpy(VOICE_PORT,attr[i+1],19) ;
+	sscanf (VOICE_PORT,"%d",&VOICE_PORT_NUM) ;
       } ;
       if (strcmp(attr[i],"HTTP")==0) {
 	strncpy(HTTP_PORT,attr[i+1],19) ;

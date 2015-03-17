@@ -34,6 +34,8 @@ extern char WS_PORT[20] ;
 extern int WS_PORT_NUM ;
 extern char COM_PORT[20] ;
 extern int COM_PORT_NUM ;
+extern char VOICE_PORT[20] ;
+extern int VOICE_PORT_NUM ;
 extern char HTTP_PORT[20] ;
 extern int HTTP_PORT_NUM ;
 extern char CAN_BROADCAST[NAMELEN] ;

@@ -311,11 +311,15 @@ void StepMakros (void)
 	      // Und warten, bis Untermakro fertig
 	      ActiveMacros[i].DelayType=W_MACRO ;
 	      ActiveMacros[i].Delay.WaitNode = Caller ;
-	    } ;
+	    } else {
+	      fprintf (stderr,"Macro %s not found / not a macro\n",That->Data.UnitName) ;
+	    };
 	  } else if (That->Type==N_TASK) {
 	    Caller = FindNode(Haus->Child,That->Data.UnitName) ;
 	    if ((Caller!=NULL)&&(Caller->Type==N_MACRO)) {
 	      ExecuteMakro(Caller) ;
+	    } else {
+	      fprintf (stderr,"Macro %s not found / not a macro\n",That->Data.UnitName) ;
 	    } ;
 	  } else if ((That->Type==N_IF)||(That->Type==N_REPEAT)) {
 	    if (CalcValue(That->Data.Wert.Wert)) {
@@ -562,7 +566,21 @@ void InitAlways(void)
 
 void EveryDay(void)
 {
+  struct Node *That ;
+  struct Node *This ;
+  int i;
+
   CalcSun () ;
+
+  for (That=Haus->Child;That!=NULL;That=That->Next) if (That->Type==N_DAILY) break ;
+  if (That!=NULL) That=That->Child ;
+  for (;That!=NULL;That=That->Next) 
+    if (That->Type==N_TASK) {
+      // Nur, wenn nicht schon aktiv ist eintragen
+      This=FindNode(Haus->Child,That->Data.UnitName) ;
+      for (i=0;i<MAX_ACTIVEMACROS;i++) if (ActiveMacros[i].Macro==This) break ;
+      if (i==MAX_ACTIVEMACROS) ExecuteMakro(This) ; 
+    } ;
 }
 
 void HandleCANRequest(void)
@@ -1076,9 +1094,9 @@ int Handle_NaturalCommand (char *Command)
     } ;
     NextWord = strtok (NULL,delimiter) ;
   } ;  
-
+  
   // search for Room
-
+  
   strcpy (CC,Command) ;
   NextWord = strtok (CC,delimiter) ;
   while (NextWord) {
@@ -1097,46 +1115,52 @@ int Handle_NaturalCommand (char *Command)
     } ;
     NextWord = strtok (NULL,delimiter) ;
   } ;  
-
-  // search for Item
-  strcpy (CC,Command) ;
-  NextWord = strtok (CC,delimiter) ;
-  while (NextWord) {
-    NextWord = strtok (NULL,delimiter) ;
-  } ;  
-
+  
   // Find Action
-
+  
   strcpy (CC,Command) ;
   NextWord = strtok (CC,delimiter) ;
   while (NextWord) {
-    if (Room) {
-      Actual = FindNode(Room,NextWord) ;
-    } else {
-      // Find global makro
-    } ;
-    if (Actual==NULL) {
-      if (strstr(NextWord,"an")||strstr(NextWord,"on")||
-	  strstr(NextWord,"anmachen")||strstr(NextWord,"anschalten")) {
-	Com = A_ON ;
-      } else if (strstr(NextWord,"aus")||strstr(NextWord,"off")||
-		 strstr(NextWord,"ausmachen")||strstr(NextWord,"ausschalten")) {
-	Com = A_Off ;
-      } else if (strstr(NextWord,"hoch")||strstr(NextWord,"up")||
-		 strstr(NextWord,"auf")||strstr(NextWord,"aufmachen")||strstr(NextWord,"open")) {
-	Com = A_SHADE_UP_FULL ;
-      } else if (strstr(NextWord,"runter")||strstr(NextWord,"down")||
-		 strstr(NextWord,"herunter")||strstr(NextWord,"schließen")||strstr(NextWord,"close")) {
-	Com = A_SHADE_DOWN_FULL;
-      } else if ((strstr(NextWord,"bitte"))||(strstr(NextWord,"please"))) {
-	Polite = 1 ;
-      }  ;
-    } else {
-      Item = Actual ;
-    } 
+    if (strstr(NextWord,"an")||strstr(NextWord,"on")||
+	strstr(NextWord,"anmachen")||strstr(NextWord,"anschalten")) {
+      Com = A_ON ;
+    } else if (strstr(NextWord,"aus")||strstr(NextWord,"off")||
+	       strstr(NextWord,"ausmachen")||strstr(NextWord,"ausschalten")) {
+      Com = A_Off ;
+    } else if (strstr(NextWord,"hoch")||strstr(NextWord,"up")||
+	       strstr(NextWord,"auf")||strstr(NextWord,"aufmachen")||strstr(NextWord,"open")) {
+      Com = A_SHADE_UP_FULL ;
+    } else if (strstr(NextWord,"runter")||strstr(NextWord,"down")||
+	       strstr(NextWord,"herunter")||strstr(NextWord,"schließen")||
+	       strstr(NextWord,"zu")||strstr(NextWord,"close")) {
+      Com = A_SHADE_DOWN_FULL;
+    } else if ((strstr(NextWord,"bitte"))||(strstr(NextWord,"please"))) {
+      Polite = 1 ;
+    }  ;
     NextWord = strtok(NUL,delimiter) ;
   } ;
   
+  strcpy (CC,Command) ;
+  NextWord = strtok (CC,delimiter) ;
+  Actual = NULL ;
+  while ((NextWord)&&(Actual==NULL)) {
+    if (Room) {
+      Actual = FindNode(Room,NextWord) ;
+      if ((Actual!=NULL)&&
+	  (Actual->Type!=N_ONOFF)&&(Actual->Type!=N_SHADE)&&
+	  (Actual->Type!=N_SENSOR)&&(Actual->Type!=N_BAD)&&
+	  (Actual->Type!=N_LED)&&(Actual->Type!=N_SENS2)) Actual = NULL ;
+    } else {
+      // Check for global macro
+      Actual = FindNode(Haus->Child,NextWord) ;
+      if ((Actual!=NULL)&&(Actual->Type!=N_MACRO)) Actual = NULL;
+    } ;
+    NextWord = strtok(NUL,delimiter) ;
+  } ;
+
+  Item = Actual ;
+  if (IsMakro(Item)) Com=A_CALL ;
+
   if ((Item!=NULL)&&(Polite!=0)&&(Com!=0)) {
     // Full command has been given, execute
     if (IsMakro(Item)) {

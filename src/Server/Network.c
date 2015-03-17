@@ -29,6 +29,8 @@ char WS_PORT[20] ;
 int WS_PORT_NUM ;
 char COM_PORT[20] ;
 int COM_PORT_NUM ;
+char VOICE_PORT[20] ;
+int VOICE_PORT_NUM ;
 char HTTP_PORT[20] ;
 int HTTP_PORT_NUM ;
 char CAN_BROADCAST[NAMELEN] ;
@@ -37,6 +39,7 @@ int RecSockFD;
 int GateSockFD;
 int GateSockInFD;
 int ComSockFD;
+int VoiceSockFD;
 int SendSockFD;
 int RecAjaxFD ;
 int SendAjaxFD ;
@@ -147,6 +150,26 @@ int InitNetwork(void)
     close(ComSockFD);
     perror("listener: bind");
   }
+
+  // Reserve Receive-Socket for Voice Commands
+
+  if ((VoiceSockFD = socket(AF_INET, SOCK_DGRAM,0)) == -1) {
+    perror("talker: VoiceSock socket");
+    fprintf(stderr, "Could not get socket\n");
+    return(1);
+  }
+  
+  // Set binding informations
+
+  memset(&RecAddr, 0, sizeof(struct sockaddr_in));
+  RecAddr.sin_family      = AF_INET;
+  RecAddr.sin_addr.s_addr = INADDR_ANY;   // zero means "accept data from any IP address"
+  RecAddr.sin_port        = htons(VOICE_PORT_NUM);
+  
+  if (bind(VoiceSockFD, (struct sockaddr *) &RecAddr, sizeof(RecAddr)) == -1) {
+    close(VoiceSockFD);
+    perror("listener: bind Voice");
+  }
   
   // Set up send-Socket for CAN data
   memset(&hints, 0, sizeof hints);
@@ -216,10 +239,12 @@ int InitNetwork(void)
   FD_ZERO(&socketReadSet);
   FD_SET(RecSockFD,&socketReadSet);
   FD_SET(ComSockFD,&socketReadSet);
+  FD_SET(VoiceSockFD,&socketReadSet);
 
   // set maximum socket of select-set
 
   MaxSock = RecSockFD>ComSockFD?RecSockFD:ComSockFD ;
+  MaxSock = VoiceSockFD>MaxSock?VoiceSockFD:MaxSock ;
 
   relinit (SendSockFD,SendInfo) ;
 
@@ -368,6 +393,15 @@ int CheckNetwork(int * error,int timeOut) // milliseconds
   for (i=0;i<=MaxSockOld;i++) {
     if FD_ISSET(i,&localReadSet) {
       if (i==RecSockFD) continue ; // CAN data will be handled at caller
+      if (i==VoiceSockFD) { // Receive and handle voice command
+	char VoiceCommand[NAMELEN*4] ;
+	int Length ;
+	if ((Length = recvfrom(VoiceSockFD,VoiceCommand,NAMELEN*4-1,0,NULL,NULL))==-1) { // yet not of interest who was sending this
+	  fprintf (stderr,"Could not read from voice socket?\n") ;
+	} else {
+	  Handle_NaturalCommand(VoiceCommand) ;
+	} ;
+      }
       if (i==ComSockFD) {
 	// New connection request
 	addrlen = sizeof(remoteaddr) ;
