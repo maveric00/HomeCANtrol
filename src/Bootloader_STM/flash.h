@@ -12,4 +12,4 @@ typedef  void (*pFunction)(void);
 /* Function definition */
 void FLASH_Boot_Init(void) ;
 uint32_t FLASH_Boot_Erase() ;
-uint32_t FLASH_Boot_Write(__IO uint32_t* FlashAddress, uint32_t* Data) ;
+uint32_t FLASH_Boot_Write(__IO uint32_t* FlashAddress, uint32_t Data) ;

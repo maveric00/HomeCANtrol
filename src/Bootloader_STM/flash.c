@@ -30,11 +30,11 @@ uint32_t FLASH_Boot_Erase()
 
 /* Write Data to Flash */
 
-uint32_t FLASH_Boot_Write(__IO uint32_t* FlashAddress, uint32_t* Data)
+uint32_t FLASH_Boot_Write(__IO uint32_t* FlashAddress, uint32_t Data)
 {
-  if (FLASH_ProgramWord(*FlashAddress, *Data) == FLASH_COMPLETE) {
+  if (FLASH_ProgramWord(*FlashAddress, Data) == FLASH_COMPLETE) {
     /* Check the written value */
-    if (*(uint32_t*)*FlashAddress != *Data) {
+    if (*(uint32_t*)*FlashAddress != Data) {
       /* Flash content doesn't match SRAM content */
       return(2);
     }

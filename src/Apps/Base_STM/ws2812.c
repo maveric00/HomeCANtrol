@@ -1,5 +1,6 @@
 /*****************************************************
- */
+  WS2812b control
+******************************************************/
 
 
 #include <stdio.h>
@@ -11,11 +12,8 @@ rgb_t 	WSRGB[MAXWSNUM];
 int WSDimmer ;
 int CurrentWSNum ;
 
-static uint16_t 		wstimerVals[WS_DMA_LEN+1];	// buffer for timer/dma, one byte per bit + reset pulse
-volatile uint8_t		ledBusy = 0;							// = 1 while dma is sending data to leds
-
-
-
+static uint16_t wstimerVals[WS_DMA_LEN+1];	// buffer for timer/dma, one byte per bit + reset pulse
+volatile uint8_t ledBusy = 0;		        // = 1 while dma is sending data to leds
 
 static void WSstartDMA(void);
 
@@ -45,7 +43,7 @@ void WSupdate(void)
   uint16_t *bufp = wstimerVals;
   int c;
   
-  for (i = 0; i < ledsPhysical; i++) {
+  for (i = 0; i < CurrentWSNum; i++) {
     r = (rgb_t *)&WSRGB[i];
     c = ((int)r->G * WSDimmer) / 100;
     bufp = rgb2pwm(bufp, (const uint8_t)c);
@@ -61,10 +59,6 @@ void WSupdate(void)
   WSstartDMA();		// send it to RGB stripe
 }
 
-
-
-
-
 void WSinit(void)
 {
   GPIO_InitTypeDef GPIO_InitStructure;
@@ -79,11 +73,13 @@ void WSinit(void)
   
   for (; i < WS_DMA_LEN; i++) wstimerVals[i] = 0;
   
-  for (i = 0; i < LEDS_MAXTOTAL; i++) {
+  for (i = 0; i < MAXWSNUM; i++) {
     WSRGB[i].B = 0;
     WSRGB[i].G = 0;
     WSRGB[i].R = 0;
   } ;
+
+  ledBusy = 0 ;
   
   // GPIO
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
@@ -130,8 +126,6 @@ void WSinit(void)
   WSstartDMA();
 }
 
-
-
 static DMA_InitTypeDef dma_init = {
   .DMA_BufferSize = (WS2812_RESET_LEN),
   .DMA_DIR = DMA_DIR_PeripheralDST,
@@ -174,12 +168,11 @@ void DMA1_Channel2_IRQHandler(void)
 }
 
 
-
+#define NR_TEST_PATTERNS	12
 
 void WStest(void)
 {
   uint32_t i,j;
-#define NR_TEST_PATTERNS	12
   uint8_t patterns[NR_TEST_PATTERNS][3] = {
     {0xf0,0x00,0x00},
     {0x00,0xf0,0x00},
@@ -195,22 +188,21 @@ void WStest(void)
     {0x00,0x00,0x00},
   };
   
-  for (i = 0; i < ledsPhysical; i++) {
-    ws2812ledRGB[i].R = 0;
-    ws2812ledRGB[i].G = 0;
-    ws2812ledRGB[i].B = 0;
+  for (i = 0; i < CurrentWSNum; i++) {
+    WSRGB[i].R = 0;
+    WSRGB[i].G = 0;
+    WSRGB[i].B = 0;
   }
   
   for(j=0; j<NR_TEST_PATTERNS; j++)
     {
-      for (i = 0; i < ledsPhysical; i++)
+      for (i = 0; i < CurrentWSNum; i++)
 	{
-	  ws2812ledRGB[i].R = patterns[j][0] * 0.5F;	// 50% brigthness; my DC power supply is weak and I got brown outs
-	  ws2812ledRGB[i].G = patterns[j][1] * 0.5F;
-	  ws2812ledRGB[i].B = patterns[j][2] * 0.5F;
+	  WSRGB[i].R = patterns[j][0] * 0.5F;  
+	  WSRGB[i].G = patterns[j][1] * 0.5F;
+	  WSRGB[i].B = patterns[j][2] * 0.5F;
 	}
-      while (ledBusy)
-	;
+      while (ledBusy) ;
       WS2812update();
       delay_ms(60);
     }

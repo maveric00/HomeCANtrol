@@ -52,7 +52,7 @@ void boot_jump_to_application(void)
     __set_MSP(*(__IO uint32_t*) APPLICATION_ADDRESS);
 
     /* Jump to user application */
-    (*(void(**)())(APPLICATION_ADDRESS + 4))();
+    (*(void(**)())(APPLICATION_ADDRESS + 4ul+1ul))();
   }
 }
 
@@ -212,14 +212,14 @@ int main(void)
       FlashDataPointer[1]=InMessage.Data[3] ;
       FlashDataPointer[2]=InMessage.Data[4] ;
       FlashDataPointer[3]=InMessage.Data[5] ;
-      if (FLASH_Boot_Write(&FlashAddress,&FlashData) ){
+      if (FLASH_Boot_Write(&FlashAddress,FlashData) ){
 	goto error_response;
       }
-      // copy data
-      OutMessage.Data[4] = 0 ;
+      // Ack data
       OutMessage.Data[0] =  DATA | SUCCESSFULL_RESPONSE ;
       OutMessage.Data[2] = 0;
       OutMessage.Data[3] = 0 ;
+      OutMessage.Data[4] = 0 ;
       OutMessage.DLC = 5 ;
       CAN_TransmitWait (&OutMessage) ;
       break;
