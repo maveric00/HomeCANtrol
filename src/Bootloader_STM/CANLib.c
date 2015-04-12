@@ -81,17 +81,8 @@ void SetFilter(uint8_t BoardLine,uint16_t BoardAdd)
   InitStruct.CAN_FilterActivation = ENABLE;
   CAN_FilterInit(&InitStruct);
 
-  // Filter for broadcast adress
+  // Do not set filter for broadcast adress in Bootloader, as else it will not send out timing requests
 
-  FilterID = ((uint32_t)0xff)<<2|((uint32_t)BoardLine)<<10 ;
-  InitStruct.CAN_FilterNumber = 1;
-  InitStruct.CAN_FilterMode = CAN_FilterMode_IdMask;
-  InitStruct.CAN_FilterScale = CAN_FilterScale_32bit;
-  Convert_ID(FilterID,&InitStruct.CAN_FilterIdHigh,&InitStruct.CAN_FilterIdLow);
-  Convert_ID(0x3FFC,&InitStruct.CAN_FilterMaskIdHigh,&InitStruct.CAN_FilterMaskIdLow) ;
-  InitStruct.CAN_FilterFIFOAssignment = 1;
-  InitStruct.CAN_FilterActivation = ENABLE;
-  CAN_FilterInit(&InitStruct);
 }
 
 

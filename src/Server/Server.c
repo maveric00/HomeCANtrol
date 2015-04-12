@@ -863,7 +863,9 @@ int HandleCommand (char *Command,int Socket)
       Type = 0 ;
 
       CollectAdress(Haus,Line,Add,ANodes,&ANumber) ;
-      for (i=0;i<ANumber;i++) if (ANodes[i]->Type==S_EXTENDED) Type = 1 ;
+      for (i=0;i<ANumber;i++) 
+	if (((ANodes[i]->Type==N_SENSOR)||(ANodes[i]->Type==N_SENS2))&&
+	    (ANodes[i]->Data.Sensor.SensorTyp==S_EXTENDED)) Type = 1 ;
       
       // Create Configuration for the Board; bootstrap firmware will ask for it
       MakeConfig (Line,Add,&EEprom) ;
@@ -1126,7 +1128,7 @@ int Handle_NaturalCommand (char *Command)
       Com = A_ON ;
     } else if (strstr(NextWord,"aus")||strstr(NextWord,"off")||
 	       strstr(NextWord,"ausmachen")||strstr(NextWord,"ausschalten")) {
-      Com = A_Off ;
+      Com = A_OFF ;
     } else if (strstr(NextWord,"hoch")||strstr(NextWord,"up")||
 	       strstr(NextWord,"auf")||strstr(NextWord,"aufmachen")||strstr(NextWord,"open")) {
       Com = A_SHADE_UP_FULL ;
@@ -1137,7 +1139,7 @@ int Handle_NaturalCommand (char *Command)
     } else if ((strstr(NextWord,"bitte"))||(strstr(NextWord,"please"))) {
       Polite = 1 ;
     }  ;
-    NextWord = strtok(NUL,delimiter) ;
+    NextWord = strtok(NULL,delimiter) ;
   } ;
   
   strcpy (CC,Command) ;
@@ -1155,7 +1157,7 @@ int Handle_NaturalCommand (char *Command)
       Actual = FindNode(Haus->Child,NextWord) ;
       if ((Actual!=NULL)&&(Actual->Type!=N_MACRO)) Actual = NULL;
     } ;
-    NextWord = strtok(NUL,delimiter) ;
+    NextWord = strtok(NULL,delimiter) ;
   } ;
 
   Item = Actual ;
@@ -1171,6 +1173,7 @@ int Handle_NaturalCommand (char *Command)
       } ;
     }  ;
   } ;
+  return (TRUE) ;
 }
 
 static void *Handle_Webserver(enum mg_event event, struct mg_connection *conn) 

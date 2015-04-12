@@ -52,7 +52,7 @@ void boot_jump_to_application(void)
     __set_MSP(*(__IO uint32_t*) APPLICATION_ADDRESS);
 
     /* Jump to user application */
-    (*(void(**)())(APPLICATION_ADDRESS + 4ul+1ul))();
+    (*(void(**)())(APPLICATION_ADDRESS + 4ul))();
   }
 }
 

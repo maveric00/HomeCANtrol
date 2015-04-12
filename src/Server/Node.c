@@ -108,7 +108,7 @@ int GetNodeAdress (struct Node *Node, int *Linie, int *Knoten, int *Port)
   return (0) ;
 }
 
-int FindGlobalNode (struct Node *Root, char *Unit)
+struct Node *FindGlobalNode (struct Node *Root, char *Unit)
 {
   struct Node *This,*That ;
   
