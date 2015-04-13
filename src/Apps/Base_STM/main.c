@@ -1,5 +1,5 @@
 /*
-  Bootstrap-Programm zum setzen des EEProm-Inhalts (danach wird die Applikation geflasht)
+  Steuerprogramm für die STM32F103 Basisplatine
 
   STM32F103RC 
 */
@@ -12,6 +12,7 @@
 #include "stm32f10x.h"
 #include "CANLib.h"
 #include "EEProm.h"
+#include "ws2812.h"
 
 /* EEProm-Belegung vom Boot-Loader:
 0   0xba
@@ -25,6 +26,38 @@
 8   BoardType (0: LED, 0x10: Relais, 0x20: Sensor)  
 9   n/a
 */
+
+int  Type[6] ;
+int  Config[6];
+
+void InitMC (void)
+{
+  int i ;
+
+  for (i=0;i<6;i++) {
+    // Configuration lesen
+
+    Type[i] = EEProm[300+(i<<1)] ;
+    Config[i] = EEProm[301+(i<<1)] ;
+
+    switch (Type[i]) {
+    case I_SIMPLE: // Klick-Input
+    case I_SHORTLONG: // Short-Long-Input
+    case I_MONO: // Monoflop
+    case I_RETRIG: // Retriggerbares Monoflop
+      break ;
+    case I_ANALOG: // Analog-Input
+      break ;
+    case O_ONOFF: // Ein-Aus
+    case O_PWM: // PWM
+      break ;
+    case O_WSCLOCK: // WS2801 Clock
+    case O_WSDATA: // WS2801 Data
+      WSinit () ;
+      break ;
+    } ;
+  } ;
+}
 
 
 // Hauptprogramm
@@ -47,14 +80,24 @@ int main(void)
 
   EEPromInit () ;
   
-  if (EEProm!=NULL) {
-    // Config has been written - restart Bootloader to enable upload of main application
+  if (EEProm==NULL) {
+    // Config has not yet been written - restart Bootloader to enable upload of main application
     NVIC_SystemReset ();
   } ;
+
+  BoardAdd = EEProm[2]+(EEProm[3]<<8) ;
+  BoardLine = EEProm[4] ;
+  BootAdd = EEProm[5]+(EEProm[6]<<8) ;
+  BootLine = EEProm[7] ;
+  BoardType = EEProm[8] ;
   
-  EEPromWriteByte(0xba,0) ; // erstes byte schreiben
+  // Initialize CAN
 
   CAN_Config();
+
+  // Initialize WS2812 output
+
+  InitMC () ;
 
   SetFilter(BoardLine,BoardAdd) ;
 

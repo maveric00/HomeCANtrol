@@ -50,6 +50,10 @@ struct TypSel Types[] = {
   {"LED",N_LED},
   {"Taster",N_SENS2},
   {"Button",N_SENS2},
+  {"Lichtsensor",N_LIGHT},
+  {"Lightsensor",N_LIGHT},
+  {"Multifunktion",N_EXTENDED},
+  {"Multifunction",N_EXTENDED},
   {"Aktion",N_ACTION},
   {"Action",N_ACTION},
   {"Makro",N_MACRO},
@@ -108,14 +112,13 @@ struct TypSel Types[] = {
   {"Movement",S_BWM2},
   {"R_Monoflop",S_RETMONO},
   {"Analog",S_ANALOG},
-  {"Lichtsensor",S_LIGHT},
-  {"Lightsensor",S_LIGHT},
   {"Ausgang",S_OUTPUT},
   {"Output",S_OUTPUT},
   {"PWM",S_PWM},
   {"WSData",S_WSDATA},
   {"WSClock",S_WSCLOCK},
-  {"STM32",S_EXTENDED},
+  {"I2CLichtsensor",S_LIGHT},
+  {"I2CLightsensor",S_LIGHT},
   {"An",A_ON},
   {"On",A_ON},
   {"Aus",A_OFF},
@@ -257,6 +260,8 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       break ;
     case N_SENSOR:
     case N_SENS2:
+    case N_LIGHT:
+    case N_EXTENDED:
       if ((strcmp(attr[i],"typ")==0)||(strcmp(attr[i],"type")==0)) {
 	Current->Data.Sensor.SensorTyp = FillType(attr[i+1]);
       } ;

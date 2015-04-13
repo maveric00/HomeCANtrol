@@ -403,29 +403,13 @@ int MakeConfig (int Linie, int Knoten, struct EEPROM *EEprom)
     switch (ANodes[i]->Type) {
     case N_SENSOR:
       if (EEprom->BoardType==0xFF) {
-	if (ANodes[i]->Data.Sensor.SensorTyp!=S_LIGHT) {
-	  if (ANodes[i]->Data.Sensor.SensorTyp!=S_EXTENDED) {
-	    EEprom->BoardType = 32 ;
-	  } else {
-	    EEprom->BoardType = 34 ;
-	  } ;
-	} else {
-	  EEprom->BoardType = 33 ;
-	} ;
+	EEprom->BoardType = 32 ;
       } else {
-	if ((EEprom->BoardType!=32)&&(EEprom->BoardType!=33)&&(EEprom->BoardType!=34)) {
+	if (EEprom->BoardType!=32) {
 	  fprintf (stderr,"Inconsistent board L:%d, K:%d definition for sensor %s\n",Linie,Knoten,ANodes[i]->Name) ;
 	  return (0) ;
 	};
       } ;
-      if (ANodes[i]->Data.Sensor.SensorTyp==S_LIGHT) {
-	EEprom->BoardType = 33 ;
-      } ;
-      if (ANodes[i]->Data.Sensor.SensorTyp==S_EXTENDED) {
-	EEprom->BoardType = 34 ;
-	break ; // Extended Sensor only marks type of board
-      } ;
-      
       MakeSensorConfig(ANodes[i],EEprom,0) ;
       break ;
     case N_SENS2:
@@ -439,6 +423,29 @@ int MakeConfig (int Linie, int Knoten, struct EEPROM *EEprom)
       } ;
       MakeSensorConfig(ANodes[i],EEprom,1) ;
       break ;
+    case N_LIGHT:
+      if (EEprom->BoardType==0xFF) {
+	EEprom->BoardType = 33 ;
+      } else {
+	if (EEprom->BoardType!=33) {
+	  fprintf (stderr,"Inconsistent board L:%d, K:%d definition for sensor %s\n",Linie,Knoten,ANodes[i]->Name) ;
+	  return (0) ;
+	};
+      } ;
+      MakeSensorConfig(ANodes[i],EEprom,1) ;
+      break ;
+    case N_EXTENDED:
+      if (EEprom->BoardType==0xFF) {
+	EEprom->BoardType = 34 ;
+      } else {
+	if (EEprom->BoardType!=34) {
+	  fprintf (stderr,"Inconsistent board L:%d, K:%d definition for sensor %s\n",Linie,Knoten,ANodes[i]->Name) ;
+	  return (0) ;
+	};
+      } ;
+      MakeSensorConfig(ANodes[i],EEprom,1) ;
+      break ;
+
     case N_BAD:
       if (EEprom->BoardType==0xFF) {
 	EEprom->BoardType = 1 ;
@@ -753,14 +760,16 @@ void SendFirmware(char Linie, USHORT Knoten)
       TypCode = 16 ;
       break ;
     case N_SENSOR:
-      if (ANodes[0]->Data.Sensor.SensorTyp!=S_LIGHT) {
-	TypCode = 32 ;
-      } else {
-	TypCode = 33 ;
-      } ;
+      TypCode = 32 ;
       break ;
     case N_SENS2:
       TypCode = 48 ;
+      break ;
+    case N_LIGHT:
+      TypCode = 33 ;
+      break ;
+    case N_EXTENDED:
+      TypCode = 34 ;
       break ;
     case N_BAD:
       TypCode = 1 ;

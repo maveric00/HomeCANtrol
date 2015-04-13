@@ -82,12 +82,12 @@ int main(void)
   EEPromInit () ;
   SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK);
   
-  if (EEprom!=NULL) {
-    BoardAdd = EEprom[2]+(EEprom[3]<<8) ;
-    BoardLine = EEprom[4] ;
-    BootAdd = EEprom[5]+(EEprom[6]<<8) ;
-    BootLine = EEprom[7] ;
-    BoardType = EEprom[8] ;
+  if (EEProm!=NULL) {
+    BoardAdd = EEProm[2]+(EEProm[3]<<8) ;
+    BoardLine = EEProm[4] ;
+    BootAdd = EEProm[5]+(EEProm[6]<<8) ;
+    BootLine = EEProm[7] ;
+    BoardType = EEProm[8] ;
   } ;
 
   /* CAN configuration */

@@ -863,15 +863,11 @@ int HandleCommand (char *Command,int Socket)
       Type = 0 ;
 
       CollectAdress(Haus,Line,Add,ANodes,&ANumber) ;
-      for (i=0;i<ANumber;i++) 
-	if (((ANodes[i]->Type==N_SENSOR)||(ANodes[i]->Type==N_SENS2))&&
-	    (ANodes[i]->Data.Sensor.SensorTyp==S_EXTENDED)) Type = 1 ;
-      
       // Create Configuration for the Board; bootstrap firmware will ask for it
       MakeConfig (Line,Add,&EEprom) ;
       WriteConfig (&EEprom) ;
       // Send out Bootstrap firmware
-      if (Type==0) {
+      if (ANoses[0]->Type!=N_EXTENDED) {
 	SendFirmware(0xF,0xFF) ;
       } else {
 	SendFirmware(0xF,0xFE) ;
@@ -1151,7 +1147,8 @@ int Handle_NaturalCommand (char *Command)
       if ((Actual!=NULL)&&
 	  (Actual->Type!=N_ONOFF)&&(Actual->Type!=N_SHADE)&&
 	  (Actual->Type!=N_SENSOR)&&(Actual->Type!=N_BAD)&&
-	  (Actual->Type!=N_LED)&&(Actual->Type!=N_SENS2)) Actual = NULL ;
+	  (Actual->Type!=N_LED)&&(Actual->Type!=N_SENS2)&&
+	  (Actual->Type!=N_LIGHT)&&(Actual->Type!=N_EXTENDED)) Actual = NULL ;
     } else {
       // Check for global macro
       Actual = FindNode(Haus->Child,NextWord) ;

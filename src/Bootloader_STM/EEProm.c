@@ -7,13 +7,13 @@
 #include "stm32f10x.h"
 #include "EEProm.h"
 
-volatile uint8_t *EEprom ;
+volatile uint8_t *EEProm ;
 
 void EEPromInit ()
 {
   uint8_t *There ;
   
-  EEprom = NULL ;
+  EEProm = NULL ;
 
   for (There = (uint8_t*) 0x8003000;
        ((There[0]!=0xba)||(There[1]!=0xca))&&((uint32_t)There<0x8004000);
@@ -25,7 +25,7 @@ void EEPromInit ()
        ((There[0]==0xba)&&(There[1]==0xca))&&((uint32_t)There<0x8004000);
        There=There+0x200) ;
 
-  EEprom = There-0x200 ; // Point to last configuration
+  EEProm = There-0x200 ; // Point to last configuration
   return ;
 }
 

@@ -308,8 +308,11 @@
 	<Aktion autonom="0" kommando="Hoch" objekt="Erdgeschoss/Esszimmer/Fenster"/>
 	<Aktion autonom="1" kommando="Hoch" objekt="Erdgeschoss/Esszimmer/Fenster"/>
       </Sensor>
-      <Sensor name="Lichtband" typ="STM32">
-	<Adresse linie="1" knoten="70" port="255"/>
+      <Multifunktion name="Lichtband" typ="WSData">
+	<Adresse linie="1" knoten="70" port="1"/>
+      </Sensor>
+      <Multifunktion name="Lichtband2" typ="WSClock">
+	<Adresse linie="1" knoten="70" port="2"/>
       </Sensor>
       <Makro name="Aus">
 	<Adresse linie="0" knoten="200" port="10"/>
@@ -1031,7 +1034,7 @@
 	<Adresse linie="0" knoten="200" port="33"/>
 	<Aktion kommando="Aus" objekt="Obergeschoss/Arbeit/SteckdoseRechts"/>
       </Makro>
-      <Sensor name="BWM1" typ="Lichtsensor" intervall="10">
+      <Lichtsensor name="BWM1" typ="I2CLichtsensor" intervall="10">
 	<Adresse linie="3" knoten="54" port="1"/>
       </Sensor>
     </Zimmer>

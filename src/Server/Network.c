@@ -545,6 +545,8 @@ void SendAction (struct Node *Action)
     Len=2 ;
     break ;
   case N_SENSOR:
+  case N_LIGHT:
+  case N_EXTENDED:
     if (Action->Data.Aktion.Type==A_ON) { 
       Command = SET_PIN ; Data[2] = 0xFF ; Data[3] = 0x15 ;
       Len=4 ;

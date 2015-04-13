@@ -58,6 +58,8 @@ typedef enum {
   N_ELSE = 30,
   N_LOC = 31,
   N_DAILY = 32,
+  N_LIGHT = 33,
+  N_EXTENDED = 34,
   S_SIMPLE = 100,
   S_SHORTLONG = 101,
   S_SHADE_SHORTLONG = 102,
