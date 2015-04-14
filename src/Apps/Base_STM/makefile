@@ -27,47 +27,47 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 SECONDARY_FLASH += \
-Bootstrap_STM.hex \
+Base_STM.hex \
 
 SECONDARY_LIST += \
-Bootstrap_STM.lst \
+Base_STM.lst \
 
 SECONDARY_SIZE += \
-Bootstrap_STM.siz \
+Base_STM.siz \
 
 
 # All Target
-all: Bootstrap_STM.elf secondary-outputs
+all: Base_STM.elf secondary-outputs
 
 # Tool invocations
-Bootstrap_STM.elf: $(OBJS) $(USER_OBJS)
+Base_STM.elf: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: ARM Sourcery Linux GCC C Linker'
-	arm-none-eabi-gcc -T"stm32_flash.ld" -nostartfiles -Wl,--gc-sections  -Wl,-Map,Bootstrap_STM.map -mcpu=cortex-m4 -mthumb -g3 -gdwarf-2 -o "Bootstrap_STM.elf" $(OBJS) $(USER_OBJS) $(LIBS)
+	arm-none-eabi-gcc -T"stm32_flash.ld" -nostartfiles -Wl,--gc-sections  -Wl,-Map,Base_STM.map -mcpu=cortex-m4 -mthumb -g3 -gdwarf-2 -o "Base_STM.elf" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
-Bootstrap_STM.hex: Bootstrap_STM.elf
+Base_STM.hex: Base_STM.elf
 	@echo 'Invoking: ARM Sourcery Linux GNU Create Flash Image'
-	arm-none-eabi-objcopy -O binary Bootstrap_STM.elf  "Bootstrap_STM.hex"
+	arm-none-eabi-objcopy -O binary Base_STM.elf  "Base_STM.hex"
 	@echo 'Finished building: $@'
 	@echo ' '
 
-Bootstrap_STM.lst: Bootstrap_STM.elf
+Base_STM.lst: Base_STM.elf
 	@echo 'Invoking: ARM Sourcery Linux GNU Create Listing'
-	arm-none-eabi-objdump -h -S Bootstrap_STM.elf > "Bootstrap_STM.lst"
+	arm-none-eabi-objdump -h -S Base_STM.elf > "Base_STM.lst"
 	@echo 'Finished building: $@'
 	@echo ' '
 
-Bootstrap_STM.siz: Bootstrap_STM.elf
+Base_STM.siz: Base_STM.elf
 	@echo 'Invoking: ARM Sourcery Linux GNU Print Size'
-	arm-none-eabi-size  --format=berkeley Bootstrap_STM.elf
+	arm-none-eabi-size  --format=berkeley Base_STM.elf
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(SECONDARY_SIZE)$(OBJS)$(C_DEPS)$(ASM_DEPS)$(SECONDARY_FLASH)$(EXECUTABLES)$(SECONDARY_LIST)$(S_UPPER_DEPS) Bootstrap_STM.elf
+	-$(RM) $(SECONDARY_SIZE)$(OBJS)$(C_DEPS)$(ASM_DEPS)$(SECONDARY_FLASH)$(EXECUTABLES)$(SECONDARY_LIST)$(S_UPPER_DEPS) Base_STM.elf
 	-@echo ' '
 
 secondary-outputs: $(SECONDARY_FLASH) $(SECONDARY_LIST) $(SECONDARY_SIZE)

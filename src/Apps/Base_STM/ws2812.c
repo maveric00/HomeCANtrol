@@ -8,7 +8,7 @@
 #include "ws2812.h"
 
 // Buffer for LED
-rgb_t 	WSRGB[MAXWSNUM];	
+rgb_t WSRGB[MAXWSNUM];	
 int WSDimmer ;
 int CurrentWSNum ;
 
@@ -88,6 +88,16 @@ void WSinit(void)
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
+  
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+  // reset Enable Input of 74hct244 (to enable output)
+  GPIOC->BRR = 0x00000100 ;
   
   // Timer
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);

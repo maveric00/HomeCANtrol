@@ -4,7 +4,10 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-Bootstrap.c \
+main.c \
+ws2812.c\
+Powerdriver.c\
+IRDecoder.c\
 ../Common_STM/CANLib.c \
 ../Common_STM/EEProm.c \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_can.c \
@@ -21,6 +24,9 @@ S_UPPER_SRCS += \
 
 OBJS += \
 ./Bootstrap.o \
+ws2812.o\
+Powerdriver.o\
+IRDecoder.o\
 ../Common_STM/CANLib.o \
 ../Common_STM/EEProm.o \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_can.o \
@@ -35,6 +41,9 @@ OBJS += \
 
 C_DEPS += \
 ./Bootstrap.d \
+ws2812.d\
+Powerdriver.d\
+IRDecoder.d\
 ../Common_STM/CANLib.d \
 ../Common_STM/EEProm.d \
 ../../STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_can.d \
