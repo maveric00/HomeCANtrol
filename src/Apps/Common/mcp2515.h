@@ -1,14 +1,12 @@
 #ifndef	MCP2515_H
 #define	MCP2515_H
 
-#include "config.h"
-
-#ifndef SERVER_INCLUDE
-#include "mcp2515_defs.h"
-#endif
-
 #include <inttypes.h>
 
+
+#ifndef SERVER_INCLUDE
+#include "config.h"
+#include "mcp2515_defs.h"
 
 typedef struct
 {
@@ -30,6 +28,8 @@ extern uint8_t message_number;			//!< Running number of the messages
 extern uint8_t message_data_counter;	
 extern uint8_t message_data_length;		//!< Length of the data-field
 extern uint8_t message_data[4];
+
+#endif
 
 typedef enum {
     // Bootloader commands
@@ -86,7 +86,6 @@ typedef enum {
   WRONG_NUMBER_RESPONSE	= 0xC0,
   NO_MESSAGE		= 0x3f
 } tCommand;
-
 
 typedef enum {
 	LISTEN_ONLY_MODE,		//!< der CAN Contoller empfängt nur und verhält sich völlig passiv

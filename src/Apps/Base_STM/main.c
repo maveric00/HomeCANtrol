@@ -35,6 +35,14 @@ volatile uint16_t  Heartbeat ;
 volatile uint8_t Time ;
 uint8_t  Running[6] ;
 
+volatile uint16_t  REPEAT_MASK ;
+volatile uint16_t REPEAT_START ;
+volatile uint16_t REPEAT_NEXT ;
+volatile uint16_t  key_state;                               // debounced and inverted key state:
+                                                           // bit = 1: key pressed
+volatile uint16_t  key_press;                               // key press detect
+volatile uint16_t  key_rpt;                                 // key long press and repeat
+
 CanTxMsg Message ;
 
 
@@ -96,11 +104,112 @@ void SendPinMessage (uint8_t Pin, uint8_t Long,uint8_t SendData)
   } ;
 }
 
+int EnableKeycheck ;
 
+void cli(void) 
+{
+  EnableKeycheck = 0 ;
+}
+
+void sei(void)
+{
+  EnableKeycheck = 1 ;
+} 
+
+void TIM2_IRQHandler(void)
+{
+  static uint16_t ct0, ct1;
+  static uint16_t rpt;
+  uint16_t i ;
+  uint16_t PinStatus ;
+
+  if (TIM3->SR&TIM_IT_Update) {
+    TIM3->SR = (uint16_t)~TIM_IT_Update ;
+    if (Heartbeat<=TIMEOUT+1) Heartbeat++ ;
+    if (EnableKeycheck) {
+      PinStatus = ((GPIOB->IDR>>3)&0xf)|((GPIOC->IDR>>1)&0x30)|((GPIOC->IDR>>3)&0xC0) ; // collect all possible inputs
+      i = key_state ^ PinStatus;      // key changed ?
+      ct0 = ~( ct0 & i );                             // reset or count ct0
+      ct1 = ct0 ^ (ct1 & i);                          // reset or count ct1
+      i &= ct0 & ct1;                                 // count until roll over ?
+      key_state ^= i;                                 // then toggle debounced state
+      key_press |= key_state & i;                     // 0->1: key press detect
+      
+      if(!(key_state & REPEAT_MASK))            // check repeat function
+	rpt = REPEAT_START;                          // start delay
+      if(!( --rpt)){
+	rpt = REPEAT_NEXT;                            // repeat delay
+	key_rpt |= key_state & REPEAT_MASK;
+      }
+    } ;
+  }
+}
+
+uint16_t get_key_press( uint16_t key_mask )
+{
+  cli();                                          // read and clear atomic !
+  key_mask &= key_press;                          // read key(s)
+  key_press ^= key_mask;                          // clear key(s)
+  sei();
+  return key_mask;
+}
+ 
+// check if a key has been pressed long enough such that the
+// key repeat functionality kicks in. After a small setup delay
+// the key is reported being pressed in subsequent calls
+// to this function. This simulates the user repeatedly
+// pressing and releasing the key.
+
+uint16_t get_key_rpt( uint16_t key_mask )
+{
+  cli();                                          // read and clear atomic !
+  key_mask &= key_rpt;                            // read key(s)
+  key_rpt ^= key_mask;                            // clear key(s)
+  sei();
+  return key_mask;
+}
+ 
+uint16_t get_key_short( uint16_t key_mask )
+{
+  cli();                                          // read key state and key press atomic !
+  return get_key_press( ~key_state & key_mask );
+  sei();
+}
+ 
+uint16_t get_key_long( uint16_t key_mask )
+{
+  return get_key_press( get_key_rpt( key_mask ));
+}
+
+
+const int PortToPin[] = { 5,4,2,3,0,1,6,7 } ;  // mapping the Port to the Pin-Header
 
 void InitMC (void)
 {
   int i ;
+  NVIC_InitTypeDef NVIC_InitStructure;
+  TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+
+  /* Enable the TIM2 global Interrupt */
+  NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+
+  NVIC_Init(&NVIC_InitStructure);
+
+
+  /* Time base configuration */
+  TIM_TimeBaseStructure.TIM_Period = 999;
+  TIM_TimeBaseStructure.TIM_Prescaler = 180;
+  TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV2; // 36MHz / 1000 / 180 / 2 = 100 Hz
+  TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+
+  TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
+
+  TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+  
+  sei () ;
 
   for (i=0;i<6;i++) {
     // Configuration lesen

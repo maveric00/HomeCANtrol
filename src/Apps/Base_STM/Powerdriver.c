@@ -26,8 +26,9 @@ void PowerInit (void)
 {
   NVIC_InitTypeDef NVIC_InitStructure;
   GPIO_InitTypeDef GPIO_InitStructure;
-  uint16_t PrescalerValue;
-  
+  TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+  TIM_OCInitTypeDef  TIM_OCInitStructure;
+
   /* TIM2 clock enable */
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
   
@@ -58,12 +59,9 @@ void PowerInit (void)
 
   NVIC_Init(&NVIC_InitStructure);
 
-  /* Compute the prescaler value */
-  PrescalerValue = (uint16_t) 2 ; // 
-
   /* Time base configuration */
   TIM_TimeBaseStructure.TIM_Period = 65535;
-  TIM_TimeBaseStructure.TIM_Prescaler = 3;
+  TIM_TimeBaseStructure.TIM_Prescaler = 2; // 36MHz / 65536 / 2 = 274 Hz
   TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
   TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 

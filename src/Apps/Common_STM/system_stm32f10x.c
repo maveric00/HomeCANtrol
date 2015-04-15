@@ -24,7 +24,7 @@
 #include "stm32f10x.h"
 
 #define SYSCLK_FREQ_72MHz  72000000
-#define VECT_TAB_OFFSET  0x0 /*!< Vector Table base offset field. 
+#define VECT_TAB_OFFSET  0x4000 /*!< Vector Table base offset field. 
                                   This value must be a multiple of 0x100. */
 uint32_t SystemCoreClock         = SYSCLK_FREQ_72MHz;        /*!< System Clock Frequency (Core Clock) */
 

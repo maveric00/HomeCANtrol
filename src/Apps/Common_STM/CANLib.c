@@ -163,18 +163,18 @@ tCommand CAN_get_message (CanRxMsg* RxMessage)
 }
 
 
-/* Delay routines; if used call  SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK); before usage*/
+/* Delay routines */
 
 void delay_us(uint32_t time_us)
 {
   SysTick->LOAD  = 72 * time_us-20;
   SysTick->VAL   = 0;                                          /* Load 
 								  the SysTick Counter Value */
-  SysTick->CTRL  |= SysTick_CTRL_ENABLE_Msk;                   /* Enable 
+  SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk|SysTick_CTRL_ENABLE_Msk;                   /* Enable 
 								  SysTick Timer */
   
   do{ } while ((SysTick->CTRL & SysTick_CTRL_COUNTFLAG)==0);
-  SysTick->CTRL  &= ~SysTick_CTRL_ENABLE_Msk;                  /* Disable SysTick Timer */
+  SysTick->CTRL  = 0;                                          /* Disable SysTick Timer */
   SysTick->VAL   = 0;                                          /* Load the SysTick Counter Value */
 }
 

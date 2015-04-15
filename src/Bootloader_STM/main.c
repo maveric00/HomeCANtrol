@@ -16,13 +16,12 @@ CAN_InitTypeDef        CAN_InitStructure;
 void delay_us(uint32_t time_us)
 {
   SysTick->LOAD  = 72 * time_us-1;
-  SysTick->VAL   = 0;                                          /* Load 
-								  the SysTick Counter Value */
-  SysTick->CTRL  |= SysTick_CTRL_ENABLE_Msk;                   /* Enable 
+  SysTick->VAL   = 0;                                          /* Load the SysTick Counter Value */
+  SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk|SysTick_CTRL_ENABLE_Msk;                   /* Enable 
 								  SysTick Timer */
   
   do{ } while ((SysTick->CTRL & SysTick_CTRL_COUNTFLAG)==0);
-  SysTick->CTRL  &= ~SysTick_CTRL_ENABLE_Msk;                  /* Disable SysTick Timer */
+  SysTick->CTRL  = 0 ;                                         /* Disable SysTick Timer */
   SysTick->VAL   = 0;                                          /* Load the SysTick Counter Value */
 }
 
@@ -80,7 +79,6 @@ int main(void)
   FlashDataPointer = (uint8_t*)&FlashData ;
 
   EEPromInit () ;
-  SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK);
   
   if (EEProm!=NULL) {
     BoardAdd = EEProm[2]+(EEProm[3]<<8) ;
