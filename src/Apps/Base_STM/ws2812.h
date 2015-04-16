@@ -1,4 +1,4 @@
-/*****************************************************
+/*****************************************************/
 
 #ifndef WS2812_H
 #define WS2812_H
@@ -26,7 +26,7 @@ typedef struct {
 
 // ----------------------------- variables -----------------------------
 
-extern rgb_t WSRGB[LEDS_MAXTOTAL];
+extern rgb_t WSRGB[MAXWSNUM];
 extern volatile uint8_t	ledBusy;					// = 1 while dma is sending data to leds
 extern int WSDimmer ;
 extern int CurrentWSNum ;

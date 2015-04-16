@@ -857,17 +857,15 @@ int HandleCommand (char *Command,int Socket)
     if ((Line!=0)&&(Add!=0)) {
       struct Node *ANodes[MAX_ADD_PER_NODE*4] ;
       int ANumber ;
-      int i,Type ;
    
       ANumber = 0 ; 
-      Type = 0 ;
 
       CollectAdress(Haus,Line,Add,ANodes,&ANumber) ;
       // Create Configuration for the Board; bootstrap firmware will ask for it
       MakeConfig (Line,Add,&EEprom) ;
       WriteConfig (&EEprom) ;
       // Send out Bootstrap firmware
-      if (ANoses[0]->Type!=N_EXTENDED) {
+      if (ANodes[0]->Type!=N_EXTENDED) {
 	SendFirmware(0xF,0xFF) ;
       } else {
 	SendFirmware(0xF,0xFE) ;

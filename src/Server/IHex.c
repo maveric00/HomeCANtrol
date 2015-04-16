@@ -103,6 +103,7 @@ int LoadIHexFile (char *FileName, u_char** FileBuffer)
   int img_size = 0;
   char riga[MAXLINE+1];
   long laddr = 0;
+  long raddr = 0;
   FILE *fh;
   USHORT bcount;
   USHORT addr;
@@ -148,11 +149,10 @@ int LoadIHexFile (char *FileName, u_char** FileBuffer)
     checksum += (u_char)addr;
     
     //affect only low 16 bits of address
+    raddr = laddr ;
     laddr &= 0xFFFF0000;
     laddr |= addr;
-    // laddr anpassen, wenn STM32, sonst wird an die falsche stelle geladen (-0x8004000)
 
-    if (laddr>=0x8004000) laddr-=0x8004000 ;
     
     //Record Type
     if ( ScanHex(&s, 2, &rectype) != OK ) {
@@ -164,19 +164,23 @@ int LoadIHexFile (char *FileName, u_char** FileBuffer)
     //Data Byte
     if (rectype == DATA_RECORD) {
       //buffer overflow
-      if (dp+laddr+bcount >= endp) {
-	*FileBuffer= realloc(*FileBuffer, laddr+bcount+64) ; // 64 bytes as reserve
+    // laddr anpassen, wenn STM32, sonst wird an die falsche stelle geladen (-0x8004000)
+      raddr = laddr ;
+      if (raddr>=0x8004000) raddr-=0x8004000 ;
+      
+      if (dp+raddr+bcount >= endp) {
+	*FileBuffer= realloc(*FileBuffer, raddr+bcount+64) ; // 64 bytes as reserve
 	dp = *FileBuffer ;
 	if (*FileBuffer==NULL) {
 	  printf ("Out of mem in LoadIHex\n") ;
 	  exit (1) ;
 	}; 
-	endp = dp+laddr+bcount ;
+	endp = dp+raddr+bcount ;
       }
       
       char ok = TRUE;
       u_char *p;
-      for (k = 0, p = dp+laddr; k < bcount && ok; k++) {
+      for (k = 0, p = dp+raddr; k < bcount && ok; k++) {
 	if ( ScanHex(&s, 2, &data) != OK )
 	  ok = FALSE;
 	
@@ -188,7 +192,7 @@ int LoadIHexFile (char *FileName, u_char** FileBuffer)
 	rval = BADFILETYPE;
 	break;
       }
-      img_size = laddr + bcount;
+      img_size = raddr + bcount;
     }
     else if (rectype == SEG_ADDR_RECORD) {
       if (bcount != 2) {
@@ -205,7 +209,6 @@ int LoadIHexFile (char *FileName, u_char** FileBuffer)
 	checksum += (u_char)addr;
 	
 	laddr = (long)addr << 4;
-	if (laddr>=0x8004000) laddr-=0x8004000 ;
       }
     } else if (rectype == LIN_ADDR_RECORD) {
       if (bcount != 2) {
@@ -222,7 +225,6 @@ int LoadIHexFile (char *FileName, u_char** FileBuffer)
 	checksum += (u_char)addr;
 	
 	laddr = (long)addr << 16;
-	if (laddr>=0x8004000) laddr-=0x8004000 ;
       }
     } else {	// Unknown record type: discard data bytes (but check for validity)
       char ok = TRUE;

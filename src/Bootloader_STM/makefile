@@ -49,7 +49,7 @@ bootloader.elf: $(OBJS) $(USER_OBJS)
 
 bootloader.hex: bootloader.elf
 	@echo 'Invoking: ARM Sourcery Linux GNU Create Flash Image'
-	arm-none-eabi-objcopy -O binary bootloader.elf  "bootloader.hex"
+	arm-none-eabi-objcopy -O ihex bootloader.elf  "bootloader.hex"
 	@echo 'Finished building: $@'
 	@echo ' '
 

@@ -18,11 +18,7 @@
  *	09.06.2013	pitschu		Start of work
  */
 
-#include "stm32f4xx.h"
-#include "stm32f4xx_gpio.h"
-#include "stm32f4xx_rcc.h"
-#include "main.h"
-#include "hardware.h"
+#include "stm32f10x.h"
 #include "IRdecoder.h"
 
 volatile static uint8_t  nec_data;       // IR data byte
@@ -32,7 +28,7 @@ volatile static uint8_t  nec_new ;       // 1 when new data arrived or when repe
 long			  repTime;			// time, when repeat may start (2 seks after code was sent)
 
 volatile irCode_t	irCode;
-
+volatile int system_time ;
 
 
 void IRdecoderInit(void)
@@ -42,7 +38,7 @@ void IRdecoderInit(void)
   TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
   TIM_ICInitTypeDef  TIM_ICInitStructure;
   
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE,ENABLE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC,ENABLE);
   /* TIM1 clock enable */
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM8, ENABLE);
   
@@ -71,7 +67,6 @@ void IRdecoderInit(void)
   TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
   TIM_TimeBaseInit (TIM8, &TIM_TimeBaseStructure);
   
-  TIM_ICInitStructure.TIM_Channel = TIM_Channel_8;
   TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;
   TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI; // connect IC1 to TI1 and TI2
   TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;

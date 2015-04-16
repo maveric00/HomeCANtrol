@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include "stm32f10x.h"
 #include "ws2812.h"
+#include "../Common_STM/CANLib.h"
 
 // Buffer for LED
 rgb_t WSRGB[MAXWSNUM];	
@@ -105,7 +106,7 @@ void WSinit(void)
   TIM_TimeBaseStructInit(&timbaseinit);
   timbaseinit.TIM_ClockDivision = TIM_CKD_DIV1;
   timbaseinit.TIM_CounterMode = TIM_CounterMode_Up;
-  timbaseinit.TIM_Period = W_TIM_FREQ / WS_OUT_FREQ;
+  timbaseinit.TIM_Period = WS_TIM_FREQ / WS_OUT_FREQ;
   timbaseinit.TIM_Prescaler = 1 ;
   TIM_TimeBaseInit(TIM1, &timbaseinit);
   
@@ -137,10 +138,10 @@ void WSinit(void)
 }
 
 static DMA_InitTypeDef dma_init = {
-  .DMA_BufferSize = (WS2812_RESET_LEN),
+  .DMA_BufferSize = (WS_RESET_LEN),
   .DMA_DIR = DMA_DIR_PeripheralDST,
-  .DMA_M2M = DMA_M2M_Disable ;
-  .DMA_MemoryBaseAddr = (uint32_t) &ws2812timerValues[0],
+  .DMA_M2M = DMA_M2M_Disable,
+  .DMA_MemoryBaseAddr = (uint32_t) &wstimerVals[0],
   .DMA_MemoryDataSize	= DMA_MemoryDataSize_HalfWord,
   .DMA_MemoryInc = DMA_MemoryInc_Enable,
   .DMA_Mode = DMA_Mode_Normal,
@@ -213,7 +214,7 @@ void WStest(void)
 	  WSRGB[i].B = patterns[j][2] * 0.5F;
 	}
       while (ledBusy) ;
-      WS2812update();
+      WSupdate();
       delay_ms(60);
     }
   

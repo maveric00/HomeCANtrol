@@ -27,13 +27,30 @@
 9   n/a
 */
 
+#define I_SIMPLE    1
+#define I_SHORTLONG 2
+#define I_MONO      3
+#define I_RETRIG    4
+#define I_ANALOG    5
+#define I_BWM       6
+#define I_BWM2      7
+#define I_LIGHT     8
+
+#define O_ONOFF    10
+#define O_PWM      11
+#define O_WSCLOCK  20
+#define O_WSDATA   21 
 #define TIMEOUT 1000 // 10 Sekunden Timeout
 
 int  Type[6] ;
 int  Config[6];
+volatile int system_time ;
 volatile uint16_t  Heartbeat ;
 volatile uint8_t Time ;
 uint8_t  Running[6] ;
+uint8_t BoardLine ;
+uint16_t BoardAdd ;
+
 
 volatile uint16_t  REPEAT_MASK ;
 volatile uint16_t REPEAT_START ;
@@ -48,13 +65,13 @@ CanTxMsg Message ;
 
 void SendPinMessage (uint8_t Pin, uint8_t Long,uint8_t SendData)
 {
-  uint8_t *Data ;
+  int Data ;
   uint16_t SendAdd ;
   uint8_t SendLine ;
   uint8_t Command ;
   uint8_t i ;
   
-  Data = (uint8_t*)10 ;
+  Data = 10 ;
   Data += Pin*40 ;
   if (Heartbeat>TIMEOUT) Data +=20 ;
 
@@ -76,7 +93,7 @@ void SendPinMessage (uint8_t Pin, uint8_t Long,uint8_t SendData)
 	Message.Data[0] = (Long==(uint8_t)1)?SHADE_DOWN_FULL:SHADE_DOWN_SHORT ;
       }
 
-      Message.Data[1] = eeprom_read_byte(Data+5+(i<<1)) ;
+      Message.Data[1] = EEProm[Data+5+(i<<1)] ;
       Message.DLC = 2 ;
       CAN_send_message(&Message) ;
     } ;
@@ -116,7 +133,7 @@ void sei(void)
   EnableKeycheck = 1 ;
 } 
 
-void TIM2_IRQHandler(void)
+void TIM3_IRQHandler(void)
 {
   static uint16_t ct0, ct1;
   static uint16_t rpt;
@@ -126,6 +143,7 @@ void TIM2_IRQHandler(void)
   if (TIM3->SR&TIM_IT_Update) {
     TIM3->SR = (uint16_t)~TIM_IT_Update ;
     if (Heartbeat<=TIMEOUT+1) Heartbeat++ ;
+    system_time++ ;
     if (EnableKeycheck) {
       PinStatus = ((GPIOB->IDR>>3)&0xf)|((GPIOC->IDR>>1)&0x30)|((GPIOC->IDR>>3)&0xC0) ; // collect all possible inputs
       i = key_state ^ PinStatus;      // key changed ?
@@ -190,7 +208,7 @@ void InitMC (void)
   NVIC_InitTypeDef NVIC_InitStructure;
   TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 
-  /* Enable the TIM2 global Interrupt */
+  /* Enable the TIM3 global Interrupt */
   NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
   NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
@@ -244,12 +262,11 @@ void InitMC (void)
 int main(void) 
 {
   CanRxMsg InMessage ;
-  uint8_t BoardLine ;
-  uint16_t BoardAdd ;
-  uint16_t Addr ;
-  uint8_t r ;
-  uint8_t LastCommand ;
+  unsigned int Addr ;
+  int i,j,r ;
+  int LastCommand ;
 
+  NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x4000);
   // Default-Werte:
   BoardAdd = 0xFF ;
   BoardLine = 0xF ;
@@ -265,9 +282,6 @@ int main(void)
 
   BoardAdd = EEProm[2]+(EEProm[3]<<8) ;
   BoardLine = EEProm[4] ;
-  BootAdd = EEProm[5]+(EEProm[6]<<8) ;
-  BootLine = EEProm[7] ;
-  BoardType = EEProm[8] ;
   
   // Initialize CAN
 
@@ -331,14 +345,14 @@ int main(void)
       break ;
 
     case READ_VAR:
-      Addr = ((uint16_t)InMessage.Data[1])+(((uint16_t)InMessage.Data[2])<<8) ;
+      Addr = ((unsigned int)InMessage.Data[1])+(((unsigned int)InMessage.Data[2])<<8) ;
       Message.Data[3]=EEProm[Addr] ;
       Message.DLC = 4 ;
       CAN_send_message(&Message) ;
       break ;
 
     case SET_VAR:
-      Addr = ((uint16_t)InMessage.Data[1])+(((uint16_t)InMessage.Data[2])<<8) ;
+      Addr = ((unsigned int)InMessage.Data[1])+(((unsigned int)InMessage.Data[2])<<8) ;
       EEPromWriteByte(InMessage.Data[3],Addr) ;	
       Message.DLC=4 ;
       CAN_send_message(&Message) ;
@@ -366,14 +380,14 @@ int main(void)
 	} else if (r==(uint8_t)CHANNEL_OFF) {
 	  i = 0 ;
 	} else {
-	  i =255-PWM[j] ;
+	  //	  i =255-PWM[j] ;
 	}
-	START_PWM[j] = PWM[j] ;
-	SOLL_PWM[j] = i ;
+	//	START_PWM[j] = PWM[j] ;
+	// SOLL_PWM[j] = i ;
 	if (Config[j]) {
-	  TimerPWM[j] = DurationPWM[j] = Config[j] ;
+	  // TimerPWM[j] = DurationPWM[j] = Config[j] ;
 	} else {
-	  TimerPWM[j] = DurationPWM[j] = 1 ;
+	  // TimerPWM[j] = DurationPWM[j] = 1 ;
 	} ;
       } ;
       break ;

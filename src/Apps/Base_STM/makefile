@@ -49,7 +49,7 @@ Base_STM.elf: $(OBJS) $(USER_OBJS)
 
 Base_STM.hex: Base_STM.elf
 	@echo 'Invoking: ARM Sourcery Linux GNU Create Flash Image'
-	arm-none-eabi-objcopy -O binary Base_STM.elf  "Base_STM.hex"
+	arm-none-eabi-objcopy -O ihex Base_STM.elf  "Base_STM.hex"
 	@echo 'Finished building: $@'
 	@echo ' '
 

@@ -310,10 +310,10 @@
       </Sensor>
       <Multifunktion name="Lichtband" typ="WSData">
 	<Adresse linie="1" knoten="70" port="1"/>
-      </Sensor>
+      </Multifunktion>
       <Multifunktion name="Lichtband2" typ="WSClock">
 	<Adresse linie="1" knoten="70" port="2"/>
-      </Sensor>
+      </Multifunktion>
       <Makro name="Aus">
 	<Adresse linie="0" knoten="200" port="10"/>
 	<Aktion kommando="Aus" objekt="Erdgeschoss/Esszimmer/SteckdoseEcke"/>
@@ -784,7 +784,7 @@
   </Etage>
   <Etage name="Obergeschoss">
     <Zimmer name="Bad">
-      <Schalter name="Licht">
+      <Schalter name="Lichtschalter">
 	<Adresse linie="3" knoten="102" port="3"/>
       </Schalter>
       <Schalter name="Badewanne">
@@ -1036,7 +1036,7 @@
       </Makro>
       <Lichtsensor name="BWM1" typ="I2CLichtsensor" intervall="10">
 	<Adresse linie="3" knoten="54" port="1"/>
-      </Sensor>
+      </Lichtsensor>
     </Zimmer>
     <Makro name="Aus">
       <Adresse linie="0" knoten="200" port="34"/>
@@ -1158,18 +1158,18 @@
     <Warte zeit="1000"/>
   </Makro>
   <Makro name="AbendLicht">
-    <Timer zeit="00:20:00" relativ="vor untergang"/>
+    <Timer zeit="00:45:00" relativ="vor untergang"/>
     <Sub makro="Aussen/Vorgarten/FestLichtAn"/>
     <Aktion kommando="An" objekt="Erdgeschoss/Kueche/SteckdoseFensterMitte"/>
-    <Timer zeit="21:45:00" />
+    <Timer zeit="22:30:00" />
     <Sub makro="Aussen/Vorgarten/FestLichtAus"/>
     <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/SteckdoseFensterMitte"/>
   </Makro>
   <Makro name="TagNacht">
-    <Timer zeit = "00:30:00" relativ="nach aufgang"/>
+    <Timer zeit = "00:59:00" relativ="nach aufgang"/>
     <Setze objekt="Tag" wert="1=1"/>
     <Sub makro="Erdgeschoss/TreppeAus"/>
-    <Timer zeit = "00:30:00" relativ="vor untergang"/>
+    <Timer zeit = "00:45:00" relativ="vor untergang"/>
     <Sub makro="Erdgeschoss/TreppeHochAus"/>
     <Setze objekt="Tag" wert="1=0"/>
   </Makro>
@@ -1210,6 +1210,7 @@
   <Firmware name="NodeConf/Licht.hex" id="0"/>
   <Firmware name="NodeConf/Sensor.hex" id="32"/>
   <Firmware name="NodeConf/I2CSensor.hex" id="33"/>
+  <Firmware name="NodeConf/Base_STM.hex" id="34"/>
   <Firmware name="NodeConf/Bootstrap_STM.hex" id="254"/>
   <Firmware name="NodeConf/Bootstrap.hex" id="255"/>
   <Seq name="TestS" datei="NodeConf/Test.seq"/>

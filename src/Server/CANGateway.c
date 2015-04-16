@@ -1009,7 +1009,7 @@ int main (int argc, char*argv[])
       continue ; // was timeout only
     } ;
     
-    Command.Interface = 0 ; // Delet old communication
+    Command.Interface = 0 ; // Delete old communication
 
     if (FD_ISSET(RecSockFD,&rdfs)) {
       ReceiveFromUDP (&Command) ;

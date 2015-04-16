@@ -39,6 +39,8 @@ int main(void)
   uint8_t r ;
   uint8_t LastCommand ;
 
+  NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x4000);
+
   // Default-Werte:
   BoardAdd = 0xFF ;
   BoardLine = 0xF ;

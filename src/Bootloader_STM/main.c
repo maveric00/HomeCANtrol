@@ -33,9 +33,13 @@ void delay_ms(uint32_t time_ms)
   }
 }
 
+typedef void (*pFunction)(void);
+
 void boot_jump_to_application(void) 
 {
   /* De-Initialize all */
+  pFunction JumpToApplication ;
+  uint32_t jumpAddress ;
   CAN_DeInit(CAN1);
   GPIO_DeInit (GPIOD) ;
   RCC_DeInit() ;
@@ -45,13 +49,15 @@ void boot_jump_to_application(void)
   if (((*(__IO uint32_t*)APPLICATION_ADDRESS) & 0x2FFE0000 ) == 0x20000000) { 
 
     /* Set vector table base address */
-    NVIC_SetVectorTable(NVIC_VectTab_FLASH, APPLICATION_ADDRESS);
+    NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x4000);
 
     /* Initialize user application's Stack Pointer */
     __set_MSP(*(__IO uint32_t*) APPLICATION_ADDRESS);
 
     /* Jump to user application */
-    (*(void(**)())(APPLICATION_ADDRESS + 4ul))();
+    jumpAddress = *(__IO uint32_t*) (APPLICATION_ADDRESS + 4);
+    JumpToApplication = (pFunction) jumpAddress;
+    JumpToApplication();
   }
 }
 
