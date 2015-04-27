@@ -14,17 +14,90 @@
 #include "EEProm.h"
 #include "ws2812.h"
 
-/* EEProm-Belegung vom Boot-Loader:
-0   0xba
-1   0xca
-2   BoardAdd Low Byte
-3   BoardAdd High Byte
-4   BoardLine
-5   BootAdd Low Byte
-6   BootAdd High Byte
-7   BootLine
-8   BoardType (0: LED, 0x10: Relais, 0x20: Sensor)  
-9   n/a
+/* EEProm-Belegung vom Base-STM:
+   0   0xba
+   1   0xca
+   2   BoardAdd Low Byte
+   3   BoardAdd High Byte
+   4   BoardLine
+   5   BootAdd Low Byte
+   6   BootAdd High Byte
+   7   BootLine
+   8   BoardType (0x22: STM_Base_Board)  
+   9   n/a
+
+   EEProm-Belegung vom Sensor:
+   10 : Pin 1 Short tic with timer running
+   10 : Board Address Low 
+   11 : Board Address High
+   12 : Line address
+   13 : Command
+   14 : Data 1    or Add1  if Command = 33
+   15 : Data 2    or Port1 if Command = 33
+   16 : Data 3    or Add2  if Command = 33
+   17 : Data 4    or Port2 if Command = 33
+   18 : Data 5    or Add3  if Command = 33
+   19 : Data 6    or Port3 if Command = 33
+
+
+   20 : Pin 1 Long Tic with timer running
+   or: 20 Add4  if Command=33
+       21 Port4 if Command=33
+       22 Add5  if Command=33
+       23 Port5 if Command=33
+       24 Add6  if Command=33
+       25 Port6 if Command=33
+       26 Add7  if Command=33
+       27 Port7 if Command=33
+       28 Add8  if Command=33
+       29 Port8 if Command=33
+		 
+   30 : Pin 1 Short Tic without timer running
+   40 : Pin 1 Long Tic without timer running
+
+   50-89   : Pin 2
+   90-129  : Pin 3
+   130-169 : Pin 4
+   170-209 : Pin 5
+   210-249 : Pin 6
+   250-289 : Pin 7
+   290-329 : Pin 8
+   
+   350 : Configuration Pin 1
+   351 : Additional Data Pin 1
+   352 : Configuration Pin 2
+   353 : Additional Data Pin 2
+   354 : Configuration Pin 3
+   355 : Additional Data Pin 3
+   356 : Configuration Pin 4
+   357 : Additional Data Pin 4
+   358 : Configuration Pin 5
+   359 : Additional Data Pin 5
+   360 : Configuration Pin 6
+   361 : Additional Data Pin 6
+   362 : Configuration Pin 6
+   363 : Additional Data Pin 6
+   364 : Configuration Pin 6
+   365 : Additional Data Pin 6
+   366 : REPEAT_START
+   367 : REPEAT_NEXT
+   380 : PowerOut 1 enable
+   381 : PowerOut 2 enable
+   382 : WS 2812 Number of LED
+   383 : WS 2812 Number of virtual LED
+
+   Configuration: 1-9: Input-Funktionen
+   1: Einfacher Input (Short Input)
+   2: Short-Long-Input
+   3: Digital-Input mit Timer (Monoflop)
+   4: Digital-Input mit Timer (retriggerbar)
+   5: Analog-Input
+   6: Bewegungsmelder
+   7: OC_Bewegungsmelder 
+
+   10-19: Digital Output-Funktionen
+   10: Ein-Aus
+   11: PWM
 */
 
 #define I_SIMPLE    1
@@ -42,12 +115,12 @@
 #define O_WSDATA   21 
 #define TIMEOUT 1000 // 10 Sekunden Timeout
 
-int  Type[6] ;
-int  Config[6];
+int  Type[8] ;
+int  Config[8];
 volatile int system_time ;
 volatile uint16_t  Heartbeat ;
 volatile uint8_t Time ;
-uint8_t  Running[6] ;
+uint8_t  Running[8] ;
 uint8_t BoardLine ;
 uint16_t BoardAdd ;
 
@@ -59,6 +132,12 @@ volatile uint16_t  key_state;                               // debounced and inv
                                                            // bit = 1: key pressed
 volatile uint16_t  key_press;                               // key press detect
 volatile uint16_t  key_rpt;                                 // key long press and repeat
+
+rgb_t  WSRGBStart[MAXWSNUM] ; // gets modified in main
+rgb_t  WSRGBSoll[MAXWSNUM] ; // gets modified in main
+uint16_t TimerLED[MAXWSNUM] ; // gets modified in main
+uint16_t DurationLED[MAXWSNUM] ; // gets modified in main
+uint8_t ChangedLED ;
 
 CanTxMsg Message ;
 
@@ -139,11 +218,55 @@ void TIM3_IRQHandler(void)
   static uint16_t rpt;
   uint16_t i ;
   uint16_t PinStatus ;
+  static uint8_t WSCounter ;
+  uint8_t WSByte ;
 
   if (TIM3->SR&TIM_IT_Update) {
     TIM3->SR = (uint16_t)~TIM_IT_Update ;
     if (Heartbeat<=TIMEOUT+1) Heartbeat++ ;
     system_time++ ;
+    
+    if (ChangedLED){
+      if (ledBusy==0) {
+	ChangedLED=0 ;
+	WSupdate () ;
+      } ;
+    } ;
+
+    WSCounter++ ;
+    if (WSCounter>(uint8_t)1) {
+      // Nur alle 20 ms updaten (50 Hz Update-Rate reicht); maximale Fading-Zeit liegt bei 25,5 Sekunden mit 0,1 Sekunde Aufloesung
+      
+      WSCounter = 0 ;
+      // Berechnen des Sollwerts und Ausgeben desselben
+      for (i=0;i<CurrentWSNum;i++) if (TimerLED[i]>0) break ;
+      
+      if (i<CurrentWSNum) {
+	for (i=0;i<CurrentWSNum;i++) {
+	  if (TimerLED[i]>0) {
+	    TimerLED[i]-- ;
+	  } ;
+	  WSRGB[i].R = (uint8_t)((int16_t)WSRGBStart[i].R+
+				 (int16_t)(((int32_t)WSRGBSoll[i].R-(int32_t)WSRGBStart[i].R)*
+					   ((int32_t)DurationLED[i]-(int32_t)TimerLED[i])/(int32_t)DurationLED[i])) ;
+	  WSRGB[i].G = (uint8_t)((int16_t)WSRGBStart[i].G+
+				 (int16_t)(((int32_t)WSRGBSoll[i].G-(int32_t)WSRGBStart[i].G)*
+					   ((int32_t)DurationLED[i]-(int32_t)TimerLED[i])/(int32_t)DurationLED[i])) ;
+	  WSRGB[i].B = (uint8_t)((int16_t)WSRGBStart[i].B+
+				 (int16_t)(((int32_t)WSRGBSoll[i].B-(int32_t)WSRGBStart[i].B)*
+					   ((int32_t)DurationLED[i]-(int32_t)TimerLED[i])/(int32_t)DurationLED[i])) ;
+	  if (!TimerLED[j]) {
+	    DurationLED[j] = 1 ;
+	    WSRGBStart[i].R = WSRGBSoll[i].R ;
+	    WSRGBStart[i].G = WSRGBSoll[i].G ;
+	    WSRGBStart[i].B = WSRGBSoll[i].B ;
+	  } ;
+	  ChangedLED=1 ;
+	} ;
+      } ;
+    } ;
+    
+    
     if (EnableKeycheck) {
       PinStatus = ((GPIOB->IDR>>3)&0xf)|((GPIOC->IDR>>1)&0x30)|((GPIOC->IDR>>3)&0xC0) ; // collect all possible inputs
       i = key_state ^ PinStatus;      // key changed ?
@@ -201,12 +324,21 @@ uint16_t get_key_long( uint16_t key_mask )
 
 
 const int PortToPin[] = { 5,4,2,3,0,1,6,7 } ;  // mapping the Port to the Pin-Header
+const uint32_t PortToGPin[] = { GPIO_Pin_3,GPIO_Pin_4,GPIO_Pin_5,GPIO_Pin_6,
+				GPIO_Pin_6,GPIO_Pin_7,GPIO_Pin_10,GPIO_Pin_11 } ;
 
 void InitMC (void)
 {
   int i ;
+  uint32_t InputPinsB,InputPinsC ;
+  uint32_t OutputPinsB,OutputPinsC ;
   NVIC_InitTypeDef NVIC_InitStructure;
   TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+  GPIO_InitTypeDef GPIO_InitStructure;
+
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
 
   /* Enable the TIM3 global Interrupt */
   NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
@@ -216,6 +348,7 @@ void InitMC (void)
 
   NVIC_Init(&NVIC_InitStructure);
 
+  InputPinsB = InputPinsC = OutputPinsB = OutputPinsC = 0 ;
 
   /* Time base configuration */
   TIM_TimeBaseStructure.TIM_Period = 999;
@@ -226,36 +359,105 @@ void InitMC (void)
   TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
 
   TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
-  
-  sei () ;
 
-  for (i=0;i<6;i++) {
+  sei () ;
+  
+  for (i=0;i<8;i++) {
     // Configuration lesen
 
-    Type[i] = EEProm[300+(i<<1)] ;
-    Config[i] = EEProm[301+(i<<1)] ;
+    Type[i] = EEProm[350+(i<<1)] ;
+    Config[i] = EEProm[351+(i<<1)] ;
 
     switch (Type[i]) {
     case I_SIMPLE: // Klick-Input
     case I_SHORTLONG: // Short-Long-Input
     case I_MONO: // Monoflop
     case I_RETRIG: // Retriggerbares Monoflop
+      // configure PIN as Input
+      if (i<4) { 
+	InputPinsB |= PortToGPin[i] ;
+      } else {
+	InputPinsC |= PortToGPin[i] ;
+      } ;
       break ;
-    case I_ANALOG: // Analog-Input
+    case I_ANALOG: // Analog-Input, noch nicht implementiert
       break ;
     case O_ONOFF: // Ein-Aus
+      if (i<4) { 
+	OutputPinsB |= PortToGPin[i] ;
+      } else {
+	OutputPinsC |= PortToGPin[i] ;
+      } ;
       break ;
     case O_PWM: // PWM
-      PowerInit () ;
-      break ;
-    case O_WSCLOCK: // WS2801 Clock
-    case O_WSDATA: // WS2801 Data
-      WSinit () ;
       break ;
     } ;
   } ;
+
+  GPIO_InitStructure.GPIO_Pin = InputPinsB;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+  GPIO_InitStructure.GPIO_Pin = InputPinsC;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+  GPIO_InitStructure.GPIO_Pin = OutputPinsB;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+  GPIO_InitStructure.GPIO_Pin = OutputPinsC;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
+  GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+  if ((EEProm[380]!=0)||(EEProm[381]!=0)) { // Power-PWM output enabled
+    PowerInit () ;
+  } ;
+  if (EEProm[382]!=0) { // WS2812 LEDs 
+    CurrentWSNum = EEProm[382] ;
+    WSinit() ;
+  } ;
 }
 
+void BlendLED (int Num, int R, int G, int B, int Duration)
+{
+  int i,j ;
+  int Ch ;
+
+  Ch = EEProm[382]/EEProm[383] ; // Ch is number of LED to be changed
+
+  j = Ch*Num ;
+  WSRGBSoll[j].R = R ;
+  WSRGBSoll[j].G = G ;
+  WSRGBSoll[j].B = B ;
+  
+  if (Num!=0) { // Modify LED in front of desired LED
+    j = Ch*(Num-1) ;
+    for (i=1;i<=Ch;i++) {
+      WSRGBSoll[i+j].R = (int)WSRGBSoll[j].R+(((int)WSRGBSoll[j+Ch].R-(int)WSRGBSoll[j].R)*i)/Ch; 
+      WSRGBSoll[i+j].G = (int)WSRGBSoll[j].G+(((int)WSRGBSoll[j+Ch].G-(int)WSRGBSoll[j].G)*i)/Ch; 
+      WSRGBSoll[i+j].B = (int)WSRGBSoll[j].B+(((int)WSRGBSoll[j+Ch].B-(int)WSRGBSoll[j].B)*i)/Ch; 
+      if (TimerLED[i+j]==0) {
+	DurationLED[i+j]=TimerLED[i+j]=Duration; 
+      } ; 
+    }; 
+  }; 
+  if (Num!=EEProm[383]-1) { // Modify LED after desired LED
+    j = Ch*Num ;
+    for (i=0;i<Ch;i++) {
+      WSRGBSoll[i+j].R = (int)WSRGBSoll[j].R+(((int)WSRGBSoll[j+Ch].R-(int)WSRGBSoll[j].R)*i)/Ch; 
+      WSRGBSoll[i+j].G = (int)WSRGBSoll[j].G+(((int)WSRGBSoll[j+Ch].G-(int)WSRGBSoll[j].G)*i)/Ch; 
+      WSRGBSoll[i+j].B = (int)WSRGBSoll[j].B+(((int)WSRGBSoll[j+Ch].B-(int)WSRGBSoll[j].B)*i)/Ch; 
+      if (TimerLED[i+j]==0) {
+	DurationLED[i+j]=TimerLED[i+j]=Duration; 
+      } ; 
+    }; 
+  } ;
+}
 
 // Hauptprogramm
  
@@ -276,7 +478,7 @@ int main(void)
   EEPromInit () ;
   
   if (EEProm==NULL) {
-    // Config has not yet been written - restart Bootloader to enable upload of main application
+    // Config has not yet been written - restart Bootloader to enable upload of bootstrap
     NVIC_SystemReset ();
   } ;
 
@@ -372,27 +574,60 @@ int main(void)
     case CHANNEL_OFF:
     case CHANNEL_TOGGLE:
       j-- ;
-      if (j>(uint8_t)5) j=0 ;
-      for (;(j<InMessage.Data[1])&&(j<6);j++) { // Wenn Port = 1..6, dann nur diesen, sonst alle
+      if (j>(uint8_t)7) j=0 ;
+      for (;(j<InMessage.Data[1])&&(j<8);j++) { // Wenn Port = 1..6, dann nur diesen, sonst alle
 	if ((Type[j]!=(uint8_t)O_ONOFF)&&(Type[j]!=(uint8_t)O_PWM)) continue ; // Illegaler PIN
 	if (r==(uint8_t)CHANNEL_ON) {
-	  i = 255 ;
+	  if (j<4) {
+	    GPIOB->BSRR = PortToGPin[j] ;
+	  } else {
+	    GPIOC->BSRR = PortToGPin[j] ;
+	  } ;
 	} else if (r==(uint8_t)CHANNEL_OFF) {
-	  i = 0 ;
+	  if (j<4) {
+	    GPIOB->BRR = PortToGPin[j] ;
+	  } else {
+	    GPIOC->BRR = PortToGPin[j] ;
+	  } ;
 	} else {
-	  //	  i =255-PWM[j] ;
-	}
-	//	START_PWM[j] = PWM[j] ;
-	// SOLL_PWM[j] = i ;
-	if (Config[j]) {
-	  // TimerPWM[j] = DurationPWM[j] = Config[j] ;
-	} else {
-	  // TimerPWM[j] = DurationPWM[j] = 1 ;
+	  if (j<4) {
+	    if ((GPIOB->ODR & PortToGPin[j])!=0) {
+	      GPIOB->BRR = PortToGPin[j] ;
+	    } else {
+	      GPIOB->BSRR = PortToGPin[j] ;
+	    } ;
+	  } else {
+	    if ((GPIOC->ODR & PortToGPin[j])!=0) {
+	      GPIOC->BRR = PortToGPin[j] ;
+	    } else {
+	      GPIOC->BSRR = PortToGPin[j] ;
+	    } ;
+	  } ;
 	} ;
       } ;
       break ;
-
-
+    case SET_PIN:
+    case DIM_TO:
+      if (r==DIM_TO) {
+	r = 3 ;
+      } else {
+	r = 0 ;
+      } ;
+      j-- ;
+      if (j>(uint8_t)5) j=0 ;
+      for (;(j<Message.data[1])&&(j<6);j++) { // Wenn Port = 1..6, dann nur diesen, sonst alle
+	if ((Type[j]!=O_ONOFF)&&(Type[j]!=O_PWM)) break ; // Illegaler PIN
+	cli () ;
+	START_PWM[j] = PWM[j] ;
+	SOLL_PWM[j] = Message.data[2+r] ;
+	TimerPWM[j] = DurationPWM[j] = (Message.data[3+r]<<2)+1 ;
+	sei () ;
+      } ;
+      break ;
+    case LOAD_LED:
+      if ((j+1)>(EEProm[382]/EEProm[383])) break; // Zu hohe LED-Nummer
+      BlendLED(j,Message.Data[2],Message.Data[3],Message.Data[4],(Message.Data[5]<<2)+1) ;
+      break ;
     default:
       break ;
     } ;

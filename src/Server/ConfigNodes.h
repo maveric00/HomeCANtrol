@@ -36,6 +36,19 @@ struct EEPromTast {
   unsigned char PAD2 [144] ;
 } ;
 
+struct EEPromSTM {
+  struct EEPromSensPin Pin[8] ;
+  unsigned char PAD [20] ;
+  struct EEPromSensConf Config[8] ;
+  unsigned char REPEAT_START ;
+  unsigned char REPEAT_END ;
+  unsigned char PAD2 [12] ;
+  unsigned char PowerEnable[2] ;
+  unsigned char WSNum ;
+  unsigned char VirtWSNum ;
+  unsigned char PAD2 [128] ;
+} ;
+
 struct EEPromRelais {
   unsigned char RTFull[5] ;
   unsigned char PAD1[5] ;
@@ -65,6 +78,7 @@ struct EEPROM {
   union {
     struct EEPromSens Sensor ;
     struct EEPromTast Taster ;
+    struct EEPromSTM STM ;
     struct EEPromRelais Relais ;
     struct EEPromBad Bad ;
     struct EEPromLED LED ;

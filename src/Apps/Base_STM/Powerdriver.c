@@ -32,9 +32,6 @@ void PowerInit (void)
   /* TIM2 clock enable */
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
   
-  /* GPIOC clock enable */
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
-  
   /* GPIO Init */
   
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_11;
@@ -49,7 +46,7 @@ void PowerInit (void)
   GPIO_Init(GPIOC, &GPIO_InitStructure);
 
   // reset Enable Input of 74hct244 (to enable output)
-  GPIOC->BRR = 0x00000100 ;
+  GPIOC->BRR = GPIO_Pin_9 ;
   
   /* Enable the TIM2 global Interrupt */
   NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;

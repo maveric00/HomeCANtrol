@@ -60,6 +60,7 @@ void WSupdate(void)
   WSstartDMA();		// send it to RGB stripe
 }
 
+
 void WSinit(void)
 {
   GPIO_InitTypeDef GPIO_InitStructure;
@@ -83,14 +84,11 @@ void WSinit(void)
   ledBusy = 0 ;
   
   // GPIO
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
   
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
   
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
@@ -98,7 +96,7 @@ void WSinit(void)
   GPIO_Init(GPIOC, &GPIO_InitStructure);
 
   // reset Enable Input of 74hct244 (to enable output)
-  GPIOC->BRR = 0x00000100 ;
+  GPIOC->BRR = GPIO_Pin_9 ;
   
   // Timer
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);

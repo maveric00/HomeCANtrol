@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Haus>
+<Haus name="George">
   <Sprache ist="deutsch"/>
   <Broadcast IP="192.168.69.255"/>
   <Ort west="-6.55" nord="51"/>

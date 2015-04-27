@@ -280,6 +280,18 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       if ((strcmp(attr[i],"intervall")==0)||(strcmp(attr[i],"interval")==0)) {
 	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.Intervall)) ;
       } ;
+      if ((strcmp(attr[i],"led")==0)||(strcmp(attr[i],"led")==0)) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.WSNum)) ;
+      } ;
+      if ((strcmp(attr[i],"virtled")==0)||(strcmp(attr[i],"virtled")==0)) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.VirtWSNum)) ;
+      } ;
+      if ((strcmp(attr[i],"power1")==0)||(strcmp(attr[i],"power1")==0)) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.Power1)) ;
+      } ;
+      if ((strcmp(attr[i],"power2")==0)||(strcmp(attr[i],"power2")==0)) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.Power2)) ;
+      } ;
       break ;
     case N_BAD:
       if ((strcmp(attr[i],"dauer")==0)||(strcmp(attr[i],"duration")==0)) {

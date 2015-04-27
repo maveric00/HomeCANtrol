@@ -1064,6 +1064,7 @@ int Handle_NaturalCommand (char *Command)
   char CC[NAMELEN*4] ;
   char *NextWord ;
   char Polite ;
+  char Name ;
   int Line,Add,Port ;
 
   struct Node *Actual ;
@@ -1073,7 +1074,7 @@ int Handle_NaturalCommand (char *Command)
 
   // Parse each word and see, if it is an required element
 
-  Com = Polite = 0 ;
+  Com = Polite = Name = 0 ;
   Floor = Room = Item = NULL ;
   
   // Search for floor
@@ -1132,6 +1133,8 @@ int Handle_NaturalCommand (char *Command)
       Com = A_SHADE_DOWN_FULL;
     } else if ((strstr(NextWord,"bitte"))||(strstr(NextWord,"please"))) {
       Polite = 1 ;
+    } else if (strstr(NextWord,Haus->Name) {
+      Name = 1 ;
     }  ;
     NextWord = strtok(NULL,delimiter) ;
   } ;
@@ -1158,13 +1161,15 @@ int Handle_NaturalCommand (char *Command)
   Item = Actual ;
   if (IsMakro(Item)) Com=A_CALL ;
 
-  if ((Item!=NULL)&&(Polite!=0)&&(Com!=0)) {
+  if ((Item!=NULL)&&(Polite!=0)&&(Name!=0)&&(Com!=0)) {
     // Full command has been given, execute
     if (IsMakro(Item)) {
-      ExecuteMakro (Item) ;
+      fprintf (stderr,"Natural voice commands macro: %s\n",Item->Name) ;
+      //      ExecuteMakro (Item) ;
     } else {
       if (GetNodeAdress(Item,&Line,&Add,&Port)==0) {
-	SendCommand(Com,Line,Add,Port) ;
+	fprintf (stderr,"Natural voice commands %d on Line %d, Add %d, Port %d\n",Com,Line,Add,Port) ;
+	//SendCommand(Com,Line,Add,Port) ;
       } ;
     }  ;
   } ;

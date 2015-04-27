@@ -146,6 +146,10 @@ struct Sensor {
   int Ende ;
   int Reset ;
   int Intervall ;
+  int WSNum ;
+  int VirtWSNum ;
+  int Power1 ;
+  int Power2 ;
 } ;
 
 struct Rollo {

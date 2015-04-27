@@ -164,6 +164,11 @@ void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom,int Large)
   struct EEPromSensConf *Conf ;
 
   GetNodeAdress(Node,&L1,&K1,&P1) ;
+
+  if (P1==0) { // Port 0 is not a feasible port, no configuration required
+    return ;
+  } ;
+  
   if (Large==0) {
     if (P1>6) {
       fprintf (stderr,"Sensor with too high port %d at L:%d, K:%d\n",P1,L1,K1) ;
@@ -298,11 +303,8 @@ void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom,int Large)
 void MakeBadConfig (struct Node *Node, struct EEPROM *EEprom)
 {
   int i,j ;
-  int L1,K1,P1 ;
   struct Node *Action ;
   struct EEPromSensFunc *Func ;
-
-  GetNodeAdress(Node,&L1,&K1,&P1) ;
 
   // Konfiguration uebersetzen
   EEprom->Data.Bad.DelayTimer = Node->Data.Sensor.Lang ;
@@ -432,7 +434,7 @@ int MakeConfig (int Linie, int Knoten, struct EEPROM *EEprom)
 	  return (0) ;
 	};
       } ;
-      MakeSensorConfig(ANodes[i],EEprom,1) ;
+      MakeSensorConfig(ANodes[i],EEprom,0) ;
       break ;
     case N_EXTENDED:
       if (EEprom->BoardType==0xFF) {
@@ -443,9 +445,12 @@ int MakeConfig (int Linie, int Knoten, struct EEPROM *EEprom)
 	  return (0) ;
 	};
       } ;
+      if (ANodes[i]->Data.Sensor.WSNum!=0) EEprom->Data.STM.WSNum = ANodes[i]->Data.Sensor.WSNum ;
+      if (ANodes[i]->Data.Sensor.VirtWSNum!=0) EEprom->Data.STM.VirtWSNum = ANodes[i]->Data.Sensor.VirtWSNum ;
+      if (ANodes[i]->Data.Sensor.Power1!=0) EEprom->Data.STM.PowerEnable[0] = ANodes[i]->Data.Sensor.Power1 ;
+      if (ANodes[i]->Data.Sensor.Power2!=0) EEprom->Data.STM.PowerEnable[1] = ANodes[i]->Data.Sensor.Power2 ;
       MakeSensorConfig(ANodes[i],EEprom,1) ;
       break ;
-
     case N_BAD:
       if (EEprom->BoardType==0xFF) {
 	EEprom->BoardType = 1 ;
