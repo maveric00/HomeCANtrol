@@ -219,7 +219,6 @@ void TIM3_IRQHandler(void)
   uint16_t i ;
   uint16_t PinStatus ;
   static uint8_t WSCounter ;
-  uint8_t WSByte ;
 
   if (TIM3->SR&TIM_IT_Update) {
     TIM3->SR = (uint16_t)~TIM_IT_Update ;
@@ -255,8 +254,8 @@ void TIM3_IRQHandler(void)
 	  WSRGB[i].B = (uint8_t)((int16_t)WSRGBStart[i].B+
 				 (int16_t)(((int32_t)WSRGBSoll[i].B-(int32_t)WSRGBStart[i].B)*
 					   ((int32_t)DurationLED[i]-(int32_t)TimerLED[i])/(int32_t)DurationLED[i])) ;
-	  if (!TimerLED[j]) {
-	    DurationLED[j] = 1 ;
+	  if (!TimerLED[i]) {
+	    DurationLED[i] = 1 ;
 	    WSRGBStart[i].R = WSRGBSoll[i].R ;
 	    WSRGBStart[i].G = WSRGBSoll[i].G ;
 	    WSRGBStart[i].B = WSRGBSoll[i].B ;
@@ -465,7 +464,7 @@ int main(void)
 {
   CanRxMsg InMessage ;
   unsigned int Addr ;
-  int i,j,r ;
+  int j,r ;
   int LastCommand ;
 
   NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x4000);
@@ -615,13 +614,13 @@ int main(void)
       } ;
       j-- ;
       if (j>(uint8_t)5) j=0 ;
-      for (;(j<Message.data[1])&&(j<6);j++) { // Wenn Port = 1..6, dann nur diesen, sonst alle
+      for (;(j<Message.Data[1])&&(j<6);j++) { // Wenn Port = 1..6, dann nur diesen, sonst alle
 	if ((Type[j]!=O_ONOFF)&&(Type[j]!=O_PWM)) break ; // Illegaler PIN
-	cli () ;
-	START_PWM[j] = PWM[j] ;
-	SOLL_PWM[j] = Message.data[2+r] ;
-	TimerPWM[j] = DurationPWM[j] = (Message.data[3+r]<<2)+1 ;
-	sei () ;
+	//	cli () ;
+	//	START_PWM[j] = PWM[j] ;
+	//	SOLL_PWM[j] = Message.data[2+r] ;
+	//	TimerPWM[j] = DurationPWM[j] = (Message.data[3+r]<<2)+1 ;
+	//	sei () ;
       } ;
       break ;
     case LOAD_LED:

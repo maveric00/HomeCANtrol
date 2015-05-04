@@ -1062,6 +1062,7 @@ int Handle_NaturalCommand (char *Command)
 {
   NodeType Com ;
   char CC[NAMELEN*4] ;
+  char DF[NAMELEN*4] ;
   char *NextWord ;
   char Polite ;
   char Name ;
@@ -1076,6 +1077,8 @@ int Handle_NaturalCommand (char *Command)
 
   Com = Polite = Name = 0 ;
   Floor = Room = Item = NULL ;
+
+  printf ("Entry\n") ;
   
   // Search for floor
 
@@ -1092,13 +1095,18 @@ int Handle_NaturalCommand (char *Command)
     NextWord = strtok (NULL,delimiter) ;
   } ;  
   
+  if (Floor!=NULL) printf ("Floor: %s\n",Floor->Name) ;
+
   // search for Room
   
   strcpy (CC,Command) ;
   NextWord = strtok (CC,delimiter) ;
   while (NextWord) {
     if (Floor) {
-      Actual = FindNode(Floor,NextWord) ;
+      sprintf (DF,"%s/%s",Floor->Name,NextWord) ;
+      Actual = FindNode(Floor,DF) ;
+      printf ("Next word: %s\n",DF) ;
+      if (Actual!=NULL) printf ("Actual %s\n",Actual->Name) ;
     } else if (DefaultFloor) {
       Actual = FindNode(DefaultFloor,NextWord) ;
     } else {
@@ -1112,6 +1120,8 @@ int Handle_NaturalCommand (char *Command)
     } ;
     NextWord = strtok (NULL,delimiter) ;
   } ;  
+
+  if (Room!=NULL) printf ("Room: %s\n",Room->Name) ;
   
   // Find Action
   
@@ -1133,18 +1143,21 @@ int Handle_NaturalCommand (char *Command)
       Com = A_SHADE_DOWN_FULL;
     } else if ((strstr(NextWord,"bitte"))||(strstr(NextWord,"please"))) {
       Polite = 1 ;
-    } else if (strstr(NextWord,Haus->Name) {
+    } else if (strstr(NextWord,Haus->Name)) {
       Name = 1 ;
     }  ;
     NextWord = strtok(NULL,delimiter) ;
   } ;
   
+  printf ("Command: %d\n",Com) ;
+
   strcpy (CC,Command) ;
   NextWord = strtok (CC,delimiter) ;
   Actual = NULL ;
   while ((NextWord)&&(Actual==NULL)) {
     if (Room) {
-      Actual = FindNode(Room,NextWord) ;
+      sprintf (DF,"%s/%s",Room->Name,NextWord) ;
+      Actual = FindNode(Room,DF) ;
       if ((Actual!=NULL)&&
 	  (Actual->Type!=N_ONOFF)&&(Actual->Type!=N_SHADE)&&
 	  (Actual->Type!=N_SENSOR)&&(Actual->Type!=N_BAD)&&
@@ -1159,17 +1172,21 @@ int Handle_NaturalCommand (char *Command)
   } ;
 
   Item = Actual ;
-  if (IsMakro(Item)) Com=A_CALL ;
 
+  if (Item!=NULL) printf ("Item: %s\n",Item->Name) ;
+  printf ("Polite: %d\n",Polite) ;
+  printf ("Name: %d\n",Name) ;
+  
   if ((Item!=NULL)&&(Polite!=0)&&(Name!=0)&&(Com!=0)) {
+    if (IsMakro(Item)) Com=A_CALL ;
     // Full command has been given, execute
     if (IsMakro(Item)) {
       fprintf (stderr,"Natural voice commands macro: %s\n",Item->Name) ;
-      //      ExecuteMakro (Item) ;
+      ExecuteMakro (Item) ;
     } else {
       if (GetNodeAdress(Item,&Line,&Add,&Port)==0) {
 	fprintf (stderr,"Natural voice commands %d on Line %d, Add %d, Port %d\n",Com,Line,Add,Port) ;
-	//SendCommand(Com,Line,Add,Port) ;
+	SendCommand(Com,Line,Add,Port) ;
       } ;
     }  ;
   } ;

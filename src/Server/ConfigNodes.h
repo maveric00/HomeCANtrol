@@ -46,7 +46,7 @@ struct EEPromSTM {
   unsigned char PowerEnable[2] ;
   unsigned char WSNum ;
   unsigned char VirtWSNum ;
-  unsigned char PAD2 [128] ;
+  unsigned char PAD3 [128] ;
 } ;
 
 struct EEPromRelais {
