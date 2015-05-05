@@ -364,6 +364,7 @@ void InitMC (void)
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 
   /* Enable the TIM3 global Interrupt */
   NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
@@ -384,6 +385,7 @@ void InitMC (void)
   TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
 
   TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+  TIM_Cmd (TIM3,ENABLE) ;
 
   sei () ;
   

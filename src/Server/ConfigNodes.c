@@ -177,7 +177,9 @@ void MakeSensorConfig (struct Node *Node, struct EEPROM *EEprom,int Large)
     Conf = &(EEprom->Data.Sensor.Config[0]);
   } else {
     if (P1>8) {
-      fprintf (stderr,"Button with too high port %d at L:%d, K:%d\n",P1,L1,K1) ;
+      if (Large==1) {
+	fprintf (stderr,"Button with too high port %d at L:%d, K:%d\n",P1,L1,K1) ;
+      } ; // Wenn Extended und Port>8, dann nicht konfigurieren
       return ;
     } ;
     Conf = &(EEprom->Data.Taster.Config[0]);
@@ -449,7 +451,7 @@ int MakeConfig (int Linie, int Knoten, struct EEPROM *EEprom)
       if (ANodes[i]->Data.Sensor.VirtWSNum!=0) EEprom->Data.STM.VirtWSNum = ANodes[i]->Data.Sensor.VirtWSNum ;
       if (ANodes[i]->Data.Sensor.Power1!=0) EEprom->Data.STM.PowerEnable[0] = ANodes[i]->Data.Sensor.Power1 ;
       if (ANodes[i]->Data.Sensor.Power2!=0) EEprom->Data.STM.PowerEnable[1] = ANodes[i]->Data.Sensor.Power2 ;
-      MakeSensorConfig(ANodes[i],EEprom,1) ;
+      MakeSensorConfig(ANodes[i],EEprom,2) ;
       break ;
     case N_BAD:
       if (EEprom->BoardType==0xFF) {

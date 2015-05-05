@@ -308,11 +308,14 @@
 	<Aktion autonom="0" kommando="Hoch" objekt="Erdgeschoss/Esszimmer/Fenster"/>
 	<Aktion autonom="1" kommando="Hoch" objekt="Erdgeschoss/Esszimmer/Fenster"/>
       </Sensor>
-      <Multifunktion name="Lichtband" typ="WSData">
-	<Adresse linie="1" knoten="70" port="1"/>
+      <Multifunktion name="Lichtband" led="6" virtled="3" power1="1" power2="1">
+	<Adresse linie="1" knoten="70" port="11"/>
       </Multifunktion>
-      <Multifunktion name="Lichtband2" typ="WSClock">
-	<Adresse linie="1" knoten="70" port="2"/>
+      <Multifunktion name="Lichtband2" power1="1">
+	<Adresse linie="1" knoten="70" port="9"/>
+      </Multifunktion>
+      <Multifunktion name="Lichtband3" power2="1">
+	<Adresse linie="1" knoten="70" port="10"/>
       </Multifunktion>
       <Makro name="Aus">
 	<Adresse linie="0" knoten="200" port="10"/>

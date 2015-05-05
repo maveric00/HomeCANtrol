@@ -70,6 +70,8 @@ void WSinit(void)
   int i;
 
   // clear buffer
+  
+  WSDimmer = 100 ;
 
   for (i = 0; i < (WS_DMA_LEN - WS_RESET_LEN); i++) wstimerVals[i] = WS_ZERO;
   
@@ -118,11 +120,13 @@ void WSinit(void)
   TIM_ARRPreloadConfig(TIM1, ENABLE);
 
   TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-  TIM_Cmd(TIM1, ENABLE);
+  //TIM_Cmd(TIM1, ENABLE);
 
   // DMA
   RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
-  TIM_DMACmd(TIM1, TIM_DMA_CC1, ENABLE);
+  DMA_DeInit(DMA1_Channel2) ;
+
+  //  TIM_DMACmd(TIM1, TIM_DMA_CC1, ENABLE);
   DMA_ITConfig(DMA1_Channel2, DMA_IT_TC, ENABLE);
 
   // NVIC for DMA
@@ -135,24 +139,25 @@ void WSinit(void)
   WSstartDMA();
 }
 
-static DMA_InitTypeDef dma_init = {
-  .DMA_BufferSize = (WS_RESET_LEN),
-  .DMA_DIR = DMA_DIR_PeripheralDST,
-  .DMA_M2M = DMA_M2M_Disable,
-  .DMA_MemoryBaseAddr = (uint32_t) &wstimerVals[0],
-  .DMA_MemoryDataSize	= DMA_MemoryDataSize_HalfWord,
-  .DMA_MemoryInc = DMA_MemoryInc_Enable,
-  .DMA_Mode = DMA_Mode_Normal,
-  .DMA_PeripheralBaseAddr = (uint32_t) &(TIM1->CCR1),
-  .DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord,
-  .DMA_PeripheralInc = DMA_PeripheralInc_Disable,
-  .DMA_Priority = DMA_Priority_Medium
-};
+
 
 
 // transfer framebuffer data to the timer
 static void WSstartDMA(void)
 {
+  DMA_InitTypeDef dma_init;
+  dma_init.DMA_BufferSize = (WS_RESET_LEN);
+  dma_init.DMA_DIR = DMA_DIR_PeripheralDST;
+  dma_init.DMA_M2M = DMA_M2M_Disable;
+  dma_init.DMA_MemoryBaseAddr = (uint32_t) &(wstimerVals[0]);
+  dma_init.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
+  dma_init.DMA_MemoryInc = DMA_MemoryInc_Enable ;
+  dma_init.DMA_Mode = DMA_Mode_Normal;
+  dma_init.DMA_PeripheralBaseAddr = (uint32_t) &(TIM1->CCR1); 
+  dma_init.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
+  dma_init.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+  dma_init.DMA_Priority = DMA_Priority_Medium ;
+
   if (ledBusy)		// last DMA is not finished
     return;
   
@@ -160,14 +165,18 @@ static void WSstartDMA(void)
   dma_init.DMA_BufferSize = WS_RESET_LEN+CurrentWSNum*3*8 ;
 
   DMA_Cmd(DMA1_Channel2, DISABLE);
+  while (DMA1_Channel2->CCR & DMA_CCR1_EN);
+
   DMA_Init(DMA1_Channel2, &dma_init);
-  DMA_Cmd(DMA1_Channel2, ENABLE);
   TIM_DMACmd(TIM1, TIM_DMA_CC1, ENABLE);
+  DMA_Cmd(DMA1_Channel2, ENABLE);
+  TIM_Cmd(TIM1, ENABLE);
 }
 
 // gets called when dma transfer has completed
 void DMA1_Channel2_IRQHandler(void)
 {
+  TIM_Cmd(TIM1, DISABLE);
   DMA_ClearITPendingBit(DMA1_IT_TC2);
   DMA_Cmd(DMA1_Channel2, DISABLE);
   // need to disable this, otherwise some glitches can occur (first bit gets lost)
