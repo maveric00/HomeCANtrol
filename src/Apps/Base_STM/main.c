@@ -139,6 +139,12 @@ uint16_t TimerLED[MAXWSNUM] ; // gets modified in main
 uint16_t DurationLED[MAXWSNUM] ; // gets modified in main
 uint8_t ChangedLED ;
 
+volatile uint8_t PWM[2] ;
+uint8_t START_PWM[2] ;
+uint8_t SOLL_PWM[2] ;
+uint16_t TIMER_PWM[2] ;
+uint16_t DURATION_PWM[2] ;
+
 CanTxMsg Message ;
 
 
@@ -219,7 +225,8 @@ void TIM3_IRQHandler(void)
   uint16_t i ;
   uint16_t PinStatus ;
   static uint8_t WSCounter ;
-
+  int PWMChange ;
+  
   if (TIM3->SR&TIM_IT_Update) {
     TIM3->SR = (uint16_t)~TIM_IT_Update ;
     if (Heartbeat<=TIMEOUT+1) Heartbeat++ ;
@@ -231,12 +238,31 @@ void TIM3_IRQHandler(void)
 	WSupdate () ;
       } ;
     } ;
-
+    
     WSCounter++ ;
     if (WSCounter>(uint8_t)1) {
       // Nur alle 20 ms updaten (50 Hz Update-Rate reicht); maximale Fading-Zeit liegt bei 25,5 Sekunden mit 0,1 Sekunde Aufloesung
       
       WSCounter = 0 ;
+      PWMChange = 0 ;
+      for (i=0;i<2;i++) {
+	if (TIMER_PWM[i]>0) {
+	  TIMER_PWM[i]-- ;
+	  PWM[i] = (uint8_t)((int16_t)START_PWM[i]+(int16_t)(((int32_t)SOLL_PWM[i]-(int32_t)START_PWM[i])*
+							     ((int32_t)DURATION_PWM[i]-(int32_t)TIMER_PWM[i])/
+							     (int32_t)DURATION_PWM[i])) ;
+	  PWMChange = 1 ;
+	  if (!TIMER_PWM[i]) {
+	    START_PWM[i] = SOLL_PWM[i] ;
+	    DURATION_PWM[i] = 1 ;
+	  } ;
+	} ;
+      }; 
+      
+      if (PWMChange) {
+	  PowerSet(PWM[0],PWM[1]) ;
+      } ;
+
       // Berechnen des Sollwerts und Ausgeben desselben
       for (i=0;i<CurrentWSNum;i++) if (TimerLED[i]>0) break ;
       
@@ -244,23 +270,23 @@ void TIM3_IRQHandler(void)
 	for (i=0;i<CurrentWSNum;i++) {
 	  if (TimerLED[i]>0) {
 	    TimerLED[i]-- ;
+	    WSRGB[i].R = (uint8_t)((int16_t)WSRGBStart[i].R+
+				   (int16_t)(((int32_t)WSRGBSoll[i].R-(int32_t)WSRGBStart[i].R)*
+					     ((int32_t)DurationLED[i]-(int32_t)TimerLED[i])/(int32_t)DurationLED[i])) ;
+	    WSRGB[i].G = (uint8_t)((int16_t)WSRGBStart[i].G+
+				   (int16_t)(((int32_t)WSRGBSoll[i].G-(int32_t)WSRGBStart[i].G)*
+					     ((int32_t)DurationLED[i]-(int32_t)TimerLED[i])/(int32_t)DurationLED[i])) ;
+	    WSRGB[i].B = (uint8_t)((int16_t)WSRGBStart[i].B+
+				   (int16_t)(((int32_t)WSRGBSoll[i].B-(int32_t)WSRGBStart[i].B)*
+					     ((int32_t)DurationLED[i]-(int32_t)TimerLED[i])/(int32_t)DurationLED[i])) ;
+	    if (!TimerLED[i]) {
+	      DurationLED[i] = 1 ;
+	      WSRGBStart[i].R = WSRGBSoll[i].R ;
+	      WSRGBStart[i].G = WSRGBSoll[i].G ;
+	      WSRGBStart[i].B = WSRGBSoll[i].B ;
+	    } ;
+	    ChangedLED=1 ;
 	  } ;
-	  WSRGB[i].R = (uint8_t)((int16_t)WSRGBStart[i].R+
-				 (int16_t)(((int32_t)WSRGBSoll[i].R-(int32_t)WSRGBStart[i].R)*
-					   ((int32_t)DurationLED[i]-(int32_t)TimerLED[i])/(int32_t)DurationLED[i])) ;
-	  WSRGB[i].G = (uint8_t)((int16_t)WSRGBStart[i].G+
-				 (int16_t)(((int32_t)WSRGBSoll[i].G-(int32_t)WSRGBStart[i].G)*
-					   ((int32_t)DurationLED[i]-(int32_t)TimerLED[i])/(int32_t)DurationLED[i])) ;
-	  WSRGB[i].B = (uint8_t)((int16_t)WSRGBStart[i].B+
-				 (int16_t)(((int32_t)WSRGBSoll[i].B-(int32_t)WSRGBStart[i].B)*
-					   ((int32_t)DurationLED[i]-(int32_t)TimerLED[i])/(int32_t)DurationLED[i])) ;
-	  if (!TimerLED[i]) {
-	    DurationLED[i] = 1 ;
-	    WSRGBStart[i].R = WSRGBSoll[i].R ;
-	    WSRGBStart[i].G = WSRGBSoll[i].G ;
-	    WSRGBStart[i].B = WSRGBSoll[i].B ;
-	  } ;
-	  ChangedLED=1 ;
 	} ;
       } ;
     } ;
@@ -422,6 +448,20 @@ void InitMC (void)
   } ;
 }
 
+void SetAllLED (int R, int G, int B, int Duration) 
+{
+  int i ;
+  
+  for (i=0;i<EEProm[382];i++) {
+    WSRGBSoll[i].R = R ;
+    WSRGBSoll[i].G = G ;
+    WSRGBSoll[i].B = B ;
+    if (TimerLED[i]==0) {
+      DurationLED[i]=TimerLED[i]=Duration; 
+    } ; 
+  } ;
+}
+
 void BlendLED (int Num, int R, int G, int B, int Duration)
 {
   int i,j ;
@@ -573,33 +613,59 @@ int main(void)
     case CHANNEL_OFF:
     case CHANNEL_TOGGLE:
       j-- ;
-      if (j>(uint8_t)7) j=0 ;
-      for (;(j<InMessage.Data[1])&&(j<8);j++) { // Wenn Port = 1..6, dann nur diesen, sonst alle
-	if ((Type[j]!=(uint8_t)O_ONOFF)&&(Type[j]!=(uint8_t)O_PWM)) continue ; // Illegaler PIN
+      // Port 9 und 10 sind die beiden PWM-Ports, Port 11 die LEDs
+      if ((j==8)||(j==9)) {
 	if (r==(uint8_t)CHANNEL_ON) {
-	  if (j<4) {
-	    GPIOB->BSRR = PortToGPin[j] ;
-	  } else {
-	    GPIOC->BSRR = PortToGPin[j] ;
-	  } ;
+	  SOLL_PWM[j-8] = PWM[j-8] = 255 ;
+	  PowerSet(PWM[0],PWM[1]) ;
 	} else if (r==(uint8_t)CHANNEL_OFF) {
-	  if (j<4) {
-	    GPIOB->BRR = PortToGPin[j] ;
-	  } else {
-	    GPIOC->BRR = PortToGPin[j] ;
-	  } ;
+	  SOLL_PWM[j-8] = PWM[j-8] = 0 ;
+	  PowerSet(PWM[0],PWM[1]) ;
 	} else {
-	  if (j<4) {
-	    if ((GPIOB->ODR & PortToGPin[j])!=0) {
-	      GPIOB->BRR = PortToGPin[j] ;
-	    } else {
-	      GPIOB->BSRR = PortToGPin[j] ;
-	    } ;
+	  SOLL_PWM[j-8] = PWM[j-8] = 255-SOLL_PWM[j-8] ;
+	  PowerSet(PWM[0],PWM[1]) ;
+	} ;
+      } else if (j==10) {
+	if (r==(uint8_t)CHANNEL_ON) {
+	  SetAllLED (255,255,255,20) ;
+	} else if (r==(uint8_t)CHANNEL_OFF) {
+	  SetAllLED (0,0,0,20) ;
+	} else {
+	  if (WSRGBSoll[0].R!=0) {
+	    SetAllLED (255,255,255,20) ;
 	  } else {
-	    if ((GPIOC->ODR & PortToGPin[j])!=0) {
-	      GPIOC->BRR = PortToGPin[j] ;
+	    SetAllLED (0,0,0,20) ;
+	  } ;
+	} ;
+      } else {
+	if (j>(uint8_t)7) j=0 ;
+	for (;(j<InMessage.Data[1])&&(j<8);j++) { // Wenn Port = 1..6, dann nur diesen, sonst alle
+	  if ((Type[j]!=(uint8_t)O_ONOFF)&&(Type[j]!=(uint8_t)O_PWM)) continue ; // Illegaler PIN
+	  if (r==(uint8_t)CHANNEL_ON) {
+	    if (j<4) {
+	      GPIOB->BSRR = PortToGPin[j] ;
 	    } else {
 	      GPIOC->BSRR = PortToGPin[j] ;
+	    } ;
+	  } else if (r==(uint8_t)CHANNEL_OFF) {
+	    if (j<4) {
+	      GPIOB->BRR = PortToGPin[j] ;
+	    } else {
+	      GPIOC->BRR = PortToGPin[j] ;
+	    } ;
+	  } else {
+	    if (j<4) {
+	      if ((GPIOB->ODR & PortToGPin[j])!=0) {
+		GPIOB->BRR = PortToGPin[j] ;
+	      } else {
+		GPIOB->BSRR = PortToGPin[j] ;
+	      } ;
+	    } else {
+	      if ((GPIOC->ODR & PortToGPin[j])!=0) {
+		GPIOC->BRR = PortToGPin[j] ;
+	      } else {
+		GPIOC->BSRR = PortToGPin[j] ;
+	      } ;
 	    } ;
 	  } ;
 	} ;
@@ -613,14 +679,16 @@ int main(void)
 	r = 0 ;
       } ;
       j-- ;
-      if (j>(uint8_t)5) j=0 ;
-      for (;(j<Message.Data[1])&&(j<6);j++) { // Wenn Port = 1..6, dann nur diesen, sonst alle
-	if ((Type[j]!=O_ONOFF)&&(Type[j]!=O_PWM)) break ; // Illegaler PIN
-	//	cli () ;
-	//	START_PWM[j] = PWM[j] ;
-	//	SOLL_PWM[j] = Message.data[2+r] ;
-	//	TimerPWM[j] = DurationPWM[j] = (Message.data[3+r]<<2)+1 ;
-	//	sei () ;
+      // Port 9 und 10 sind die beiden PWM-Ports, Port 11 die LEDs
+      if ((j==8)||(j==9)) {
+	START_PWM[j-8] = PWM[j-8] ;
+	SOLL_PWM[j-8] = Message.Data[2+r] ;
+	TIMER_PWM[j] = DURATION_PWM[j] = (Message.Data[3+r]<<2)+1 ;    
+      } else if (j==10) {
+      }  else {
+	if (j>(uint8_t)7) j=0 ;
+	for (;(j<Message.Data[1])&&(j<6);j++) { // Wenn Port = 1..6, dann nur diesen, sonst alle
+	} ;
       } ;
       break ;
     case LOAD_LED:

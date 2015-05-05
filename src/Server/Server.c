@@ -343,7 +343,7 @@ void StepMakros (void)
 	  } else if (That->Type==N_SET) {
 	    Caller = FindNode(Haus->Child,That->Data.Wert.UnitName) ;
 	    if (Caller==NULL) { 
-	      printf ("Unknown variable: %s\n",That->Data.Wert.UnitName) ;
+	      fprintf (stderr,"Unknown variable: %s\n",That->Data.Wert.UnitName) ;
 	    } else {
 	      Caller->Value = CalcValue(That->Data.Wert.Wert) ;
 	    } ;
@@ -719,7 +719,7 @@ void HandleCANRequest(void)
       if (This!=NULL) {
 	This->Value = Data[1]+(Data[2]<<8) ;
       } else {
-	printf ("Configuration of sensor %d.%d is wrong (node %d.%d not found)\n",FromLine,FromAdd,ToLine,ToAdd) ;
+	fprintf (stderr,"Configuration of sensor %d.%d is wrong (node %d.%d not found)\n",FromLine,FromAdd,ToLine,ToAdd) ;
       }
     } ;
   } ;
@@ -1062,7 +1062,6 @@ int Handle_NaturalCommand (char *Command)
 {
   NodeType Com ;
   char CC[NAMELEN*4] ;
-  char DF[NAMELEN*4] ;
   char *NextWord ;
   char Polite ;
   char Name ;
@@ -1078,8 +1077,6 @@ int Handle_NaturalCommand (char *Command)
   Com = Polite = Name = 0 ;
   Floor = Room = Item = NULL ;
 
-  printf ("Entry\n") ;
-  
   // Search for floor
 
   strcpy (CC,Command) ;
@@ -1095,20 +1092,15 @@ int Handle_NaturalCommand (char *Command)
     NextWord = strtok (NULL,delimiter) ;
   } ;  
   
-  if (Floor!=NULL) printf ("Floor: %s\n",Floor->Name) ;
-
   // search for Room
   
   strcpy (CC,Command) ;
   NextWord = strtok (CC,delimiter) ;
   while (NextWord) {
     if (Floor) {
-      sprintf (DF,"%s/%s",Floor->Name,NextWord) ;
-      Actual = FindNode(Floor,DF) ;
-      printf ("Next word: %s\n",DF) ;
-      if (Actual!=NULL) printf ("Actual %s\n",Actual->Name) ;
+      Actual = FindNode(Floor->Child,NextWord) ;
     } else if (DefaultFloor) {
-      Actual = FindNode(DefaultFloor,NextWord) ;
+      Actual = FindNode(DefaultFloor->Child,NextWord) ;
     } else {
       Actual = FindGlobalNode (Haus->Child,NextWord) ;
     } ;
@@ -1121,8 +1113,6 @@ int Handle_NaturalCommand (char *Command)
     NextWord = strtok (NULL,delimiter) ;
   } ;  
 
-  if (Room!=NULL) printf ("Room: %s\n",Room->Name) ;
-  
   // Find Action
   
   strcpy (CC,Command) ;
@@ -1130,17 +1120,17 @@ int Handle_NaturalCommand (char *Command)
   while (NextWord) {
     if (strstr(NextWord,"an")||strstr(NextWord,"on")||
 	strstr(NextWord,"anmachen")||strstr(NextWord,"anschalten")) {
-      Com = A_ON ;
+      Com = CHANNEL_ON ;
     } else if (strstr(NextWord,"aus")||strstr(NextWord,"off")||
 	       strstr(NextWord,"ausmachen")||strstr(NextWord,"ausschalten")) {
-      Com = A_OFF ;
+      Com = CHANNEL_OFF ;
     } else if (strstr(NextWord,"hoch")||strstr(NextWord,"up")||
 	       strstr(NextWord,"auf")||strstr(NextWord,"aufmachen")||strstr(NextWord,"open")) {
-      Com = A_SHADE_UP_FULL ;
+      Com = SHADE_UP_FULL ;
     } else if (strstr(NextWord,"runter")||strstr(NextWord,"down")||
 	       strstr(NextWord,"herunter")||strstr(NextWord,"schließen")||
 	       strstr(NextWord,"zu")||strstr(NextWord,"close")) {
-      Com = A_SHADE_DOWN_FULL;
+      Com = SHADE_DOWN_FULL;
     } else if ((strstr(NextWord,"bitte"))||(strstr(NextWord,"please"))) {
       Polite = 1 ;
     } else if (strstr(NextWord,Haus->Name)) {
@@ -1149,15 +1139,12 @@ int Handle_NaturalCommand (char *Command)
     NextWord = strtok(NULL,delimiter) ;
   } ;
   
-  printf ("Command: %d\n",Com) ;
-
   strcpy (CC,Command) ;
   NextWord = strtok (CC,delimiter) ;
   Actual = NULL ;
   while ((NextWord)&&(Actual==NULL)) {
     if (Room) {
-      sprintf (DF,"%s/%s",Room->Name,NextWord) ;
-      Actual = FindNode(Room,DF) ;
+      Actual = FindNode(Room->Child,NextWord) ;
       if ((Actual!=NULL)&&
 	  (Actual->Type!=N_ONOFF)&&(Actual->Type!=N_SHADE)&&
 	  (Actual->Type!=N_SENSOR)&&(Actual->Type!=N_BAD)&&
@@ -1173,9 +1160,6 @@ int Handle_NaturalCommand (char *Command)
 
   Item = Actual ;
 
-  if (Item!=NULL) printf ("Item: %s\n",Item->Name) ;
-  printf ("Polite: %d\n",Polite) ;
-  printf ("Name: %d\n",Name) ;
   
   if ((Item!=NULL)&&(Polite!=0)&&(Name!=0)&&(Com!=0)) {
     if (IsMakro(Item)) Com=A_CALL ;
