@@ -109,7 +109,9 @@ void WSinit(void)
   TIM_TimeBaseStructInit(&timbaseinit);
   timbaseinit.TIM_ClockDivision = TIM_CKD_DIV1;
   timbaseinit.TIM_CounterMode = TIM_CounterMode_Up;
-  timbaseinit.TIM_Period = WS_TIM_FREQ / WS_OUT_FREQ;
+  //  timbaseinit.TIM_Period = (WS_TIM_FREQ / WS_OUT_FREQ)-1 ;
+  //timbaseinit.TIM_Prescaler = 1 ;
+  timbaseinit.TIM_Period = 89 ;
   timbaseinit.TIM_Prescaler = 1 ;
   TIM_TimeBaseInit(TIM1, &timbaseinit);
   
@@ -142,7 +144,7 @@ void WSinit(void)
   nvic_init.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&nvic_init);
 
-  WSstartDMA();
+  WSstartDMA () ;
 }
 
 // transfer framebuffer data to the timer

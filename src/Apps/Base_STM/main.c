@@ -629,14 +629,14 @@ int main(void)
 	} ;
       } else if (j==10) {
 	if (r==(uint8_t)CHANNEL_ON) {
-	  SetAllLED (255,255,255,20) ;
+	  SetAllLED (255,255,255,100) ;
 	} else if (r==(uint8_t)CHANNEL_OFF) {
-	  SetAllLED (0,0,0,20) ;
+	  SetAllLED (0,0,0,100) ;
 	} else {
 	  if (WSRGBSoll[0].R!=0) {
-	    SetAllLED (255,255,255,20) ;
+	    SetAllLED (255,255,255,100) ;
 	  } else {
-	    SetAllLED (0,0,0,20) ;
+	    SetAllLED (0,0,0,100) ;
 	  } ;
 	} ;
       } else {

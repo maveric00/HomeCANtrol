@@ -13,7 +13,7 @@
 #define WS_ZERO			27
 
 // number of timer cycles (~1.25µs) for the reset pulse
-#define WS_RESET_LEN		90
+#define WS_RESET_LEN		120
 
 // three colors per led, eight bits per color
 #define WS_DMA_LEN		(MAXWSNUM * 3 * 8 + WS_RESET_LEN)
