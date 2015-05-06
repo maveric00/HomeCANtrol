@@ -19,7 +19,6 @@ MEMORY
   EEPROM (rx)     : ORIGIN = 0x08003000, LENGTH = 4K
   FLASH (rx)      : ORIGIN = 0x08004000, LENGTH = 240K
   RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 48K
-  MEMORY_B1 (rx)  : ORIGIN = 0x60000000, LENGTH = 0K
 }
 
 /* Define output sections */
@@ -63,6 +62,7 @@ SECTIONS
     __exidx_start = .;
       *(.ARM.exidx*)
       __exidx_end = .;
+      . = ALIGN(4);	
     } >FLASH
 
   .ARM.attributes 0 : { *(.ARM.attributes) }
@@ -72,6 +72,7 @@ SECTIONS
     PROVIDE_HIDDEN (__preinit_array_start = .);
     KEEP (*(.preinit_array*))
     PROVIDE_HIDDEN (__preinit_array_end = .);
+    . = ALIGN(4);
   } >FLASH
   .init_array :
   {
@@ -79,6 +80,7 @@ SECTIONS
     KEEP (*(SORT(.init_array.*)))
     KEEP (*(.init_array*))
     PROVIDE_HIDDEN (__init_array_end = .);
+    . = ALIGN(4);
   } >FLASH
   .fini_array :
   {
@@ -86,10 +88,11 @@ SECTIONS
     KEEP (*(.fini_array*))
     KEEP (*(SORT(.fini_array.*)))
     PROVIDE_HIDDEN (__fini_array_end = .);
+    . = ALIGN(4);
   } >FLASH
 
   /* used by the startup to initialize data */
-  _sidata = .;
+    _sidata = .;
 
   /* Initialized data sections goes into RAM, load LMA copy after code */
   .data : AT ( _sidata )
@@ -104,7 +107,6 @@ SECTIONS
   } >RAM
 
   /* Uninitialized data section */
-  . = ALIGN(4);
   .bss :
   {
     /* This is used by the startup in order to initialize the .bss secion */
@@ -130,16 +132,6 @@ SECTIONS
     . = . + _Min_Stack_Size;
     . = ALIGN(4);
   } >RAM
-
-  /* MEMORY_bank1 section, code must be located here explicitly            */
-  /* Example: extern int foo(void) __attribute__ ((section (".mb1text"))); */
-  .memory_b1_text :
-  {
-    *(.mb1text)        /* .mb1text sections (code) */
-    *(.mb1text*)       /* .mb1text* sections (code)  */
-    *(.mb1rodata)      /* read-only data (constants) */
-    *(.mb1rodata*)
-  } >MEMORY_B1
 
   /* Remove information from the standard libraries */
   /DISCARD/ :

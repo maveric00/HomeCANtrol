@@ -9,6 +9,9 @@
 #include "../Common_STM/CANLib.h"
 
 // Buffer for LED
+// Cicular puffer version can be found at
+// https://github.com/bitcraze/crazyflie-firmware/blob/neopixel_dev/drivers/src/ws2812.c
+
 rgb_t WSRGB[MAXWSNUM];	
 int WSDimmer ;
 int CurrentWSNum ;
@@ -101,7 +104,7 @@ void WSinit(void)
   GPIOC->BRR = GPIO_Pin_9 ;
   
   // Timer
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1|RCC_APB2Periph_AFIO, ENABLE);
   
   TIM_TimeBaseStructInit(&timbaseinit);
   timbaseinit.TIM_ClockDivision = TIM_CKD_DIV1;
@@ -117,6 +120,9 @@ void WSinit(void)
   timocinit.TIM_Pulse = 0;
   TIM_OC1Init(TIM1, &timocinit);
   TIM_OC1PreloadConfig(TIM1, TIM_OCPreload_Enable);
+  
+  TIM_CtrlPWMOutputs(TIM1, ENABLE);
+
   TIM_ARRPreloadConfig(TIM1, ENABLE);
 
   TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
@@ -138,9 +144,6 @@ void WSinit(void)
 
   WSstartDMA();
 }
-
-
-
 
 // transfer framebuffer data to the timer
 static void WSstartDMA(void)
@@ -183,46 +186,4 @@ void DMA1_Channel2_IRQHandler(void)
   TIM_DMACmd(TIM1, TIM_DMA_CC1, DISABLE);
   
   ledBusy = 0;			// get ready for next transfer
-}
-
-
-#define NR_TEST_PATTERNS	12
-
-void WStest(void)
-{
-  uint32_t i,j;
-  uint8_t patterns[NR_TEST_PATTERNS][3] = {
-    {0xf0,0x00,0x00},
-    {0x00,0xf0,0x00},
-    {0x00,0x00,0xf0},
-    {0xf0,0xf0,0x00},
-    {0xf0,0x00,0xf0},
-    {0x00,0xf0,0xf0},
-    {0xf0,0xf0,0xf0},
-    {0x40,0x40,0x40},
-    {0xf0,0xf0,0xf0},
-    {0x40,0x40,0x40},
-    {0xf0,0xf0,0xf0},
-    {0x00,0x00,0x00},
-  };
-  
-  for (i = 0; i < CurrentWSNum; i++) {
-    WSRGB[i].R = 0;
-    WSRGB[i].G = 0;
-    WSRGB[i].B = 0;
-  }
-  
-  for(j=0; j<NR_TEST_PATTERNS; j++)
-    {
-      for (i = 0; i < CurrentWSNum; i++)
-	{
-	  WSRGB[i].R = patterns[j][0] * 0.5F;  
-	  WSRGB[i].G = patterns[j][1] * 0.5F;
-	  WSRGB[i].B = patterns[j][2] * 0.5F;
-	}
-      while (ledBusy) ;
-      WSupdate();
-      delay_ms(60);
-    }
-  
 }

@@ -34,6 +34,4 @@ extern int CurrentWSNum ;
 // ----------------------------- functions -----------------------------
 void WSinit(void);
 void WSupdate(void);
-void WStest(void);
-
 #endif
