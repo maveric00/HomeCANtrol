@@ -94,12 +94,12 @@ void TIM2_IRQHandler(void)
   {
     TIM2->SR = (uint16_t)~TIM_IT_CC1 ;
     // Reset PA11
-    GPIOA->BRR = 0x00000800 ;
+    GPIOA->BRR = 0x00000400 ;
   }
   else if (TIM2->SR&TIM_IT_CC2) 
   {
     TIM2->SR = (uint16_t)~TIM_IT_CC2 ;
-    GPIOA->BRR = 0x00000400 ;
+    GPIOA->BRR = 0x00000800 ;
   }
   else if (TIM2->SR&TIM_IT_Update)
   {
@@ -109,11 +109,16 @@ void TIM2_IRQHandler(void)
   }
 }
 
-void PowerSet (uint8_t Power1, uint8_t Power2)
+void PowerSet (int Power1, int Power2)
 {
+  Power1=Power1<0?0:Power1 ;
+  Power1=Power1>255?255:Power1 ;
+  Power2=Power2<0?0:Power2 ;
+  Power2=Power2>255?255:Power2 ;
   PowerPWM[0] = PWMTable[Power1] ;
   PowerPWM[1] = PWMTable[Power2] ;
-  
+  if (Power1) PowerPWM[0]=PowerPWM[0]<180?180:PowerPWM[0] ;
+  if (Power2) PowerPWM[1]=PowerPWM[1]<180?180:PowerPWM[1] ;
   TIM_SetCompare1 (TIM2,PowerPWM[0]) ;
   TIM_SetCompare2 (TIM2,PowerPWM[1]) ;
 }

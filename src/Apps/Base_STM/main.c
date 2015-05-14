@@ -14,6 +14,9 @@
 #include "EEProm.h"
 #include "ws2812.h"
 
+void PowerSet (int Power1, int Power2);
+void PowerInit (void) ;
+
 /* EEProm-Belegung vom Base-STM:
    0   0xba
    1   0xca
@@ -139,11 +142,11 @@ uint16_t TimerLED[MAXWSNUM] ; // gets modified in main
 uint16_t DurationLED[MAXWSNUM] ; // gets modified in main
 uint8_t ChangedLED ;
 
-volatile uint8_t PWM[2] ;
-uint8_t START_PWM[2] ;
-uint8_t SOLL_PWM[2] ;
-uint16_t TIMER_PWM[2] ;
-uint16_t DURATION_PWM[2] ;
+volatile int PWM[2] ;
+int START_PWM[2] ;
+int SOLL_PWM[2] ;
+int TIMER_PWM[2] ;
+int DURATION_PWM[2] ;
 
 CanTxMsg Message ;
 
@@ -248,9 +251,9 @@ void TIM3_IRQHandler(void)
       for (i=0;i<2;i++) {
 	if (TIMER_PWM[i]>0) {
 	  TIMER_PWM[i]-- ;
-	  PWM[i] = (uint8_t)((int16_t)START_PWM[i]+(int16_t)(((int32_t)SOLL_PWM[i]-(int32_t)START_PWM[i])*
-							     ((int32_t)DURATION_PWM[i]-(int32_t)TIMER_PWM[i])/
-							     (int32_t)DURATION_PWM[i])) ;
+	  PWM[i] = START_PWM[i]+(((SOLL_PWM[i]-START_PWM[i])*
+				  (DURATION_PWM[i]-TIMER_PWM[i]))/
+				 DURATION_PWM[i]) ;
 	  PWMChange = 1 ;
 	  if (!TIMER_PWM[i]) {
 	    START_PWM[i] = SOLL_PWM[i] ;
@@ -270,15 +273,15 @@ void TIM3_IRQHandler(void)
 	for (i=0;i<CurrentWSNum;i++) {
 	  if (TimerLED[i]>0) {
 	    TimerLED[i]-- ;
-	    WSRGB[i].R = (uint8_t)((int16_t)WSRGBStart[i].R+
-				   (int16_t)(((int32_t)WSRGBSoll[i].R-(int32_t)WSRGBStart[i].R)*
-					     ((int32_t)DurationLED[i]-(int32_t)TimerLED[i])/(int32_t)DurationLED[i])) ;
-	    WSRGB[i].G = (uint8_t)((int16_t)WSRGBStart[i].G+
-				   (int16_t)(((int32_t)WSRGBSoll[i].G-(int32_t)WSRGBStart[i].G)*
-					     ((int32_t)DurationLED[i]-(int32_t)TimerLED[i])/(int32_t)DurationLED[i])) ;
-	    WSRGB[i].B = (uint8_t)((int16_t)WSRGBStart[i].B+
-				   (int16_t)(((int32_t)WSRGBSoll[i].B-(int32_t)WSRGBStart[i].B)*
-					     ((int32_t)DurationLED[i]-(int32_t)TimerLED[i])/(int32_t)DurationLED[i])) ;
+	    WSRGB[i].R = (uint8_t)((int)WSRGBStart[i].R+
+				   (int)((((int)WSRGBSoll[i].R-(int)WSRGBStart[i].R)*
+					  ((int)DurationLED[i]-(int)TimerLED[i]))/(int)DurationLED[i])) ;
+	    WSRGB[i].G = (uint8_t)((int)WSRGBStart[i].G+
+				   (int)((((int)WSRGBSoll[i].G-(int)WSRGBStart[i].G)*
+					  ((int)DurationLED[i]-(int)TimerLED[i]))/(int)DurationLED[i])) ;
+	    WSRGB[i].B = (uint8_t)((int)WSRGBStart[i].B+
+				   (int)((((int)WSRGBSoll[i].B-(int)WSRGBStart[i].B)*
+					  ((int)DurationLED[i]-(int)TimerLED[i]))/(int)DurationLED[i])) ;
 	    if (!TimerLED[i]) {
 	      DurationLED[i] = 1 ;
 	      WSRGBStart[i].R = WSRGBSoll[i].R ;
@@ -475,10 +478,13 @@ void BlendLED (int Num, int R, int G, int B, int Duration)
   WSRGBSoll[j].R = R ;
   WSRGBSoll[j].G = G ;
   WSRGBSoll[j].B = B ;
+  if (TimerLED[j]==0) {
+    DurationLED[j]=TimerLED[j]=Duration; 
+  } ; 
   
   if (Num!=0) { // Modify LED in front of desired LED
     j = Ch*(Num-1) ;
-    for (i=1;i<=Ch;i++) {
+    for (i=1;i<Ch;i++) {
       WSRGBSoll[i+j].R = (int)WSRGBSoll[j].R+(((int)WSRGBSoll[j+Ch].R-(int)WSRGBSoll[j].R)*i)/Ch; 
       WSRGBSoll[i+j].G = (int)WSRGBSoll[j].G+(((int)WSRGBSoll[j+Ch].G-(int)WSRGBSoll[j].G)*i)/Ch; 
       WSRGBSoll[i+j].B = (int)WSRGBSoll[j].B+(((int)WSRGBSoll[j+Ch].B-(int)WSRGBSoll[j].B)*i)/Ch; 
@@ -489,7 +495,7 @@ void BlendLED (int Num, int R, int G, int B, int Duration)
   }; 
   if (Num!=EEProm[383]-1) { // Modify LED after desired LED
     j = Ch*Num ;
-    for (i=0;i<Ch;i++) {
+    for (i=1;i<Ch;i++) {
       WSRGBSoll[i+j].R = (int)WSRGBSoll[j].R+(((int)WSRGBSoll[j+Ch].R-(int)WSRGBSoll[j].R)*i)/Ch; 
       WSRGBSoll[i+j].G = (int)WSRGBSoll[j].G+(((int)WSRGBSoll[j+Ch].G-(int)WSRGBSoll[j].G)*i)/Ch; 
       WSRGBSoll[i+j].B = (int)WSRGBSoll[j].B+(((int)WSRGBSoll[j+Ch].B-(int)WSRGBSoll[j].B)*i)/Ch; 
@@ -684,18 +690,18 @@ int main(void)
       // Port 9 und 10 sind die beiden PWM-Ports, Port 11 die LEDs
       if ((j==8)||(j==9)) {
 	START_PWM[j-8] = PWM[j-8] ;
-	SOLL_PWM[j-8] = Message.Data[2+r] ;
-	TIMER_PWM[j] = DURATION_PWM[j] = (Message.Data[3+r]<<2)+1 ;    
+	SOLL_PWM[j-8] = InMessage.Data[2+r] ;
+	TIMER_PWM[j-8] = DURATION_PWM[j-8] = (InMessage.Data[3+r]<<2)+1 ;    
       } else if (j==10) {
       }  else {
 	if (j>(uint8_t)7) j=0 ;
-	for (;(j<Message.Data[1])&&(j<6);j++) { // Wenn Port = 1..6, dann nur diesen, sonst alle
+	for (;(j<InMessage.Data[1])&&(j<6);j++) { // Wenn Port = 1..6, dann nur diesen, sonst alle
 	} ;
       } ;
       break ;
     case LOAD_LED:
-      if ((j+1)>(EEProm[382]/EEProm[383])) break; // Zu hohe LED-Nummer
-      BlendLED(j,Message.Data[2],Message.Data[3],Message.Data[4],(Message.Data[5]<<2)+1) ;
+      if (j>(EEProm[382]/EEProm[383])) break; // Zu hohe LED-Nummer
+      BlendLED(j,InMessage.Data[2],InMessage.Data[3],InMessage.Data[4],(InMessage.Data[5]<<2)+1) ;
       break ;
     default:
       break ;

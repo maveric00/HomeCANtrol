@@ -43,7 +43,7 @@ all: Base_STM.elf secondary-outputs
 Base_STM.elf: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: ARM Sourcery Linux GCC C Linker'
-	arm-none-eabi-gcc -T"stm32_flash.ld" -nostartfiles -Wl,--gc-sections  -Wl,-Map,Base_STM.map -mcpu=cortex-m4 -mthumb -g3 -gdwarf-2 -o "Base_STM.elf" $(OBJS) $(USER_OBJS) $(LIBS)
+	arm-none-eabi-gcc -T"stm32_flash.ld" -nostartfiles -O2 -Wl,--gc-sections  -Wl,-Map,Base_STM.map -mcpu=cortex-m4 -mthumb -g3 -gdwarf-2 -o "Base_STM.elf" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
