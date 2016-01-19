@@ -112,7 +112,7 @@ void WSinit(void)
   //  timbaseinit.TIM_Period = (WS_TIM_FREQ / WS_OUT_FREQ)-1 ;
   //timbaseinit.TIM_Prescaler = 1 ;
   timbaseinit.TIM_Period = 89 ;
-  timbaseinit.TIM_Prescaler = 1 ;
+  timbaseinit.TIM_Prescaler = 0 ;
   TIM_TimeBaseInit(TIM1, &timbaseinit);
   
   TIM_OCStructInit(&timocinit);

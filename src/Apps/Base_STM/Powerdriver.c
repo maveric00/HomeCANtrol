@@ -58,7 +58,7 @@ void PowerInit (void)
 
   /* Time base configuration */
   TIM_TimeBaseStructure.TIM_Period = 65535;
-  TIM_TimeBaseStructure.TIM_Prescaler = 2; // 36MHz / 65536 / 2 = 274 Hz
+  TIM_TimeBaseStructure.TIM_Prescaler = 3; // 72MHz / 65536 / 4 = 274 Hz
   TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
   TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 
@@ -117,8 +117,8 @@ void PowerSet (int Power1, int Power2)
   Power2=Power2>255?255:Power2 ;
   PowerPWM[0] = PWMTable[Power1] ;
   PowerPWM[1] = PWMTable[Power2] ;
-  if (Power1) PowerPWM[0]=PowerPWM[0]<180?180:PowerPWM[0] ;
-  if (Power2) PowerPWM[1]=PowerPWM[1]<180?180:PowerPWM[1] ;
+  if (Power1) PowerPWM[0]=PowerPWM[0]<120?120:PowerPWM[0] ;
+  if (Power2) PowerPWM[1]=PowerPWM[1]<120?120:PowerPWM[1] ;
   TIM_SetCompare1 (TIM2,PowerPWM[0]) ;
   TIM_SetCompare2 (TIM2,PowerPWM[1]) ;
 }
