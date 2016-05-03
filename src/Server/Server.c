@@ -866,7 +866,13 @@ int HandleCommand (char *Command,int Socket)
       WriteConfig (&EEprom) ;
       // Send out Bootstrap firmware
       if (ANodes[0]->Type!=N_EXTENDED) {
-	SendFirmware(0xF,0xFF) ;
+	if ((ANodes[0]->Type==N_SENSOR)||
+	    (ANodes[0]->Type==N_SENS2)||
+	    (ANodes[0]->Type==N_LIGHT)) {
+	  SendFirmware(0xf,0xFF) ;
+	} else {
+	  SendFirmware(0xF,0xFD) ;
+	} ;
       } else {
 	SendFirmware(0xF,0xFE) ;
       } ;

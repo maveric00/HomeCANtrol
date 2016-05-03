@@ -9,11 +9,11 @@
 #define WS_OUT_FREQ   800000
 
 // timer values to generate a "one" or a "zero" 
-#define WS_ONE			54
-#define WS_ZERO			27
+#define WS_ONE			65
+#define WS_ZERO			25
 
 // number of timer cycles (~1.25µs) for the reset pulse
-#define WS_RESET_LEN		120
+#define WS_RESET_LEN		40
 
 // three colors per led, eight bits per color
 #define WS_DMA_LEN		(MAXWSNUM * 3 * 8 + WS_RESET_LEN)

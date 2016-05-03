@@ -41,8 +41,8 @@
 
 
 # MCU name
-#MCU = at90pwm3b
-MCU = attiny84
+MCU = at90pwm3b
+#MCU = attiny84
 
 
 # Processor frequency.

@@ -41,7 +41,7 @@
 
 // Registersatz aufsetzen
 
-static uint8_t PROGMEM mcp2515_register_map[] = {
+static const uint8_t PROGMEM mcp2515_register_map[] = {
 	R_CNF3,
 	R_CNF2,
 	R_CNF1,

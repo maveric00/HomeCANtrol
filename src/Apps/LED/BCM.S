@@ -496,7 +496,7 @@ Loop3:
 	in	r19,_SFR_IO_ADDR(DDRE)
 	andi r19,0xF8
 	or r24,r19
-	andi r24,0xFE ; RESET ausblenden, muss bei Verwendung des weissen Powertreibers wieder 'raus...
+//	andi r24,0xFE ; RESET ausblenden, muss bei Verwendung des weissen Powertreibers wieder 'raus...
 	std Y+3,r24
 	andi r25,0xA1
 	in	r19,_SFR_IO_ADDR(DDRD)

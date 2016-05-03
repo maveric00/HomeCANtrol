@@ -749,7 +749,7 @@ void SendFirmware(char Linie, USHORT Knoten)
   Firmware = CreateItem(FirmwareList) ;
   if (FirmwareList==NULL) FirmwareList = Firmware ;
 
-  if ((Linie!=0xF)||((Knoten!=0xFF)&&(Knoten!=0xFE))) {
+  if ((Linie!=0xF)||((Knoten!=0xFF)&&(Knoten!=0xFE)&&(Knoten!=0xFD))) {
     // Normaler Firmware-Request
     // Typnummer des Knotens ermitteln
     ANumber = 0 ;
@@ -789,7 +789,10 @@ void SendFirmware(char Linie, USHORT Knoten)
     } ;
   } else {
     // Initial Boot Request
-    if (Knoten==0xFE) {
+    if (Knoten==0xFD) {
+      Knoten = 0xFF ;
+      TypCode = 0xFD ;
+    } else if (Knoten==0xFE) {
       Knoten = 0xFF ;
       TypCode = 0xFE ;
     } else {

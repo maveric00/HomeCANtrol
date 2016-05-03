@@ -92,7 +92,7 @@ void WSinit(void)
   
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
   GPIO_Init(GPIOA, &GPIO_InitStructure);
   
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
@@ -111,7 +111,7 @@ void WSinit(void)
   timbaseinit.TIM_CounterMode = TIM_CounterMode_Up;
   //  timbaseinit.TIM_Period = (WS_TIM_FREQ / WS_OUT_FREQ)-1 ;
   //timbaseinit.TIM_Prescaler = 1 ;
-  timbaseinit.TIM_Period = 89 ;
+  timbaseinit.TIM_Period = 91 ;
   timbaseinit.TIM_Prescaler = 0 ;
   TIM_TimeBaseInit(TIM1, &timbaseinit);
   

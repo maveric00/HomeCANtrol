@@ -3,30 +3,32 @@
 var Sprache = 0 ;
 var Bilder = new Array () ;
 
-function ReadConfig () {
-  var url = "NodeConf/Config.xml"; 
-  var parser = new marknote.Parser();  
-  
-  // optional HTTP request parameters 
-  // (used to construct the HTTP query string, if any) 
-  
-  var urlParams = {     
-    param1: "zzz",     
-    param2: "abc" 
-  };  
-  
-  // parse the file 
-  // (for POST requests, use "POST" instead of "GET") 
-  
-  var doc = parser.parseURL(url, urlParams, "GET");
-
-  return doc ;  
-}
-
-function FindNode (Root,Name)
+function ReadConfig () 
 {
-  var NameElements = Name.split("/");
-  var parent=Root ;
+    var url = "NodeConf/Config.xml"; 
+    var parser = new marknote.Parser();  
+    
+    // optional HTTP request parameters 
+    // (used to construct the HTTP query string, if any) 
+    
+    var urlParams = {     
+	param1: "zzz",     
+	param2: "abc" 
+    };  
+    
+    // parse the file 
+    // (for POST requests, use "POST" instead of "GET") 
+    
+    var doc = parser.parseURL(url, urlParams, "GET");
+    
+    return doc ;  
+}
+    
+var Test = 0 ;    
+
+function FindNode (Root,Name) {
+	var NameElements = Name.split("/");
+	var parent=Root ;
   var child ;
 
   for (i=0;i<NameElements.length;i++) {
@@ -377,11 +379,13 @@ function CreateButton (Root,Button,Page)
   } ;
 
   var Inhalt ;
+  var Text ;
   if (Sprache==0) {
     Inhalt = Button.getChildElements("Inhalt") ;
   } else {
     Inhalt = Button.getChildElements("Content") ;
   } ;
+  Text = Button.getChildElements("Text") ;
   if (Inhalt.length>0) {    
     var html = Inhalt[0].getAttribute("html") ;
     if (html) {
@@ -391,6 +395,7 @@ function CreateButton (Root,Button,Page)
     if (html) {
       mydiv.style.overflow = overflo.getValue() ;
     } ;
+  } else if (Text.length>0) {
   } else {
     var myImage = document.createElement("img") ;
     myImage.src = Bilder[0].src ;
@@ -581,19 +586,6 @@ function ResizePage()
   for (var i=0;i<Buttons.length;i++) SetButtonSize(Buttons[i]);
 }
  
-var doc = ReadConfig() ;
-var SprachObjekt = new Array();
-var Root = doc.getRootElement() ;
-
-FindAllElements(Root,"Sprache",SprachObjekt) ;
-if (SprachObjekt.length==0) {
-  FindAllElements(Root,"Language",SprachObjekt) ;
-  if (SprachObjekt.length>0) {
-    Sprache = 1 ;
-  } ;
-} ;
-
-LoadPictures(Root) ;
 
 var BrowserDetect = {
   init: function () {
@@ -760,43 +752,7 @@ function get_appropriate_ws_url()
   } ;
 
 }
-
-
-var socket_di;
-
-try {
-if (BrowserDetect.browser == "Firefox" && BrowserDetect.version < 12) {
-  socket_di = new MozWebSocket(get_appropriate_ws_url(),
-			       "config-protocol");
- } else {
-  socket_di = new WebSocket(get_appropriate_ws_url(),
-			    "config-protocol");
- } 
-} catch(exception) {
-  alert ("Browser does not support Websockets!") ;
- }
-
-try {
-  socket_di.onopen = function() {
-    //    document.getElementById("wsdi_statustd").style.backgroundColor = "#40ff40";
-    //    document.getElementById("wsdi_status").textContent = " websocket connection opened ";
-  } 
   
-  socket_di.onmessage =function got_packet(msg) {
-    var CommandElements = msg.data.split(" ") ;
-    if (CommandElements[0]=="Set") {
-      // Setze Wert auf den angegebenen
-      SetValue(Root,CommandElements[1],parseInt(CommandElements[2])) ;
-    } ;
-  } 
-  
-  socket_di.onclose = function(){
-    //    document.getElementById("wsdi_statustd").style.backgroundColor = "#ff4040";
-    // document.getElementById("wsdi_status").textContent = " websocket connection CLOSED ";
-  }
- } catch(exception) {
- }
-
 function getX(el) {
   x = el.offsetLeft;
   if (!el.offsetParent) return x;
@@ -808,9 +764,6 @@ function getY (el) {
   if (!el.offsetParent) return y;
   else return (y+getY(el.offsetParent));
 }
-
-
-
 
 function CallAction (e)
 {
@@ -906,7 +859,57 @@ function CallAction (e)
       alert (Kommando + " " + Att2.getValue()); 
     }
   } ;
-
 }
 
+var socket_di;
+
+alert ("Test");
+var doc=ReadConfig();
+  
+try {
+    if (BrowserDetect.browser == "Firefox" && BrowserDetect.version < 12) {
+        socket_di = new MozWebSocket(get_appropriate_ws_url(),
+				     "config-protocol");
+    } else {
+        alert (get_appropriate_ws_url());
+	socket_di = new WebSocket(get_appropriate_ws_url(),
+				  "config-protocol");
+    } 
+} catch(exception) {
+    window.location = "index_no_ws.html" ;
+}
+    
+try {
+    socket_di.onopen = function() {
+	//    document.getElementById("wsdi_statustd").style.backgroundColor = "#40ff40";
+	//    document.getElementById("wsdi_status").textContent = " websocket connection opened ";
+    } 
+    
+    socket_di.onmessage =function got_packet(msg) {
+	var CommandElements = msg.data.split(" ") ;
+	if (CommandElements[0]=="Set") {
+	    // Setze Wert auf den angegebenen
+	    SetValue(Root,CommandElements[1],parseInt(CommandElements[2])) ;
+	} ;
+    } 
+    
+    socket_di.onclose = function(){
+	//    document.getElementById("wsdi_statustd").style.backgroundColor = "#ff4040";
+	// document.getElementById("wsdi_status").textContent = " websocket connection CLOSED ";
+    }
+} catch(exception) {
+}
+
+var SprachObjekt = new Array();
+var Root = doc.getRootElement() ;
+
+FindAllElements(Root,"Sprache",SprachObjekt) ;
+if (SprachObjekt.length==0) {
+  FindAllElements(Root,"Language",SprachObjekt) ;
+  if (SprachObjekt.length>0) {
+    Sprache = 1 ;
+  } ;
+} ;
+
+LoadPictures(Root) ;
 

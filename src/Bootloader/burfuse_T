@@ -1,0 +1,1 @@
+sudo avrdude -v -p t84 -c avrisp2 -P usb -B 10 -U lfuse:w:0xe2:m -U hfuse:w:0xd2:m -U efuse:w:0xfe:m

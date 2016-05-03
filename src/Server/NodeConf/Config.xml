@@ -308,15 +308,84 @@
 	<Aktion autonom="0" kommando="Hoch" objekt="Erdgeschoss/Esszimmer/Fenster"/>
 	<Aktion autonom="1" kommando="Hoch" objekt="Erdgeschoss/Esszimmer/Fenster"/>
       </Sensor>
-      <Multifunktion name="Lichtband" led="6" virtled="3" power1="1" power2="1">
-	<Adresse linie="1" knoten="70" port="11"/>
+      <Multifunktion name="Lichtband" led="139" virtled="4" power1="1" power2="1">
+	<Adresse linie="2" knoten="10" port="11"/>
       </Multifunktion>
       <Multifunktion name="Lichtband2" power1="1">
-	<Adresse linie="1" knoten="70" port="9"/>
+	<Adresse linie="2" knoten="10" port="9"/>
       </Multifunktion>
       <Multifunktion name="Lichtband3" power2="1">
-	<Adresse linie="1" knoten="70" port="10"/>
+	<Adresse linie="2" knoten="10" port="10"/>
       </Multifunktion>
+      <Makro name="LichtAn">
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED1:7" R="255" G="230" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED2:7" R="255" G="230" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED3:7" R="255" G="230" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED4:7" R="255" G="230" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED5:7" R="255" G="230" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED6:7" R="255" G="230" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED7:7" R="255" G="230" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED8:7" R="255" G="230" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED9:7" R="255" G="230" B="210" W="255" dauer="10"/>
+      </Makro>
+      <Makro name="LichtMood">
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED1:7" R="255" G="230" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED1:0" R="100" G="90" B="80" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED2:7" R="255" G="230" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED2:0" R="100" G="90" B="80" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED3:7" R="255" G="230" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED3:0" R="100" G="90" B="80" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED4:7" R="255" G="230" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED4:0" R="100" G="90" B="80" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED5:7" R="255" G="230" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED5:0" R="100" G="90" B="80" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED6:7" R="255" G="230" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED6:0" R="100" G="90" B="80" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED7:7" R="255" G="230" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED7:0" R="100" G="90" B="80" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED8:7" R="255" G="230" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED8:0" R="100" G="90" B="80" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED9:7" R="255" G="230" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED9:0" R="100" G="90" B="80" W="100" dauer="10"/>
+      </Makro>
+      <Makro name="LichtAus">
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED1:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED2:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED3:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED4:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED5:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED6:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED7:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED8:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED9:7" R="0" G="0" B="0" W="0" dauer="10"/>
+      </Makro>      
+      <LED name="LED1">
+        <Adresse linie="2" knoten="40" port="7"/>
+      </LED>
+      <LED name="LED2">
+        <Adresse linie="2" knoten="41" port="7"/>
+      </LED>
+      <LED name="LED3">
+        <Adresse linie="2" knoten="42" port="7"/>
+      </LED>
+      <LED name="LED4">
+        <Adresse linie="2" knoten="43" port="7"/>
+      </LED>
+      <LED name="LED5">
+        <Adresse linie="2" knoten="44" port="7"/>
+      </LED>
+      <LED name="LED6">
+        <Adresse linie="2" knoten="45" port="7"/>
+      </LED>
+      <LED name="LED7">
+        <Adresse linie="2" knoten="46" port="7"/>
+      </LED>
+      <LED name="LED8">
+        <Adresse linie="2" knoten="47" port="7"/>
+      </LED>
+      <LED name="LED9">
+        <Adresse linie="2" knoten="48" port="7"/>
+      </LED>
       <Makro name="Aus">
 	<Adresse linie="0" knoten="200" port="10"/>
 	<Aktion kommando="Aus" objekt="Erdgeschoss/Esszimmer/SteckdoseEcke"/>
@@ -328,6 +397,39 @@
       <Schalter name="DeckenVorlicht">
 	<Adresse linie="1" knoten="100" port="4"/>
       </Schalter>
+      <LED name="LED1">
+        <Adresse linie="2" knoten="20" port="7"/>
+      </LED>
+      <LED name="LED2">
+        <Adresse linie="2" knoten="21" port="7"/>
+      </LED>
+      <LED name="LED3">
+        <Adresse linie="2" knoten="22" port="7"/>
+      </LED>
+      <LED name="LED4">
+        <Adresse linie="2" knoten="23" port="7"/>
+      </LED>
+      <LED name="LED5">
+        <Adresse linie="2" knoten="24" port="7"/>
+      </LED>
+      <LED name="LED6">
+        <Adresse linie="2" knoten="25" port="7"/>
+      </LED>
+      <LED name="LED7">
+        <Adresse linie="2" knoten="26" port="7"/>
+      </LED>
+      <LED name="LED8">
+        <Adresse linie="2" knoten="27" port="7"/>
+      </LED>
+      <LED name="LED9">
+        <Adresse linie="2" knoten="28" port="7"/>
+      </LED>
+      <LED name="LED10">
+        <Adresse linie="2" knoten="29" port="7"/>
+      </LED>
+      <LED name="LED11">
+        <Adresse linie="2" knoten="30" port="7"/>
+      </LED>
       <Schalter name="Licht">
 	<Adresse linie="1" knoten="100" port="9"/>
       </Schalter>
@@ -360,7 +462,7 @@
 	<Aktion kurz="1" autonom="1" kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/Licht"/>
 	<Aktion kurz="1" autonom="0" kommando="Rufe" objekt="Erdgeschoss/Festbeleuchtung"/>
 	<Aktion kurz="0" autonom="1" kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/Licht"/>
-	<Aktion kurz="0" autonom="0" kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/Licht"/>
+	<Aktion kurz="0" autonom="0" kommando="Rufe" objekt="Erdgeschoss/WohnLichtToggle"/>
       </Sensor>
       <Sensor name="Eingang 2" typ="KurzLang" lang="5" ende="100">
 	<Adresse linie="1" knoten="50" port="1"/>
@@ -398,8 +500,8 @@
       </Sensor>
       <Sensor name="Terasse 2" typ="Einfach">
 	<Adresse linie="1" knoten="53" port="2"/>
-	<Aktion autonom="0" kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/Licht"/>
-	<Aktion autonom="1" kommando="Toggle" objekt="Erdgeschoss/Wohnzimmer/Licht"/>
+	<Aktion autonom="0" kommando="Rufe" objekt="Erdgeschoss/WohnLichtToggle"/>
+	<Aktion autonom="1" kommando="Rufe" objekt="Erdgeschoss/WohnLichtToggle"/>
       </Sensor>
       <Sensor name="Terasse 3" typ="Rollo_KL" lang="5" ende="100">
 	<Adresse linie="1" knoten="53" port="3"/>
@@ -714,6 +816,19 @@
     </Zimmer>
     <Zimmer name="Hauswirtschaftsraum">
     </Zimmer>
+    <Variable name="WohnLicht" wert="0"/>
+    <Makro name="WohnLichtToggle">
+      <Adresse linie="0" knoten="230" port="1"/>
+      <Wenn wert="(Erdgeschoss/WohnLicht=0)">
+	<Setze objekt="Erdgeschoss/WohnLicht" wert="1"/>
+	<Sub makro="Erdgeschoss/Esszimmer/LichtAn"/>
+	<Aktion kommando="An" objekt="Erdgeschoss/Wohnzimmer/Licht"/>
+	<Sonst/>
+	<Setze objekt="Erdgeschoss/WohnLicht" wert="0"/>
+	<Sub makro="Erdgeschoss/Esszimmer/LichtAus"/>
+	<Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/Licht"/>
+      </Wenn>
+    </Makro>
     <Makro name="FestAus">
       <Adresse linie="0" knoten="200" port="18"/>
       <Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/SteckdoseFernseherLinks1"/>
@@ -743,6 +858,8 @@
       <Aktion kommando="Toggle" objekt="Erdgeschoss/Esszimmer/SteckdoseFenster"/>
       <Aktion kommando="Toggle" objekt="Erdgeschoss/Esszimmer/SteckdoseTuer"/>
       <Aktion kommando="Toggle" objekt="Obergeschoss/Arbeit/SteckdoseRechts"/>
+      <Aktion kommando="Toggle" objekt="Erdgeschoss/Kueche/SteckdoseFensterAussen"/>
+      <Aktion kommando="Toggle" objekt="Erdgeschoss/Kueche/SteckdoseFensterMitte"/>
     </Makro>
     <Makro name="Gaderobenbeleuchtung">
       <Adresse linie="0" knoten="200" port="21"/>
@@ -1129,6 +1246,7 @@
       <Adresse linie="0" knoten="200" port="39"/>
       <Aktion kommando="Toggle" objekt="Aussen/Vorgarten/BrunnenMotor"/>
       <Aktion kommando="Toggle" objekt="Aussen/Vorgarten/BrunnenLicht"/>
+      <Aktion kommando="Toggle" objekt="Aussen/Vorgarten/SeiteLicht"/>
     </Makro>
     <Makro name="Aus">
       <Adresse linie="0" knoten="200" port="40"/>
@@ -1163,10 +1281,8 @@
   <Makro name="AbendLicht">
     <Timer zeit="00:45:00" relativ="vor untergang"/>
     <Sub makro="Aussen/Vorgarten/FestLichtAn"/>
-    <Aktion kommando="An" objekt="Erdgeschoss/Kueche/SteckdoseFensterMitte"/>
     <Timer zeit="22:30:00" />
     <Sub makro="Aussen/Vorgarten/FestLichtAus"/>
-    <Aktion kommando="Aus" objekt="Erdgeschoss/Kueche/SteckdoseFensterMitte"/>
   </Makro>
   <Makro name="TagNacht">
     <Timer zeit = "00:59:00" relativ="nach aufgang"/>
@@ -1214,6 +1330,7 @@
   <Firmware name="NodeConf/Sensor.hex" id="32"/>
   <Firmware name="NodeConf/I2CSensor.hex" id="33"/>
   <Firmware name="NodeConf/Base_STM.hex" id="34"/>
+  <Firmware name="NodeConf/Bootstrap_M.hex" id="253"/>
   <Firmware name="NodeConf/Bootstrap_STM.hex" id="254"/>
   <Firmware name="NodeConf/Bootstrap.hex" id="255"/>
   <Seq name="TestS" datei="NodeConf/Test.seq"/>

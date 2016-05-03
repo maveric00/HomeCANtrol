@@ -1,0 +1,1 @@
+sudo avrdude -v -p t84 -c avrisp2 -P usb -B 10 -U flash:w:bootloader_T.hex:i
