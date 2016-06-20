@@ -497,6 +497,64 @@ void GetDestAddress (ULONG CANId, char *ToLine, USHORT *ToAdd)
   *ToAdd = (USHORT) ((CANId>>2)&0xff) ;
 }
 
+int InitCAN(void)
+{
+  struct sockaddr_can CANAddr ;
+  struct ifreq ifr ;
+  // Open CAN sockets (one for each interface)
+
+  Can0SockFD = socket (PF_CAN,SOCK_RAW,CAN_RAW) ;
+  if (Can0SockFD<0) {
+    perror ("CANGateway: Could not get CAN socket") ;
+    return 3 ;
+  } ;
+  
+  CANAddr.can_family = AF_CAN ;
+  memset (&ifr.ifr_name,0,sizeof(ifr.ifr_name)) ;
+  strcpy (ifr.ifr_name,"can0") ;
+  
+  if (ioctl(Can0SockFD,SIOCGIFINDEX,&ifr)<0) {
+    perror ("CANGateway: Could not resolve can0") ;
+    return (3) ;
+  } ;
+  
+  CANAddr.can_ifindex = ifr.ifr_ifindex ;
+  
+  // Bind it to the interface
+
+  if (bind(Can0SockFD,(struct sockaddr*)&CANAddr,sizeof(CANAddr))<0) {
+    perror ("CANGateway: Could not bind CAN0 socket") ;
+    return (3) ;
+  } ;
+  
+  // Second CAN Socket
+
+  Can1SockFD = socket (PF_CAN,SOCK_RAW,CAN_RAW) ;
+  if (Can1SockFD<0) {
+    perror ("CANGateway: Could not get CAN socket") ;
+    return 3 ;
+  } ;
+  
+  CANAddr.can_family = AF_CAN ;
+  memset (&ifr.ifr_name,0,sizeof(ifr.ifr_name)) ;
+  strcpy (ifr.ifr_name,"can1") ;
+  
+  if (ioctl(Can1SockFD,SIOCGIFINDEX,&ifr)<0) {
+    perror ("CANGateway: Could not resolve can1") ;
+    return (3) ;
+  } ;
+  
+  CANAddr.can_ifindex = ifr.ifr_ifindex ;
+  
+  // Bind it to the interface
+
+  if (bind(Can1SockFD,(struct sockaddr*)&CANAddr,sizeof(CANAddr))<0) {
+    perror ("CANGateway: Could not bind CAN1 socket") ;
+    return (3) ;
+  } ;
+  return(0);
+} 
+
 // Initialise the networks (LAN and CAN 0 and CAN 1)
 
 int InitNetwork(void)
@@ -505,9 +563,6 @@ int InitNetwork(void)
   int rv;
   struct sockaddr_in RecAddr;
   int val ;
-  struct sockaddr_can CANAddr ;
-  struct ifreq ifr ;
- 
   
   val = (0==0) ;
 
@@ -578,61 +633,43 @@ int InitNetwork(void)
   setsockopt(SendSockFD, SOL_SOCKET, SO_BROADCAST, (char *) &val, sizeof(val)) ;
 
   relinit(SendSockFD,SendInfo) ;
-  
-  // Open CAN sockets (one for each interface)
-
-  Can0SockFD = socket (PF_CAN,SOCK_RAW,CAN_RAW) ;
-  if (Can0SockFD<0) {
-    perror ("CANGateway: Could not get CAN socket") ;
-    return 3 ;
-  } ;
-  
-  CANAddr.can_family = AF_CAN ;
-  memset (&ifr.ifr_name,0,sizeof(ifr.ifr_name)) ;
-  strcpy (ifr.ifr_name,"can0") ;
-  
-  if (ioctl(Can0SockFD,SIOCGIFINDEX,&ifr)<0) {
-    perror ("CANGateway: Could not resolve can0") ;
-    return (3) ;
-  } ;
-  
-  CANAddr.can_ifindex = ifr.ifr_ifindex ;
-  
-  // Bind it to the interface
-
-  if (bind(Can0SockFD,(struct sockaddr*)&CANAddr,sizeof(CANAddr))<0) {
-    perror ("CANGateway: Could not bind CAN0 socket") ;
-    return (3) ;
-  } ;
-  
-  // Second CAN Socket
-
-  Can1SockFD = socket (PF_CAN,SOCK_RAW,CAN_RAW) ;
-  if (Can1SockFD<0) {
-    perror ("CANGateway: Could not get CAN socket") ;
-    return 3 ;
-  } ;
-  
-  CANAddr.can_family = AF_CAN ;
-  memset (&ifr.ifr_name,0,sizeof(ifr.ifr_name)) ;
-  strcpy (ifr.ifr_name,"can1") ;
-  
-  if (ioctl(Can1SockFD,SIOCGIFINDEX,&ifr)<0) {
-    perror ("CANGateway: Could not resolve can1") ;
-    return (3) ;
-  } ;
-  
-  CANAddr.can_ifindex = ifr.ifr_ifindex ;
-  
-  // Bind it to the interface
-
-  if (bind(Can1SockFD,(struct sockaddr*)&CANAddr,sizeof(CANAddr))<0) {
-    perror ("CANGateway: Could not bind CAN1 socket") ;
-    return (3) ;
-  } ;
   return(0);
-} ;
+}  
 
+
+// Close all requested connections
+
+void CloseNetwork (void) 
+{
+  freeaddrinfo(servinfo);
+
+  close(RecSockFD);
+  close(SendSockFD);
+}
+
+void CloseCAN(void)
+{
+  close(Can0SockFD) ;
+  close(Can1SockFD) ;
+}
+
+void ReInitCAN (void) 
+{
+  CloseCAN() ;
+  fprintf (stderr,"Closing CAN\n") ;
+  sleep(1) ;
+  system ("ifconfig can0 down") ;
+  system ("ifconfig can1 down") ;
+  sleep (1) ;
+  fprintf (stderr,"Restart CAN\n") ;
+  system ("ifconfig can0 up") ;
+  system ("ifconfig can1 up") ;
+  sleep (3) ;
+  fprintf (stderr,"Opening CAN\n") ;
+  InitCAN () ;
+}
+  
+  
 
 // Receive all messages from LAN
 
@@ -688,6 +725,7 @@ int ReceiveFromUDP (struct CANCommand *Command)
   return 0;
 }
 
+
 // Receive one Command from CAN
 
 int ReceiveFromCAN (int socket, struct CANCommand *Command)
@@ -698,6 +736,8 @@ int ReceiveFromCAN (int socket, struct CANCommand *Command)
   
   if ((numbytes = read(socket, &frame, sizeof(struct can_frame))) < 0) {
     perror("CANGateway: CAN raw socket read");
+    ReInitCAN () ;
+    return 0 ;
   } ;
 
   // Fill CANCommand struct
@@ -738,6 +778,7 @@ int SendToCAN (int socket, struct CANCommand *Command)
   
   if ((numbytes = write(socket, &frame, sizeof(struct can_frame))) < 0) {
     perror("CANGateway: CAN raw socket write");
+    ReInitCAN () ;
   } ;
   
   return 0;
@@ -770,18 +811,6 @@ int SendToUDP (struct CANCommand *Command)
   }
 
   return (0);
-}
-
-// Close all requested connections
-
-void CloseNetwork (void) 
-{
-  freeaddrinfo(servinfo);
-
-  close(RecSockFD);
-  close(SendSockFD);
-  close(Can0SockFD) ;
-  close(Can1SockFD) ;
 }
 
 // CommandMatch validates if a Filter exists for the given CANCommand struct
@@ -902,11 +931,15 @@ int dmx_callback(artnet_node n, int port, void *d)
     if (RouteIF0[(int)CANBuffer[port][i].Line]!=0) {
       if ((numbytes = write(Can0SockFD, &frame, sizeof(struct can_frame))) < 0) {
 	perror("CANGateway: CAN raw socket write");
+	ReInitCAN () ;
+	return 0;
       } ;
     } ;
     if (RouteIF1[(int)CANBuffer[port][i].Line]!=0) {
       if ((numbytes = write(Can1SockFD, &frame, sizeof(struct can_frame))) < 0) {
 	perror("CANGateway: CAN raw socket write");
+	ReInitCAN () ;
+	return 0 ;
       } ;
     } ;
   } ;
@@ -963,7 +996,8 @@ int main (int argc, char*argv[])
   for (i=0;i<255;i++) if (RouteIF1[i]!=0) printf ("%d ",i) ;
   printf ("\n") ;
   
-  InitNetwork () ;
+  if (InitNetwork ()>0) exit(0) ;
+  if (InitCAN ()>0) exit(0) ;
 
   node1 = artnet_new(NULL, Verbose);
   artnet_set_short_name(node1, "Artnet -> CAN (1)");
@@ -1044,4 +1078,5 @@ int main (int argc, char*argv[])
   
   // will currently never be reached...
   CloseNetwork () ;
+  CloseCAN () ;
 }

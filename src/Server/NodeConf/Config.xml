@@ -318,35 +318,68 @@
 	<Adresse linie="2" knoten="10" port="10"/>
       </Multifunktion>
       <Makro name="LichtAn">
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED1:7" R="255" G="230" B="210" W="255" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED2:7" R="255" G="230" B="210" W="255" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED3:7" R="255" G="230" B="210" W="255" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED4:7" R="255" G="230" B="210" W="255" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED5:7" R="255" G="230" B="210" W="255" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED6:7" R="255" G="230" B="210" W="255" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED7:7" R="255" G="230" B="210" W="255" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED8:7" R="255" G="230" B="210" W="255" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED9:7" R="255" G="230" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED1:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED2:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED3:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED4:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED5:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED6:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED7:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED8:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED9:7" R="255" G="245" B="210" W="255" dauer="10"/>
+      </Makro>
+      <Makro name="Rot">
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED1:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED2:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED3:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED4:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED5:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED6:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED7:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED8:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED9:7" R="255" G="0" B="0" W="0" dauer="10"/>
+      </Makro>
+      <Makro name="Gruen">
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED1:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED2:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED3:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED4:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED5:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED6:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED7:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED8:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED9:7" R="0" G="255" B="0" W="0" dauer="10"/>
+      </Makro>
+      <Makro name="Blau">
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED1:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED2:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED3:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED4:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED5:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED6:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED7:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED8:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED9:7" R="0" G="0" B="255" W="0" dauer="10"/>
       </Makro>
       <Makro name="LichtMood">
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED1:7" R="255" G="230" B="210" W="255" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED1:0" R="100" G="90" B="80" W="100" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED2:7" R="255" G="230" B="210" W="255" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED2:0" R="100" G="90" B="80" W="100" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED3:7" R="255" G="230" B="210" W="255" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED3:0" R="100" G="90" B="80" W="100" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED4:7" R="255" G="230" B="210" W="255" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED4:0" R="100" G="90" B="80" W="100" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED5:7" R="255" G="230" B="210" W="255" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED5:0" R="100" G="90" B="80" W="100" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED6:7" R="255" G="230" B="210" W="255" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED6:0" R="100" G="90" B="80" W="100" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED7:7" R="255" G="230" B="210" W="255" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED7:0" R="100" G="90" B="80" W="100" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED8:7" R="255" G="230" B="210" W="255" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED8:0" R="100" G="90" B="80" W="100" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED9:7" R="255" G="230" B="210" W="255" dauer="10"/>
-	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED9:0" R="100" G="90" B="80" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED1:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED1:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED2:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED2:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED3:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED3:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED4:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED4:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED5:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED5:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED6:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED6:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED7:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED7:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED8:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED8:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED9:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED9:0" R="50" G="30" B="10" W="100" dauer="10"/>
       </Makro>
       <Makro name="LichtAus">
 	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Esszimmer/LED1:7" R="0" G="0" B="0" W="0" dauer="10"/>
@@ -397,6 +430,95 @@
       <Schalter name="DeckenVorlicht">
 	<Adresse linie="1" knoten="100" port="4"/>
       </Schalter>
+      <Makro name="LichtAn">
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED1:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED2:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED3:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED4:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED5:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED6:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED7:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED8:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED9:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED10:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED11:7" R="255" G="245" B="210" W="255" dauer="10"/>
+      </Makro>
+      <Makro name="Rot">
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED1:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED2:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED3:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED4:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED5:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED6:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED7:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED8:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED9:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED10:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED11:7" R="255" G="0" B="0" W="0" dauer="10"/>
+      </Makro>
+      <Makro name="Gruen">
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED1:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED2:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED3:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED4:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED5:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED6:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED7:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED8:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED9:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED10:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED11:7" R="0" G="255" B="0" W="0" dauer="10"/>
+      </Makro>
+      <Makro name="Blau">
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED1:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED2:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED3:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED4:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED5:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED6:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED7:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED8:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED9:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED10:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED11:7" R="0" G="0" B="255" W="0" dauer="10"/>
+      </Makro>
+      <Makro name="LichtMood">
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED1:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED1:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED2:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED2:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED3:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED3:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED4:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED4:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED5:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED5:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED6:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED6:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED7:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED7:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED8:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED8:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED9:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED9:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED10:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED10:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED11:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED11:0" R="50" G="30" B="10" W="100" dauer="10"/>
+      </Makro>
+      <Makro name="LichtAus">
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED1:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED2:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED3:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED4:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED5:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED6:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED7:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED8:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED9:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED10:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Wohnzimmer/LED11:7" R="0" G="0" B="0" W="0" dauer="10"/>
+      </Makro>      
       <LED name="LED1">
         <Adresse linie="2" knoten="20" port="7"/>
       </LED>
@@ -822,10 +944,12 @@
       <Wenn wert="(Erdgeschoss/WohnLicht=0)">
 	<Setze objekt="Erdgeschoss/WohnLicht" wert="1"/>
 	<Sub makro="Erdgeschoss/Esszimmer/LichtAn"/>
+	<Sub makro="Erdgeschoss/Wohnzimmer/LichtAn"/>
 	<Aktion kommando="An" objekt="Erdgeschoss/Wohnzimmer/Licht"/>
 	<Sonst/>
 	<Setze objekt="Erdgeschoss/WohnLicht" wert="0"/>
 	<Sub makro="Erdgeschoss/Esszimmer/LichtAus"/>
+	<Sub makro="Erdgeschoss/Wohnzimmer/LichtAus"/>
 	<Aktion kommando="Aus" objekt="Erdgeschoss/Wohnzimmer/Licht"/>
       </Wenn>
     </Makro>
