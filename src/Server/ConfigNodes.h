@@ -74,7 +74,7 @@ struct EEPROM {
   unsigned char BootAdd[2] ;
   unsigned char BootLine ;
   unsigned char BoardType ;
-  unsigned char PAD ;
+  unsigned char GroupAdd ;
   union {
     struct EEPromSens Sensor ;
     struct EEPromTast Taster ;

@@ -29,7 +29,7 @@
 6   BootAdd High Byte
 7   BootLine
 8   BoardType (0: LED, 0x10: Relais, 0x20: Sensor)  
-9   n/a
+9   Group 1
 
 EEProm-Belegung vom LED-Board:
 10..29: Programm Channel 1
@@ -231,6 +231,9 @@ void SetLED (uint8_t Num, uint8_t R, uint8_t G, uint8_t B, uint8_t W, uint8_t In
     G = G-LEDVal[GChan] ;
     B = B-LEDVal[BChan] ;
   } ;
+  Counter[RChan] = 0 ;
+  Counter[GChan] = 0 ;
+  Counter[BChan] = 0 ;
   LEDVal[RChan] = R ;
   LEDVal[GChan] = G ;
   LEDVal[BChan] = B ;
@@ -468,17 +471,9 @@ int main(void)
     case L_AND_S:
       StoreProgram() ;
       break ;
-    case SET_TO_G1:
-      SetLED (1,Message.data[2],Message.data[3],Message.data[4],0,0) ;
-      SetLED (2,Message.data[5],Message.data[6],Message.data[7],0,0) ;
-      break ;
-    case SET_TO_G2:
-      SetLED (3,Message.data[2],Message.data[3],Message.data[4],0,0) ;
-      SetLED (4,Message.data[5],Message.data[6],Message.data[7],0,0) ;
-      break ;
-    case SET_TO_G3:
-      SetLED (5,Message.data[2],Message.data[3],Message.data[4],0,0) ;
-      SetLED (6,Message.data[5],Message.data[6],Message.data[7],0,0) ;
+    case LOAD_TWO_LED:
+      SetLED (LED,Message.data[2],Message.data[3],Message.data[4],0,0) ;
+      if (LED<6) SetLED (LED+1,Message.data[5],Message.data[6],Message.data[7],0,0) ;
       break ;
     case LOAD_PROG:
       if (Message.data[1]>PWM_CHANNELS) {

@@ -367,6 +367,8 @@ int MakeConfig (int Linie, int Knoten, struct EEPROM *EEprom)
   int L1,K1,P1 ;
   int L2,K2,P2 ;
   struct Node *ANodes[MAX_ADD_PER_NODE*4] ;
+  struct Node *Group ;
+  char UnitName[NAMELEN*4] ;
   int ANumber ;
 
   ANumber = 0 ;
@@ -380,7 +382,7 @@ int MakeConfig (int Linie, int Knoten, struct EEPROM *EEprom)
   EEprom->BootAdd[0] = 0x01 ;
   EEprom->BootAdd[1] = 0x00 ;
   EEprom->BootLine = 0x00 ;
-  EEprom->PAD = 0xFF ;
+  EEprom->GroupAdd = 0xFF ;
   for (i=0;i<502;i++) EEprom->Data.PAD[i] = 0x00 ;
 
 
@@ -402,8 +404,22 @@ int MakeConfig (int Linie, int Knoten, struct EEPROM *EEprom)
   } ;
   
   EEprom->BoardType=0xFF ;
-  
+
   for (i=0;i<ANumber;i++) {
+    // Gruppe finden
+    UnitName[0] = '\0' ;
+    FullObjectName (ANodes[i],UnitName) ;
+    Group=FindGroup(Haus,UnitName) ;
+    if (Group!=NULL) {
+      if (EEprom->GroupAdd==0xFF) {
+	EEprom->GroupAdd = Group->Data.Group.Number ;
+      } else {
+	if (EEprom->GroupAdd!=Group->Data.Group.Number) {
+	  fprintf (stderr,"Inconsistent board L:%d, K:%d Added to different Groups: %d and %d\n",Linie,Knoten,EEprom->GroupAdd,Group->Data.Group.Number) ;
+	  return (0) ;
+	} ;
+      } ;
+    } ;
     switch (ANodes[i]->Type) {
     case N_SENSOR:
       if (EEprom->BoardType==0xFF) {
@@ -637,7 +653,7 @@ void ChangeAdress(char FromLinie, USHORT FromKnoten,char ToLinie, USHORT ToKnote
   Config->Data.EEprom.BootAdd[0] = 0x01 ;
   Config->Data.EEprom.BootAdd[1] = 0x00 ;
   Config->Data.EEprom.BootLine = 0x00 ;
-  Config->Data.EEprom.PAD = 0xFF ;
+  Config->Data.EEprom.GroupAdd = 0xFF ;
 
 #ifdef DEBUG
   fprintf (stderr,"Change Node Adress ") ;

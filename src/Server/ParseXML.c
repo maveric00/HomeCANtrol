@@ -38,6 +38,9 @@ struct TypSel Types[] = {
   {"Floor",N_STRUCTURE},
   {"Zimmer",N_STRUCTURE},
   {"Room",N_STRUCTURE},
+  {"Gruppe",N_GROUP},
+  {"Group",N_GROUP},
+  {"Element",N_ELEMENT},
   {"Schalter",N_ONOFF},
   {"Switch",N_ONOFF},
   {"Rollo",N_SHADE},
@@ -212,6 +215,10 @@ void XMLCALL start(void *data, const char *el, const char **attr)
 	DefaultFloor = Current ;
       }  ;
       break ;
+    case N_GROUP:
+      if ((strcmp(attr[i],"nummer")==0)||(strcmp(attr[i],"number")==0)) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Group.Number)) ;
+      } ;
     case N_ADRESS:
       if ((strcmp(attr[i],"linie")==0)||(strcmp(attr[i],"line")==0)) {
 	sscanf(attr[i+1],"%d",&(Current->Data.Adresse.Linie)) ;
@@ -342,6 +349,7 @@ void XMLCALL start(void *data, const char *el, const char **attr)
     case N_SET:
     case N_REPEAT:
     case N_WAITFOR:
+    case N_ELEMENT:
       if ((strcmp(attr[i],"objekt")==0)||(strcmp(attr[i],"object")==0)) {
 	strncpy(Current->Data.Wert.UnitName,attr[i+1],NAMELEN*4) ;
       } ;

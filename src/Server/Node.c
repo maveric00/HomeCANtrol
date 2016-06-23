@@ -69,6 +69,24 @@ struct Node *NewChild (struct Node *This)
   return (There) ; 
 }
 
+struct Node *FindGroup (struct Node *Root,const char *Unit)
+{
+  struct Node *This,*That ;
+  
+  if (Root==NULL) return (NULL) ;
+  
+  // Knoten mit dem ersten Bezeichner finden; 
+  for(This = Root ;This!=NULL;This=This->Next) {
+    if ((This->Type==N_ELEMENT) &&
+	(strcmp(This->Data.Wert.UnitName,Unit)==0)) {
+      return (This->Parent) ;
+    } ;
+    That = FindGlobalNode(This->Child,Unit) ;
+    if (That!=NULL) return (That) ;
+  } 
+  return (NULL) ;
+}
+
 struct Node *FindNode (struct Node *Root,const char *Unit)
 {
   int i ;

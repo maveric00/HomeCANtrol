@@ -60,6 +60,8 @@ typedef enum {
   N_DAILY = 32,
   N_LIGHT = 33,
   N_EXTENDED = 34,
+  N_GROUP = 35,
+  N_ELEMENT = 36,
   S_SIMPLE = 100,
   S_SHORTLONG = 101,
   S_SHADE_SHORTLONG = 102,
@@ -113,6 +115,10 @@ struct AdInfo {
   int Linie ;
   int Knoten ;
   int Port ;
+} ;
+
+struct GroupInfo {
+  int Number ;
 } ;
 
 struct Aktion {
@@ -189,6 +195,7 @@ struct Node {
     char PAD[NAMELEN*6] ;
     struct Werte Wert ;
     struct Reaction Reaction ;
+    struct GroupInfo Group ;
   } Data ;
 } ;
 

@@ -143,10 +143,10 @@ char *ToCommand(int Command)
 #define CIF_CAN1 2
 #define CIF_NET 3
 
-char CAN_PORT[MAXLINE] ;
-int CAN_PORT_NUM ;
-char CAN_BROADCAST[MAXLINE] ;
-int GatewayNum ;
+char CAN_PORT[MAXLINE] = "13247" ;
+int CAN_PORT_NUM = 13247;
+char CAN_BROADCAST[MAXLINE] = "255.255.255.255" ;
+int GatewayNum = 0 ;
 int Verbose=0 ;
 int NoTime=0 ;
 int NoRoute=0 ;
@@ -188,18 +188,19 @@ struct CANCommand {
 } ;
 
 struct CANToDMX {
-  char Line ;
   USHORT Add ;
-  char Start ;
-  USHORT Map[6] ;
+  int Port[8] ;
 } ;
 
-struct CANToDMX CANBuffer[4][ARTNET_DMX_LENGTH] ;
+int Universe0Line ;
+int Universe1Line ;
+
+struct CANToDMX CANBuffer[2][ARTNET_DMX_LENGTH/3] = {0} ;
 
 struct CANCommand *FilterList ;
 
-char RouteIF0[255] ;
-char RouteIF1[255] ;
+char RouteIF0[255] = {0} ;
+char RouteIF1[255] = {0} ;
 
 // Read a CANCommand (from, to, length and data) including mask from configuration file
 
@@ -208,32 +209,28 @@ void ReadDMXTable (FILE *Conf, int Univ)
   char Line[255] ;
   char *Str ;
   int i,j ;
-  int L1,A1,S1,S2 ;
- 
-  //  for (i=0;i<ARTNET_DMX_LENGTH/2;i++) CANBuffer[Univ][i].High=CANBuffer[Univ][i].Low=ARTNET_DMX_LENGTH ;
+  int A1,P1 ;
 
   i = 0 ;
 
   while (TRUE) {
-    while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!='#') break; //Read next line 
+    while ((Str=fgets(Line,sizeof(Line),Conf))) if (Line[0]!='#') break; //Read next line 
     if (Str==NULL) return ;
     if (strstr(Line,"End")) return ;
-    if (i<ARTNET_DMX_LENGTH) { // Max 512 per Universe
-      sscanf (Line,"%d: %d %d %d",&j,&L1,&A1,&S2) ;
-      S1 = S2-S2%6 ;
-      for (j=0;j<ARTNET_DMX_LENGTH;j++) 
-	if ((CANBuffer[Univ][j].Line==L1)&&(CANBuffer[Univ][j].Add==A1)&&(CANBuffer[Univ][j].Start==S1)) break ;
-      if (j==ARTNET_DMX_LENGTH) {
-	// Not yet set, find next free
-	for (j=0;j<ARTNET_DMX_LENGTH;j++) if (CANBuffer[Univ][j].Line==0) break ;
+    sscanf (Line,"%d: %d %d",&i,&A1,&P1) ;
+    if ((p<0)||(p>6)) {
+      fprintf (stderr,"ArtNet-Config: Wrong Port Number in Universe %d, LED %d!\n",Univ,i) ;
+      return ;
+    } ;
+    if (i<ARTNET_DMX_LENGTH/3) { // Max 170 RGB per Universe
+      for (j=0;j<ARTNET_DMX_LENGTH/3;j++) 
+	if ((CANBuffer[Univ][j].Add==A1)||(CANBuffer[Univ][j].Add==0)) break ;
+      if (j==ARTNET_DMX_LENGTH/3) {
+	fprintf (stderr,"ArtNet-Config: Too many nodes!\n") ;
+	return ;
       } ;
-      if (j<ARTNET_DMX_LENGTH) {
-	CANBuffer[Univ][j].Line = L1 ;
-	CANBuffer[Univ][j].Add = A1 ;
-	CANBuffer[Univ][j].Start = S1 ;
-	CANBuffer[Univ][j].Map[S2%6] = i ;
-      } ;
-      i++ ;
+      CANBuffer[Univ][j].Add = A1 ;
+      CANBuffer[Univ][j].Map[P1] = i ;
     } ;
   } ;
 }
@@ -254,34 +251,34 @@ void ReadCommandBlock(FILE *Conf,struct CANCommand *Command)
     Command->ToAddMask = Command->LenMask = Command->PrioMask = Command->RepeatMask = Command->GroupMask = 0 ;
   for (i=0;i<8;i++) Command->DataMask[i] = 0 ;
   
-  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!='#') break; 
+  while ((Str=fgets(Line,sizeof(Line),Conf))) if (Line[0]!='#') break; 
   if (Str==NULL) return ;
   sscanf(Line,"From: %hhu %hhx %hu %hx\n",&(Command->FromLine),&(Command->FromLineMask),
 	 &(Command->FromAdd),&(Command->FromAddMask)) ;
 
-  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!='#') break; 
+  while ((Str=fgets(Line,sizeof(Line),Conf))) if (Line[0]!='#') break; 
   if (Str==NULL) return ;
   sscanf(Line,"To: %hhu %hhx %hu %hx\n",&(Command->ToLine),&(Command->ToLineMask),
 	 &(Command->ToAdd),&(Command->ToAddMask)) ;
 
-  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!='#') break; 
+  while ((Str=fgets(Line,sizeof(Line),Conf))) if (Line[0]!='#') break; 
   if (Str==NULL) return ;
   sscanf(Line,"Prio: %hhd %hhx\n",&(Command->Prio),&(Command->PrioMask)) ;
 
-  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!='#') break; 
+  while ((Str=fgets(Line,sizeof(Line),Conf))) if (Line[0]!='#') break; 
   if (Str==NULL) return ;
   sscanf(Line,"Repeat: %hhd %hhx\n",&(Command->Repeat),&(Command->RepeatMask)) ;
 
-  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!='#') break; 
+  while ((Str=fgets(Line,sizeof(Line),Conf))) if (Line[0]!='#') break; 
   if (Str==NULL) return ;
   sscanf(Line,"Group: %hhd %hhx\n",&(Command->Group),&(Command->GroupMask)) ;
 
 
-  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!='#') break; 
+  while ((Str=fgets(Line,sizeof(Line),Conf))) if (Line[0]!='#') break; 
   if (Str==NULL) return ;
   sscanf(Line,"Len: %hhd %hhx\n",&(Command->Len),&(Command->LenMask)) ;
 
-  while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!='#') break; 
+  while ((Str=fgets(Line,sizeof(Line),Conf))) if (Line[0]!='#') break; 
   if (Str==NULL) return ;
   sscanf(Line,"Data: %hhu %hhx %hhu %hhx %hhu %hhx %hhu %hhx %hhu %hhx %hhu %hhx %hhu %hhx %hhu %hhx\n",
 	 &(Command->Data[0]),&(Command->DataMask[0]),
@@ -330,7 +327,7 @@ void ReadFilter(FILE *Conf)
 
   // Read all modification rules from config file
   for (;;) {
-    while ((Str=fgets(Line,sizeof(Line),Conf))!=NULL) if (Line[0]!='#') break; 
+    while ((Str=fgets(Line,sizeof(Line),Conf))) if (Line[0]!='#') break; 
     // If end of file (or not "With"), return to caller
     if (Str==NULL) return ;
     if (strstr(Line,"With")==NULL) return ; // No additional with
@@ -359,6 +356,19 @@ void ReadFilter(FILE *Conf)
   } ;
 }
 
+void ReadRouting (char *Line, char *RouteIF)
+{
+  int i,j ;
+  for (i=0;(Line[i]!='\0')&&(Line[i]!=' ');i++) ;
+  i++ ;
+  for (;Line[i]!='\0';i++) {
+    sscanf (&(Line[i]),"%d",&j) ;
+    if ((j>0)&&(j<255)) RouteIF[j]=1 ;
+    for (;(Line[i]!='\0')&&(Line[i]!=' ');i++) ;
+    if (Line[i]=='\0') break ;
+  } ;
+}
+
 // Read configuration file
 
 void ReadConfig(void)
@@ -367,96 +377,66 @@ void ReadConfig(void)
   FILE *Conf ;
   char Line[255] ;
 
-  // Set default values in case that no config file is available
-
-  strcpy(CAN_BROADCAST,"255.255.255.255") ;
-  strcpy(CAN_PORT,"13247") ;
-  CAN_PORT_NUM=13247 ;
-
-  // Rooute everything to everywhere
-
-  for (i=0;i<255;i++) {
-    RouteIF0[i] = 1 ;
-    RouteIF1[i] = 1 ;
-  } ;
-
   // Open config file
-
+  
   Conf = fopen("CANGateway.conf","r") ;
-
-  if (Conf==NULL) {
+  
+  if (Conf) {
+    // read config file line for line and check
+    while (fgets(Line,sizeof(Line),Conf)) {
+      if (strstr(Line,"Broadcast:")) {
+	sscanf(Line,"Broadcast: %s",CAN_BROADCAST) ;
+      } ;
+      if (strstr(Line,"Port:")) {
+	sscanf(Line,"Port: %s",CAN_PORT) ;
+	sscanf (CAN_PORT,"%d",&CAN_PORT_NUM) ;
+      } ;
+      if (strstr(Line,"GatewayNumber:")) {
+	sscanf(Line,"GatewayNumber: %d",&GatewayNum) ;
+      } ;
+      
+      // Read routing information; Format: "CAN0-Line: Line1 Line2 Line3 ..."
+      // Messages targeted to Line1,... are sent out to CAN0
+      
+      if (strstr(Line,"CAN0-Line:")) {
+	ReadRouting (Line,RouteIF0) ;
+      } ;
+      
+      // Same for CAN1
+      
+      if (strstr(Line,"CAN1-Line:")) {
+	ReadRouting (Line,RouteIF1) ;
+      } ;
+      
+      // If filter information available, set up Filter and possibly modification rules
+      
+      if (strstr(Line,"Exchange")) {
+	ReadFilter(Conf) ;
+      } ;
+      if (strstr(Line,"DMX Table")) {
+	for (i=0;(Line[i]!='\0')&&(Line[i]!=' ');i++) ;
+	i++ ;
+	sscanf (&(Line[i]),"%d %d",&j,&i) ;
+	if ((j<0)||(j>1)) {
+	  fprintf (stderr,"Wrong Artnet-Universe (%d) in Config\n",j) ;
+	  exit(0) ;
+	} ;
+	if (j==0) Universe0Line = i ;
+	if (j==1) Universe1Line = i ;
+	ReadDMXTable(Conf,j) ;
+      } ;
+    } ;
+    
+    fclose (Conf) ;  
+  } else {
     fprintf (stderr,"Using default values, routing all to all\n") ;
     return ;
   } ;
-
-  // If configuration file is available, routing information should be included.
-  
-  for (i=0;i<255;i++) {
-    RouteIF0[i] = 0 ;
-    RouteIF1[i] = 0 ;
-  } ;
-
-  // read config file line for line and check
-  while (fgets(Line,sizeof(Line),Conf)!=NULL) {
-    if (strstr(Line,"Broadcast:")!=NULL) {
-      sscanf(Line,"Broadcast: %s",CAN_BROADCAST) ;
-    } ;
-    if (strstr(Line,"Port:")!=NULL) {
-      sscanf(Line,"Port: %s",CAN_PORT) ;
-      sscanf (CAN_PORT,"%d",&CAN_PORT_NUM) ;
-    } ;
-    if (strstr(Line,"GatewayNumber:")!=NULL) {
-      sscanf(Line,"GatewayNumber: %d",&GatewayNum) ;
-    } ;
-    
-    // Read routing information; Format: "CAN0-Line: Line1 Line2 Line3 ..."
-    // Messages targeted to Line1,... are sent out to CAN0
-
-    if (strstr(Line,"CAN0-Line:")!=NULL) {
-      for (i=0;(Line[i]!='\0')&&(Line[i]!=' ');i++) ;
-      i++ ;
-      for (;Line[i]!='\0';i++) {
-	sscanf (&(Line[i]),"%d",&j) ;
-	if ((j>0)&&(j<255)) RouteIF0[j]=1 ;
-	for (;(Line[i]!='\0')&&(Line[i]!=' ');i++) ;
-	if (Line[i]=='\0') break ;
-      } ;
-    } ;
-
-    // Same for CAN1
-
-    if (strstr(Line,"CAN1-Line:")!=NULL) {
-      for (i=0;(Line[i]!='\0')&&(Line[i]!=' ');i++) ;
-      i++ ;
-      for (;Line[i]!='\0';i++) {
-	sscanf (&(Line[i]),"%d",&j) ;
-	if ((j>0)&&(j<255)) RouteIF1[j]=1 ;
-	for (;(Line[i]!='\0')&&(Line[i]!=' ');i++) ;
-	if (Line[i]=='\0') break ;
-      } ;
-    } ;
-
-    // If filter information available, set up Filter and possibly modification rules
-
-    if (strstr(Line,"Exchange")) {
-      ReadFilter(Conf) ;
-    } ;
-    if (strstr(Line,"DMX Table")) {
-      for (i=0;(Line[i]!='\0')&&(Line[i]!=' ');i++) ;
-      i++ ;
-      sscanf (&(Line[i]),"%d",&j) ;
-      if ((j>=0)&&(j<4)) ReadDMXTable(Conf,j) ;
-    } ;
-  } ;
-
-  fclose (Conf) ;  
-
   // Set to default if no routing was configured
   for (i=0;(i<255)&&(RouteIF0[i]==0);i++) ;
-  if (i==255) for(i=0;i<255;i++) RouteIF0[i] = 1 ;
-
+  if (i==255) memset(RouteIF0,1,255) ;
   for (i=0;(i<255)&&(RouteIF1[i]==0);i++) ;
-  if (i==255) for(i=0;i<255;i++) RouteIF1[i] = 1 ;
+  if (i==255) memset(RouteIF1,1,255) ;
 
   if (GatewayNum==0) {
     fprintf (stderr,"Please specify GatewayNumber in Config\n") ;
@@ -821,7 +801,7 @@ struct CANCommand *CommandMatch(struct CANCommand *Command)
   // Finds matching exchange entry; logic is the same as with most common CAN filters : 
   // Only the bits set in the mask are compared with each other
 
-  for (Filter=FilterList;Filter!=NULL;Filter=Filter->Next) {
+  for (Filter=FilterList;Filter;Filter=Filter->Next) {
     if ((Command->FromLine&Filter->FromLineMask)!=(Filter->FromLine&Filter->FromLineMask)) continue ;
     if ((Command->FromAdd&Filter->FromAddMask)!=(Filter->FromAdd&Filter->FromAddMask)) continue ;
     if ((Command->ToLine&Filter->ToLineMask)!=(Filter->ToLine&Filter->ToLineMask)) continue ;
@@ -902,48 +882,87 @@ void RewriteCommand (struct CANCommand *Command, struct CANCommand *Exchange, st
   } ;
 }
 
-int8_t buff[ARTNET_DMX_LENGTH +1];
-
-int length;
-
 int dmx_callback(artnet_node n, int port, void *d) 
 {
   uint8_t *data;
   struct can_frame frame ;
   ULONG CANID ;
   int numbytes ;
-  int i,j ;
+  int Line ;
+  int i,j,k ;
   
   data = artnet_read_dmx(n, port, &length);
-  memset(buff, 0x00, ARTNET_DMX_LENGTH+1);
-  memcpy(buff, data, length);
 
   // Send out CAN-Data
-  for (i=0;i<ARTNET_DMX_LENGTH/2;) {
-    if (CANBuffer[port][i].Line==0) break ; // Finished
-    CANID = BuildCANId(0,0,0,253,CANBuffer[port][i].Line,CANBuffer[port][i].Add,0) ;
-    frame.can_id = CANID|CAN_EFF_FLAG ;
-    frame.can_dlc = 8 ;
-    frame.data[0] = 41; // LOAD_TWO_LED ;
-    frame.data[1] = CANBuffer[port][i].Start/3 ;
-    for (j=0;j<6;j++) frame.data[i+2] = buff[CANBuffer[port][i].Map[j]] ;
-    
-    if (RouteIF0[(int)CANBuffer[port][i].Line]!=0) {
-      if ((numbytes = write(Can0SockFD, &frame, sizeof(struct can_frame))) < 0) {
-	perror("CANGateway: CAN raw socket write");
-	ReInitCAN () ;
-	return 0;
-      } ;
+  for (i=0;i<ARTNET_DMX_LENGTH/3;) {
+    if (CANBuffer[port][i].Add==0) break ; // Finished
+    if (port==0) {
+      Line = Universe0Line ;
+    } else {
+      Line = Universe1Line ;
     } ;
-    if (RouteIF1[(int)CANBuffer[port][i].Line]!=0) {
-      if ((numbytes = write(Can1SockFD, &frame, sizeof(struct can_frame))) < 0) {
-	perror("CANGateway: CAN raw socket write");
-	ReInitCAN () ;
-	return 0 ;
+    CANID = BuildCANId(0,0,0,253,Line,CANBuffer[port][i].Add,0) ;
+    for (j=0;j<8;j+=2) {
+      if ((CANBuffer[port][i].Port[j]!=0)||(CANBuffer[port][i].Port[j+1]!=0)) {
+	frame.can_id = CANID|CAN_EFF_FLAG ;
+	frame.can_dlc = 8 ;
+	frame.data[0] = 41; // LOAD_TWO_LED ;
+	frame.data[1] = CANBuffer[port][i].j ;
+	k = CANBuffer[port][i].Port[j]*3 ;
+	if (k>length) {
+	  fprintf (stderr,"ARTNET-Packet did not contain enough data\n") ;
+	  return;
+	} ;
+	frame.data[2] = data[k] ;
+	frame.data[3] = data[k+1] ;
+	frame.data[4] = data[k+2] ;
+	k = CANBuffer[port][i].Port[j+1]*3 ;
+	if (k>length) {
+	  fprintf (stderr,"ARTNET-Packet did not contain enough data\n") ;
+	  return;
+	} ;
+	frame.data[5] = data[k] ;
+	frame.data[6] = data[k+1] ;
+	frame.data[7] = data[k+2] ;
+    
+	if (RouteIF0[Line]!=0) {
+	  if ((numbytes = write(Can0SockFD, &frame, sizeof(struct can_frame))) < 0) {
+	    perror("CANGateway: CAN raw socket write");
+	    ReInitCAN () ;
+	    return 0;
+	  } ;
+	} ;
+	if (RouteIF1[Line]!=0) {
+	  if ((numbytes = write(Can1SockFD, &frame, sizeof(struct can_frame))) < 0) {
+	    perror("CANGateway: CAN raw socket write");
+	    ReInitCAN () ;
+	    return 0 ;
+	  } ;
+	} ;
       } ;
     } ;
   } ;
   return 0;
+}
+
+void DistributeCommand (struct CANCommand *Command)
+{
+  struct CANCommand *Exchange ;
+  struct CANCommand NewCommand ;
+    
+  if (Command->Interface!=0) {
+    // Look-up if received Element should be exchanged with other element(s)
+    Exchange = CommandMatch(Command) ;
+    if (Exchange) {
+      for (Exchange=Exchange->Exchange;Exchange;Exchange=Exchange->Next) {
+	RewriteCommand(Command,Exchange,&NewCommand) ;
+	RouteCommand(&NewCommand) ;
+      } ;
+    } else {
+      // no exchange element
+      RouteCommand(Command) ;
+    } ;
+  } ;
 }
 
 // main routine
@@ -953,17 +972,15 @@ int main (int argc, char*argv[])
   int i ;
   fd_set rdfs ;
   struct CANCommand Command ;
-  struct CANCommand NewCommand ;
-  struct CANCommand *Exchange ;
   struct timeval tv;
 
 
   logfd = stderr ;
   for (i=1;i<argc;i++) {
-    if (strstr("-v",argv[i])!=NULL) Verbose = 1 ;
-    if (strstr("-t",argv[i])!=NULL) NoTime = 1 ;
-    if (strstr("-noroute",argv[i])!=NULL) NoRoute = 1 ;
-    if (strstr("-f",argv[i])!=NULL) {
+    if (strstr("-v",argv[i])) Verbose = 1 ;
+    if (strstr("-t",argv[i])) NoTime = 1 ;
+    if (strstr("-noroute",argv[i])) NoRoute = 1 ;
+    if (strstr("-f",argv[i])) {
       logfd = fopen(argv[i+1],"w") ;
       if (logfd==NULL) {
 	fprintf (stderr,"Could not open logfile %s\n",argv[i+1]) ;
@@ -972,8 +989,8 @@ int main (int argc, char*argv[])
       setvbuf (logfd,NULL,_IOLBF,0) ;
       i++ ;
     } ;
-    if ((strstr("-?",argv[i])!=NULL)||
-	(strstr("--help",argv[i])!=NULL)) {
+    if ((strstr("-?",argv[i]))||
+	(strstr("--help",argv[i]))) {
       printf ("Usage: %s [-v] [-t] [-noroute] [--help] [-?]\n\n",argv[0]) ;
       printf ("       -v: Verbose\n") ;
       printf ("       -t: dont display time messages\n") ;
@@ -1043,37 +1060,27 @@ int main (int argc, char*argv[])
       continue ; // was timeout only
     } ;
     
-    Command.Interface = 0 ; // Delete old communication
-
     if (FD_ISSET(RecSockFD,&rdfs)) {
       ReceiveFromUDP (&Command) ;
       Command.Interface = CIF_NET ;
-      if (Command.Len==0) continue ;
-    } else if (FD_ISSET(Can0SockFD,&rdfs)) {
+      if (Command.Len!=0) DistributeCommand(&Command) ;
+    } ;
+    if (FD_ISSET(Can0SockFD,&rdfs)) {
       ReceiveFromCAN (Can0SockFD,&Command) ;
       Command.Interface = CIF_CAN0 ;
-    } else if (FD_ISSET(Can1SockFD,&rdfs)) {
+      if (Command.Len!=0) DistributeCommand(&Command) ;
+    } ;
+    if (FD_ISSET(Can1SockFD,&rdfs)) {
       ReceiveFromCAN (Can1SockFD,&Command) ;
-      Command.Interface = CIF_CAN0 ;
-    } else if (FD_ISSET(artnetFD,&rdfs)) {
+      Command.Interface = CIF_CAN1 ;
+      if (Command.Len!=0) DistributeCommand(&Command) ;
+    } ;
+    if (FD_ISSET(artnetFD,&rdfs)) {
       artnet_read(node1,0); 
     } ;
 
     usleep(2000) ;
 
-    if (Command.Interface!=0) {
-      // Look-up if received Element should be exchanged with other element(s)
-      Exchange = CommandMatch(&Command) ;
-      if (Exchange!=NULL) {
-	for (Exchange=Exchange->Exchange;Exchange!=NULL;Exchange=Exchange->Next) {
-	  RewriteCommand(&Command,Exchange,&NewCommand) ;
-	  RouteCommand(&NewCommand) ;
-	} ;
-      } else {
-	// no exchange element
-	RouteCommand(&Command) ;
-      } ;
-    } ;
   } ;
   
   // will currently never be reached...
