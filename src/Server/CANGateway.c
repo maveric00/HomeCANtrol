@@ -894,6 +894,12 @@ int dmx_callback(artnet_node n, int port, void *d)
   
   data = artnet_read_dmx(n, port, &length);
 
+  if (Verbose==1) {
+    fprintf (logfd,"%s: ",LogTime()) ;
+    fprintf (logfd,"Received ArtNet Universe %d\n",port) ;
+  } ;
+
+
   // Send out CAN-Data
   for (i=0;i<ARTNET_DMX_LENGTH/3;) {
     if (CANBuffer[port][i].Add==0) break ; // Finished
@@ -1026,8 +1032,8 @@ int main (int argc, char*argv[])
   artnet_set_long_name(node1, "ArtNet to CAN convertor");
   artnet_set_node_type(node1, ARTNET_NODE);
   artnet_set_dmx_handler(node1, dmx_callback, NULL);
-  for(i=0; i<4; i++) {
-    artnet_set_port_addr(node1, i, ARTNET_OUTPUT_PORT, i);
+  for(i=0; i<2; i++) {
+    artnet_set_port_addr(node1, i, ARTNET_INPUT_PORT, i);
     artnet_set_subnet_addr(node1, 0);
   } ;
   artnet_start(node1);
