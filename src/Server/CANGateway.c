@@ -195,7 +195,7 @@ struct CANToDMX {
 int Universe0Line ;
 int Universe1Line ;
 
-struct CANToDMX CANBuffer[2][ARTNET_DMX_LENGTH/3] = {0} ;
+struct CANToDMX CANBuffer[2][ARTNET_DMX_LENGTH/3] ;
 
 struct CANCommand *FilterList ;
 
@@ -218,7 +218,7 @@ void ReadDMXTable (FILE *Conf, int Univ)
     if (Str==NULL) return ;
     if (strstr(Line,"End")) return ;
     sscanf (Line,"%d: %d %d",&i,&A1,&P1) ;
-    if ((p<0)||(p>6)) {
+    if ((P1<0)||(P1>6)) {
       fprintf (stderr,"ArtNet-Config: Wrong Port Number in Universe %d, LED %d!\n",Univ,i) ;
       return ;
     } ;
@@ -230,7 +230,7 @@ void ReadDMXTable (FILE *Conf, int Univ)
 	return ;
       } ;
       CANBuffer[Univ][j].Add = A1 ;
-      CANBuffer[Univ][j].Map[P1] = i ;
+      CANBuffer[Univ][j].Port[P1] = i ;
     } ;
   } ;
 }
@@ -890,6 +890,7 @@ int dmx_callback(artnet_node n, int port, void *d)
   int numbytes ;
   int Line ;
   int i,j,k ;
+  int length ;
   
   data = artnet_read_dmx(n, port, &length);
 
@@ -907,11 +908,11 @@ int dmx_callback(artnet_node n, int port, void *d)
 	frame.can_id = CANID|CAN_EFF_FLAG ;
 	frame.can_dlc = 8 ;
 	frame.data[0] = 41; // LOAD_TWO_LED ;
-	frame.data[1] = CANBuffer[port][i].j ;
+	frame.data[1] = j ;
 	k = CANBuffer[port][i].Port[j]*3 ;
 	if (k>length) {
 	  fprintf (stderr,"ARTNET-Packet did not contain enough data\n") ;
-	  return;
+	  return 0;
 	} ;
 	frame.data[2] = data[k] ;
 	frame.data[3] = data[k+1] ;
@@ -919,7 +920,7 @@ int dmx_callback(artnet_node n, int port, void *d)
 	k = CANBuffer[port][i].Port[j+1]*3 ;
 	if (k>length) {
 	  fprintf (stderr,"ARTNET-Packet did not contain enough data\n") ;
-	  return;
+	  return 0;
 	} ;
 	frame.data[5] = data[k] ;
 	frame.data[6] = data[k+1] ;
@@ -949,6 +950,10 @@ void DistributeCommand (struct CANCommand *Command)
 {
   struct CANCommand *Exchange ;
   struct CANCommand NewCommand ;
+
+  NewCommand.Next = 0 ;
+  NewCommand.Interface = 0 ;
+  NewCommand.Exchange= 0 ;
     
   if (Command->Interface!=0) {
     // Look-up if received Element should be exchanged with other element(s)
@@ -1030,10 +1035,6 @@ int main (int argc, char*argv[])
 
   
   // initialisation
-  NewCommand.Next = 0 ;
-  NewCommand.Interface = 0 ;
-  NewCommand.Exchange= 0 ;
-
 
   for (;;) {
     // Main loop - wait for something to receive and then filter/exchange it and route it
