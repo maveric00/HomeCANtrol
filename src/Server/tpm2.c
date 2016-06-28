@@ -17,21 +17,29 @@
 #include <net/if.h>
 #include <netdb.h>
 #include <ctype.h>
+#include <linux/can.h>
+#include <linux/can/raw.h>
+#include "artnet.h"
+#include "packets.h"
 #define _XOPEN_SOURCE
 #include <time.h>
 #include <sys/time.h>
+#include "tpm2.h"
 
 int TPM2FD ;
 struct TPM2Packet TPM2Data ;
 
-int InitTPM2(void)
+void InitTPM2(void)
 {
-  struct addrinfo hints;
-  int rv;
   struct sockaddr_in RecAddr;
   int val ;
   
   val = (0==0) ;
+
+  if (TPMVerbose==1) {
+    fprintf (logfd,"%s: ",LogTime()) ;
+    fprintf (logfd,"Init TPM2\n") ;
+  } ;
 
   // Reserve Receive-Socket
   if ((TPM2FD = socket(AF_INET, SOCK_DGRAM,0)) == -1) {
@@ -53,31 +61,41 @@ int InitTPM2(void)
   }
     
   setsockopt(TPM2FD, SOL_SOCKET, SO_BROADCAST, (char *) &val, sizeof(val)) ;  
+  if (TPMVerbose==1) {
+    fprintf (logfd,"%s: ",LogTime()) ;
+    fprintf (logfd,"TPM2 initialized\n") ;
+  } ;
 }
 
 void TPM2_read (void)
 {
-  int i,j ;
+  int i,j,k ;
   struct can_frame frame ;
   ULONG CANID ;
   int FrameSize ;
   int Line ;
   int port ;
   struct sockaddr_storage their_addr;
-  struct sockaddr_in *tap ;
+  struct sockaddr *tap ;
   size_t addr_len;
   int numbytes ;
+  int recnumbytes ;
 
-  tap = (struct sockaddr_in*)&their_addr ;
+  if (TPMVerbose==1) {
+    fprintf (logfd,"%s: ",LogTime()) ;
+    fprintf (logfd,"TPM2 packed received\n") ;
+  } ;
+
+  tap = (struct sockaddr*)&their_addr ;
   
   addr_len = sizeof their_addr;
 
-  if ((numbytes = recvfrom(TPM2FD, &TPM2Data, sizeof(struct TPM2Packet), 0,
-			   (struct sockaddr_in *)tap,(socklen_t*) &addr_len,&Source)) == -1) {
+  if ((recnumbytes = recvfrom(TPM2FD, &TPM2Data, sizeof(struct TPM2Packet), 0,
+			   (struct sockaddr *)tap,(socklen_t*) &addr_len)) == -1) {
     perror("Lost UDP network (no TPM2 Data)");
   }
-  if (numbytes == 0) return ;
-  numbytes = numbytes - 6 ;
+  if (recnumbytes == 0) return ;
+  recnumbytes -= 6 ;
   if (TPMVerbose==1) {
     fprintf (logfd,"%s: ",LogTime()) ;
     fprintf (logfd,"Received TPM2-Data Block %d\n",TPM2Data.PacketNum) ;
@@ -93,7 +111,7 @@ void TPM2_read (void)
   } else if (Universe[1]==TPM2Data.PacketNum) {
     port = 1 ;
   } else {
-    fprintf (logfd,"Wrong Packet Number in TPM2-Data\n") ;
+    fprintf (logfd,"Wrong Packet Number in TPM2-Data, expected :%d or %d, got: %d\n",Universe[0],Universe[1],TPM2Data.PacketNum) ;
     return ;
   } ;
 
@@ -103,7 +121,7 @@ void TPM2_read (void)
     return ;
   } ;
   
-  for (i=0;i<ARTNET_DMX_LENGTH/3;) {
+  for (i=0;i<ARTNET_DMX_LENGTH/3;i++) {
     if (CANBuffer[port][i].Add==0) break ; // Finished
     Line = UniverseLine[port] ;
     
@@ -115,16 +133,16 @@ void TPM2_read (void)
 	frame.data[0] = 41; // LOAD_TWO_LED ;
 	frame.data[1] = j ;
 	k = CANBuffer[port][i].Port[j]*3 ;
-	if (k>numbytes) {
-	  fprintf (stderr,"TPM2-Packet did not contain enough data\n") ;
+	if (k>recnumbytes) {
+	  fprintf (stderr,"TPM2-Packet did not contain enough data, received %d bytes, expecting %d\n",recnumbytes,k) ;
 	  return;
 	} ;
 	frame.data[2] = TPM2Data.Data[k] ;
 	frame.data[3] = TPM2Data.Data[k+1] ;
 	frame.data[4] = TPM2Data.Data[k+2] ;
 	k = CANBuffer[port][i].Port[j+1]*3 ;
-	if (k>numbytes) {
-	  fprintf (stderr,"TPM2-Packet did not contain enough data\n") ;
+	if (k>recnumbytes) {
+	  fprintf (stderr,"TPM2-Packet did not contain enough data, received %d bytes, expecting %d\n",recnumbytes,k) ;
 	  return;
 	} ;
 	frame.data[5] = TPM2Data.Data[k] ;
@@ -150,7 +168,7 @@ void TPM2_read (void)
 	  } ;
 	  if (TPMVerbose==1) {
 	    fprintf (logfd,"%s: ",LogTime()) ;
-	    fprintf (logfd,"Sent TPM2-Data Block to CAN0\n") ;
+	    fprintf (logfd,"Sent TPM2-Data Block to CAN1\n") ;
 	  } ;
 	} ;
       } ;

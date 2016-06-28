@@ -62,6 +62,11 @@
 #define TPM2_CMD_DIR_WRITE			    	0x01 // For a WRITE command it is 1
 #define TPM2_CMD_ACK_BIT				0x06 // The MSB-1 of the 'CONTROL BYTE' determines whether the command expects an answer or not
 
+typedef unsigned long ULONG ;
+typedef unsigned short USHORT ;
+
+
+
 struct TPM2Packet {
   unsigned char StartByte ;
   unsigned char Type ;
@@ -80,6 +85,14 @@ struct CANToDMX {
 extern int UniverseLine[2] ;
 extern int Universe[2] ;
 extern int TPMVerbose ;
+extern FILE *logfd ;
+extern int Can0SockFD;
+extern int Can1SockFD;
+extern char RouteIF0[255];
+extern char RouteIF1[255];
+extern char *LogTime(void) ;
+extern ULONG BuildCANId (char Prio, char Repeat, char FromLine, USHORT FromAdd, char ToLine, USHORT ToAdd, char Group);
+extern void ReInitCAN (void) ;
 extern struct TPM2Packet TPM2Data ;
 extern struct CANToDMX CANBuffer[2][ARTNET_DMX_LENGTH/3] ;
 extern int TPM2FD;

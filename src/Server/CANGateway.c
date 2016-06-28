@@ -151,17 +151,22 @@ int Verbose=0 ;
 int TPMVerbose=0 ;
 int NoTime=0 ;
 int NoRoute=0 ;
+int NoTPM2=0 ;
 int DoFilter=0 ;
 
 typedef unsigned long ULONG ;
 typedef unsigned short USHORT ;
 
+extern int TPM2FD ;
 int RecSockFD;
 int SendSockFD;
 int Can0SockFD;
 int Can1SockFD;
 int artnetFD;
 FILE *logfd ;
+
+extern void InitTPM2(void) ;
+extern void TPM2_read(void) ;
 
 // Struct for a single CAN-Message, including masking, receiving interface and pointer to modification methods
 
@@ -375,7 +380,7 @@ void ReadRouting (char *Line, char *RouteIF)
 
 void ReadConfig(void)
 {
-  int i,j,Univs ;
+  int i,j,k,Univs ;
   FILE *Conf ;
   char Line[255] ;
 
@@ -416,16 +421,16 @@ void ReadConfig(void)
       if (strstr(Line,"Exchange")) {
 	ReadFilter(Conf) ;
       } ;
-      if (strstr(Line,"DMX Table")) {
+      if (strstr(Line,"DMXTable")) {
 	if (Univs>1) {
-	  fprintf ("Too many Universe definitions in Config\n") ;
+	  fprintf (stderr,"Too many Universe definitions in Config\n") ;
 	  exit(0) ;
 	}
 	for (i=0;(Line[i]!='\0')&&(Line[i]!=' ');i++) ;
 	i++ ;
-	sscanf (&(Line[i]),"%d %d",&j,&i) ;
+	sscanf (&(Line[i]),"%d %d",&j,&k) ;
 	Universe[Univs]=j ;
-	UnivesreLine[Univs] = i ;
+	UniverseLine[Univs] = k ;
 	ReadDMXTable(Conf,Univs) ;
 	Univs++ ;
       } ;
@@ -992,8 +997,9 @@ int main (int argc, char*argv[])
   logfd = stderr ;
   for (i=1;i<argc;i++) {
     if (strstr("-v",argv[i])) Verbose = 1 ;
-    if (strstr("-vv",argv[i])) TPMVerbose = 1 ;
+    if (strstr("-x",argv[i])) TPMVerbose = 1 ;
     if (strstr("-t",argv[i])) NoTime = 1 ;
+    if (strstr("-notpm2",argv[i])) NoTPM2 = 1 ;
     if (strstr("-noroute",argv[i])) NoRoute = 1 ;
     if (strstr("-exchange",argv[i])) DoFilter = 1 ;
     if (strstr("-f",argv[i])) {
@@ -1009,8 +1015,10 @@ int main (int argc, char*argv[])
 	(strstr("--help",argv[i]))) {
       printf ("Usage: %s [-v] [-t] [-noroute] [--help] [-?]\n\n",argv[0]) ;
       printf ("       -v: Verbose\n") ;
+      printf ("       -x: Verbose TPM2\n") ;
       printf ("       -t: dont display time messages\n") ;
       printf ("       -noroute: Do not route messages\n") ;
+      printf ("       -notpm2: Do not route TPM2 messages\n") ;
       printf ("       -exchange: Switch exchange mechanism on\n") ;
       printf ("       -f FILE: log into file FILE\n") ;
       printf ("       -?, --help: display this message\n") ;
@@ -1062,7 +1070,7 @@ int main (int argc, char*argv[])
     tv.tv_usec = 10000 ; // will be deleted by select!
 
 
-    if ((i=select(Can1SockFD+1,&rdfs,NULL,NULL,&tv))<0) {
+    if ((i=select(TPM2FD+1,&rdfs,NULL,NULL,&tv))<0) {
       perror ("CANGateway: Could not select") ;
       exit (1) ;
     } ;
@@ -1094,7 +1102,7 @@ int main (int argc, char*argv[])
       artnet_read(node1,0); 
     } ;
     if (FD_ISSET(TPM2FD,&rdfs)) {
-      TPM2_read(node1,0); 
+      if (NoTPM2==0) TPM2_read(); 
     } ;
 
     usleep(2000) ;
