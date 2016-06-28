@@ -22,7 +22,7 @@ TARGET = CANGateway
 OBJDIR = build
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC  = CANGateway.c RelUDP.c artnet.c
+SRC  = CANGateway.c RelUDP.c artnet.c tpm2.c
 SRC += 
 SRC += 
 

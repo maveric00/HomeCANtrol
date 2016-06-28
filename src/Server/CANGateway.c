@@ -148,8 +148,10 @@ int CAN_PORT_NUM = 13247;
 char CAN_BROADCAST[MAXLINE] = "255.255.255.255" ;
 int GatewayNum = 0 ;
 int Verbose=0 ;
+int TPMVerbose=0 ;
 int NoTime=0 ;
 int NoRoute=0 ;
+int DoFilter=0 ;
 
 typedef unsigned long ULONG ;
 typedef unsigned short USHORT ;
@@ -192,8 +194,8 @@ struct CANToDMX {
   int Port[8] ;
 } ;
 
-int Universe0Line ;
-int Universe1Line ;
+int UniverseLine[2] ;
+int Universe[2] ;
 
 struct CANToDMX CANBuffer[2][ARTNET_DMX_LENGTH/3] ;
 
@@ -373,14 +375,15 @@ void ReadRouting (char *Line, char *RouteIF)
 
 void ReadConfig(void)
 {
-  int i,j ;
+  int i,j,Univs ;
   FILE *Conf ;
   char Line[255] ;
 
   // Open config file
   
   Conf = fopen("CANGateway.conf","r") ;
-  
+
+  Univs = 0 ;
   if (Conf) {
     // read config file line for line and check
     while (fgets(Line,sizeof(Line),Conf)) {
@@ -414,16 +417,17 @@ void ReadConfig(void)
 	ReadFilter(Conf) ;
       } ;
       if (strstr(Line,"DMX Table")) {
+	if (Univs>1) {
+	  fprintf ("Too many Universe definitions in Config\n") ;
+	  exit(0) ;
+	}
 	for (i=0;(Line[i]!='\0')&&(Line[i]!=' ');i++) ;
 	i++ ;
 	sscanf (&(Line[i]),"%d %d",&j,&i) ;
-	if ((j<0)||(j>1)) {
-	  fprintf (stderr,"Wrong Artnet-Universe (%d) in Config\n",j) ;
-	  exit(0) ;
-	} ;
-	if (j==0) Universe0Line = i ;
-	if (j==1) Universe1Line = i ;
-	ReadDMXTable(Conf,j) ;
+	Universe[Univs]=j ;
+	UnivesreLine[Univs] = i ;
+	ReadDMXTable(Conf,Univs) ;
+	Univs++ ;
       } ;
     } ;
     
@@ -904,9 +908,9 @@ int dmx_callback(artnet_node n, int port, void *d)
   for (i=0;i<ARTNET_DMX_LENGTH/3;) {
     if (CANBuffer[port][i].Add==0) break ; // Finished
     if (port==0) {
-      Line = Universe0Line ;
+      Line = UniverseLine[0] ;
     } else {
-      Line = Universe1Line ;
+      Line = UniverseLine[1] ;
     } ;
     CANID = BuildCANId(0,0,0,253,Line,CANBuffer[port][i].Add,0) ;
     for (j=0;j<8;j+=2) {
@@ -963,8 +967,7 @@ void DistributeCommand (struct CANCommand *Command)
     
   if (Command->Interface!=0) {
     // Look-up if received Element should be exchanged with other element(s)
-    Exchange = CommandMatch(Command) ;
-    if (Exchange) {
+    if ((DoFilter==1)&&((Exchange = CommandMatch(Command))!=NULL)) {
       for (Exchange=Exchange->Exchange;Exchange;Exchange=Exchange->Next) {
 	RewriteCommand(Command,Exchange,&NewCommand) ;
 	RouteCommand(&NewCommand) ;
@@ -989,8 +992,10 @@ int main (int argc, char*argv[])
   logfd = stderr ;
   for (i=1;i<argc;i++) {
     if (strstr("-v",argv[i])) Verbose = 1 ;
+    if (strstr("-vv",argv[i])) TPMVerbose = 1 ;
     if (strstr("-t",argv[i])) NoTime = 1 ;
     if (strstr("-noroute",argv[i])) NoRoute = 1 ;
+    if (strstr("-exchange",argv[i])) DoFilter = 1 ;
     if (strstr("-f",argv[i])) {
       logfd = fopen(argv[i+1],"w") ;
       if (logfd==NULL) {
@@ -1006,6 +1011,7 @@ int main (int argc, char*argv[])
       printf ("       -v: Verbose\n") ;
       printf ("       -t: dont display time messages\n") ;
       printf ("       -noroute: Do not route messages\n") ;
+      printf ("       -exchange: Switch exchange mechanism on\n") ;
       printf ("       -f FILE: log into file FILE\n") ;
       printf ("       -?, --help: display this message\n") ;
       exit(0) ;
@@ -1039,6 +1045,7 @@ int main (int argc, char*argv[])
   artnet_start(node1);
   artnetFD = artnet_get_sd(node1);
 
+  InitTPM2 () ;
   
   // initialisation
 
@@ -1049,6 +1056,7 @@ int main (int argc, char*argv[])
     FD_SET(Can0SockFD,&rdfs) ;
     FD_SET(Can1SockFD,&rdfs) ;
     FD_SET(artnetFD,&rdfs) ;
+    FD_SET(TPM2FD,&rdfs) ;
 
     tv.tv_sec = 0 ;
     tv.tv_usec = 10000 ; // will be deleted by select!
@@ -1084,6 +1092,9 @@ int main (int argc, char*argv[])
     } ;
     if (FD_ISSET(artnetFD,&rdfs)) {
       artnet_read(node1,0); 
+    } ;
+    if (FD_ISSET(TPM2FD,&rdfs)) {
+      TPM2_read(node1,0); 
     } ;
 
     usleep(2000) ;
