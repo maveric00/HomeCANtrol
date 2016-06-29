@@ -44,6 +44,7 @@ EEProm-Belegung vom LED-Board:
 extern void InitBCM(void);
 
 extern volatile uint8_t LEDVal[PWM_CHANNELS] ;
+extern volatile uint8_t LEDTargetVal[PWM_CHANNELS] ;
 extern volatile uint8_t LEDPWM[56] ;
 extern volatile uint8_t MasterVal ;
 volatile uint16_t LEDV2[PWM_CHANNELS] ;
@@ -60,6 +61,7 @@ uint8_t LastTime[PWM_CHANNELS] ;
 
 volatile uint8_t  Heartbeat ;
 volatile uint16_t Timers ;
+uint8_t GlobalDimTimer = 1 ;
 
 const uint16_t LED_TO_R [] PROGMEM = { 0,9,1,18,12,4,7} ;
 const uint16_t LED_TO_G [] PROGMEM = { 8,10,2,19,13,5,15} ;
@@ -149,6 +151,7 @@ inline void StepLight (void)
       if (Delta[Channel]!=0x7FFF) {
 	LEDV2[Channel] += Delta[Channel] ;
 	Counter[Channel]-- ;
+	if (Counter[Channel]==0) LEDV2[Channel]=((unit16_t)LEDTargetVal[Channel]<<8) ;
       } else {
 	if (Counter[Channel]==GlobalTime) Counter[Channel]=0 ;
       } ;
@@ -162,12 +165,14 @@ inline void StepLight (void)
 	Counter[Channel] = Command ;  
 	Command = GetProgram(Channel,Step[Channel]) ;
 	Step[Channel]++ ;
+	LEDTargetVal[Channel]=Command ;
 	Delta[Channel] = CalcDelta(Channel,Command,Counter[Channel]) ;
 	Counter[Channel]-- ;
       } else if (Command<221) { // JumpTo 
 	Step[Channel] = Command-201 ;
-      } else if (Command==221) { // SetTo 
-	LEDV2[Channel] = ((uint16_t)GetProgram(Channel,Step[Channel]))<<8 ;
+      } else if (Command==221) { // SetTo
+	LEDTargetVal[Channel]= GetProgram(Channel,Step[Channel]))<<8 ;
+	LEDV2[Channel] = ((uint16_t)LEDTargetVal[Channel])<<8 ;
 	Step[Channel]++ ;
       } else if (Command==222) { // Delay 
 	Delta[Channel] = 0 ;
@@ -237,11 +242,15 @@ void SetLED (uint8_t Num, uint8_t R, uint8_t G, uint8_t B, uint8_t W, uint8_t In
   LEDVal[RChan] = R ;
   LEDVal[GChan] = G ;
   LEDVal[BChan] = B ;
+  LEDTargetVal[RChan] = R ;
+  LEDTargetVal[GChan] = G ;
+  LEDTargetVal[BChan] = B ;
   LEDV2[RChan] = ((uint16_t) R)<<8 ;
   LEDV2[GChan] = ((uint16_t) G)<<8 ;
   LEDV2[BChan] = ((uint16_t) B)<<8;
   if (Num==0) {
     LEDVal[17] = W ;
+    LEDTargetVal[17] = W ;
     LEDV2[17] = ((uint16_t) W)<<8 ;
   } ;
 }
@@ -253,6 +262,11 @@ void DimLED (uint8_t Num, uint8_t R, uint8_t G, uint8_t B, uint8_t W,uint8_t Tim
   uint8_t RChan,GChan,BChan ;
   
   if (Num>7) return ;
+
+  if (Timer==0) {
+    SetLED (Num,R,G,B,W,0);
+    return ;
+  } ;
   
   if (Num==7) { /* Alle LEDs setzen, rekursiv */
     for (i1=0;i1<7;i1++) DimLED(i1,R,G,B,W,Timer) ;
@@ -265,20 +279,24 @@ void DimLED (uint8_t Num, uint8_t R, uint8_t G, uint8_t B, uint8_t W,uint8_t Tim
 
   Counter[RChan] = Timer-1 ;
   Delta[RChan] = CalcDelta(RChan,R,Timer) ;
+  LEDTargetVal[RChan] = R ;
   LEDVal[RChan] = (uint8_t)(LEDV2[RChan]>>8) ;
 
 
   Counter[GChan] = Timer-1 ;
   Delta[GChan] = CalcDelta(GChan,G,Timer) ;
+  LEDTargetVal[GChan] = G ;
   LEDVal[GChan] = (uint8_t)(LEDV2[GChan]>>8) ;
 
   Counter[BChan] = Timer-1 ;
   Delta[BChan] = CalcDelta(BChan,B,Timer) ;
+  LEDTargetVal[BChan] = B ;
   LEDVal[BChan] = (uint8_t)(LEDV2[BChan]>>8) ;
 
   if (Num==0) {
     Counter[17] = Timer-1 ;
-    Delta[17] = CalcDelta(17,W,Timer) ;		
+    Delta[17] = CalcDelta(17,W,Timer) ;
+    LEDTargetVal[17] = W ;
     LEDVal[17] = (uint8_t)(LEDV2[17]>>8); 
   } ;
 }
@@ -352,6 +370,7 @@ int main(void)
     Step[r] = 22 ;
     Counter[r] = 0 ;
     LEDVal[r] = 0 ;
+    LEDTargetVal[r] = 0 ;
     LEDV2[r] = 0 ;
   } ;
 
@@ -472,8 +491,8 @@ int main(void)
       StoreProgram() ;
       break ;
     case LOAD_TWO_LED:
-      SetLED (LED,Message.data[2],Message.data[3],Message.data[4],0,0) ;
-      if (LED<6) SetLED (LED+1,Message.data[5],Message.data[6],Message.data[7],0,0) ;
+      DimLED (LED,Message.data[2],Message.data[3],Message.data[4],0,GlobalDimTimer) ;
+      if (LED<6) DimLED (LED+1,Message.data[5],Message.data[6],Message.data[7],0,GlobalDimTimer) ;
       break ;
     case LOAD_PROG:
       if (Message.data[1]>PWM_CHANNELS) {
@@ -508,13 +527,15 @@ int main(void)
 	  Step[r] = 22 ;
 	  Counter[r] = 0 ;
 	  LEDVal[r] = 0 ;
+	  LEDTargetVal[r] = 0 ;
 	  LEDV2[r] = 0 ;
 	} ;
       } else {
 	r = Message.data[1]-1 ;
 	Step[r] = 22 ;
 	Counter[r] = 0 ; 
-	LEDVal[r] = 0 ; 
+	LEDVal[r] = 0 ;
+	LEDTargetVal[r] = 0 ;
 	LEDV2[r] = 0 ;
       } ;
       break ;
@@ -524,6 +545,9 @@ int main(void)
     case HDIM_TO:
       hsv_to_rgb(Message.data[2],Message.data[3],Message.data[4],&r,&g,&b) ;
       DimLED (LED,r,g,b,Message.data[5],Message.data[6]) ;
+      break ;
+    case SET_DIM_TIME:
+      GlobalDimTimer = Message.data[1] ;
       break ;
     case SHADE_UP_FULL:
     case SHADE_DOWN_FULL:

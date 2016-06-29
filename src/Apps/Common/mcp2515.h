@@ -69,6 +69,7 @@ typedef enum {
   DIM_TO                = 39,
   HDIM_TO               = 40,
   LOAD_TWO_LED          = 41,
+  SET_DIM_TIME          = 42,
   // Sensor commands
   SET_PIN               = 50,
   LOAD_LED              = 51,
