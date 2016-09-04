@@ -179,12 +179,12 @@ struct CANCommand {
   char RepeatMask ;
   char Group ;
   char GroupMask ;
-  char FromLine ;
-  char FromLineMask ;
+  unsigned char FromLine ;
+  unsigned char FromLineMask ;
   USHORT FromAdd ;
   USHORT FromAddMask ;
-  char ToLine ;
-  char ToLineMask ;
+  unsigned char ToLine ;
+  unsigned char ToLineMask ;
   USHORT ToAdd ;
   USHORT ToAddMask ;
   char Len ;
@@ -222,8 +222,8 @@ void ReadDMXTable (FILE *Conf, int Univ)
 
   while (TRUE) {
     while ((Str=fgets(Line,sizeof(Line),Conf))) if (Line[0]!='#') break; //Read next line 
-    if (Str==NULL) return ;
-    if (strstr(Line,"End")) return ;
+    if (Str==NULL) return ; // Return at end of file
+    if (strstr(Line,"End")) return ; // Return at End-Marker
     sscanf (Line,"%d: %d %d",&i,&A1,&P1) ;
     if ((P1<0)||(P1>6)) {
       fprintf (stderr,"ArtNet-Config: Wrong Port Number in Universe %d, LED %d!\n",Univ,i) ;
@@ -472,7 +472,7 @@ void GetExtendedAddress (ULONG CANId, char *Prio, char *Repeat, char *Group)
 
 // Extract source address from CANID
 
-void GetSourceAddress (ULONG CANId, char *FromLine, USHORT *FromAdd)
+void GetSourceAddress (ULONG CANId, unsigned char *FromLine, USHORT *FromAdd)
 {
   *FromLine = (char)((CANId>>22)&0xf) ;
   *FromAdd = (USHORT) ((CANId>>14)&0xff) ;
@@ -480,21 +480,38 @@ void GetSourceAddress (ULONG CANId, char *FromLine, USHORT *FromAdd)
 
 // Extract destination address form CANID
 
-void GetDestAddress (ULONG CANId, char *ToLine, USHORT *ToAdd)
+void GetDestAddress (ULONG CANId, unsigned char *ToLine, USHORT *ToAdd)
 {
   *ToLine = (char)((CANId>>10)&0xf) ;
   *ToAdd = (USHORT) ((CANId>>2)&0xff) ;
 }
 
+
 int InitCAN(void)
 {
   struct sockaddr_can CANAddr ;
   struct ifreq ifr ;
+  struct timeval timeout ;
+  
+  timeout.tv_sec = 10;
+  timeout.tv_usec = 0 ;
+
   // Open CAN sockets (one for each interface)
 
   Can0SockFD = socket (PF_CAN,SOCK_RAW|SOCK_NONBLOCK,CAN_RAW) ;
+
   if (Can0SockFD<0) {
     perror ("CANGateway: Could not get CAN socket") ;
+    return 3 ;
+  } ;
+  
+  if (setsockopt (Can0SockFD, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0) {
+    perror("setsockopt failed\n");
+    return 3 ;
+  } ;
+  
+  if (setsockopt (Can0SockFD, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0) {
+    perror("setsockopt failed\n");
     return 3 ;
   } ;
   
@@ -521,6 +538,16 @@ int InitCAN(void)
   Can1SockFD = socket (PF_CAN,SOCK_RAW|SOCK_NONBLOCK,CAN_RAW) ;
   if (Can1SockFD<0) {
     perror ("CANGateway: Could not get CAN socket") ;
+    return 3 ;
+  } ;
+  
+  if (setsockopt (Can1SockFD, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0) {
+    perror("setsockopt failed\n");
+    return 3 ;
+  } ;
+  
+  if (setsockopt (Can1SockFD, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0) {
+    perror("setsockopt failed\n");
     return 3 ;
   } ;
   
@@ -553,7 +580,7 @@ int InitNetwork(void)
   struct sockaddr_in RecAddr;
   int val ;
   
-  val = (0==0) ;
+  val = TRUE ;
 
   // Reserve Receive-Socket
   if ((RecSockFD = socket(AF_INET, SOCK_DGRAM,0)) == -1) {
@@ -882,9 +909,9 @@ void RewriteCommand (struct CANCommand *Command, struct CANCommand *Exchange, st
   NewCommand->FromAdd = (Command->FromAdd&(~Exchange->FromAddMask))|(Exchange->FromAdd&Exchange->FromAddMask) ;
   NewCommand->ToLine = (Command->ToLine&(~Exchange->ToLineMask))|(Exchange->ToLine&Exchange->ToLineMask) ;
   NewCommand->ToAdd = (Command->ToAdd&(~Exchange->ToAddMask))|(Exchange->ToAdd&Exchange->ToAddMask) ;
-  NewCommand->ToAdd = (Command->Prio&(~Exchange->PrioMask))|(Exchange->Prio&Exchange->PrioMask) ;
-  NewCommand->ToAdd = (Command->Repeat&(~Exchange->RepeatMask))|(Exchange->Repeat&Exchange->RepeatMask) ;
-  NewCommand->ToAdd = (Command->Group&(~Exchange->GroupMask))|(Exchange->Group&Exchange->GroupMask) ;
+  NewCommand->Prio = (Command->Prio&(~Exchange->PrioMask))|(Exchange->Prio&Exchange->PrioMask) ;
+  NewCommand->Repeat = (Command->Repeat&(~Exchange->RepeatMask))|(Exchange->Repeat&Exchange->RepeatMask) ;
+  NewCommand->Group = (Command->Group&(~Exchange->GroupMask))|(Exchange->Group&Exchange->GroupMask) ;
   NewCommand->Len = (Command->Len&(~Exchange->LenMask))|(Exchange->Len&Exchange->LenMask) ;
   for (i=0;i<8;i++) {
     NewCommand->Data[i] = (Command->Data[i]&(~Exchange->DataMask[i]))|(Exchange->Data[i]&Exchange->DataMask[i]) ;
