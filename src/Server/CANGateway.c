@@ -492,7 +492,7 @@ int InitCAN(void)
   struct ifreq ifr ;
   // Open CAN sockets (one for each interface)
 
-  Can0SockFD = socket (PF_CAN,SOCK_RAW,CAN_RAW) ;
+  Can0SockFD = socket (PF_CAN,SOCK_RAW|SOCK_NONBLOCK,CAN_RAW) ;
   if (Can0SockFD<0) {
     perror ("CANGateway: Could not get CAN socket") ;
     return 3 ;
@@ -518,7 +518,7 @@ int InitCAN(void)
   
   // Second CAN Socket
 
-  Can1SockFD = socket (PF_CAN,SOCK_RAW,CAN_RAW) ;
+  Can1SockFD = socket (PF_CAN,SOCK_RAW|SOCK_NONBLOCK,CAN_RAW) ;
   if (Can1SockFD<0) {
     perror ("CANGateway: Could not get CAN socket") ;
     return 3 ;
@@ -1069,20 +1069,19 @@ int main (int argc, char*argv[])
     tv.tv_sec = 0 ;
     tv.tv_usec = 10000 ; // will be deleted by select!
 
-
     if ((i=select(TPM2FD+1,&rdfs,NULL,NULL,&tv))<0) {
       perror ("CANGateway: Could not select") ;
       exit (1) ;
     } ;
 
     gettimeofday(&Now,NULL) ;
-
     relworkqueue () ;
 
     if (i==0) {
       continue ; // was timeout only
     } ;
-    
+
+
     if (FD_ISSET(RecSockFD,&rdfs)) {
       ReceiveFromUDP (&Command) ;
       Command.Interface = CIF_NET ;
