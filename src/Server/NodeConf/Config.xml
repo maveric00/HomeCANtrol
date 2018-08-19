@@ -284,6 +284,78 @@
       </Makro>
     </Zimmer>
     <Zimmer name="Bibliothek">
+      <LED name="LED1">
+        <Adresse linie="2" knoten="50" port="7"/>
+      </LED>
+      <LED name="LED2">
+        <Adresse linie="2" knoten="51" port="7"/>
+      </LED>
+      <LED name="LED3">
+        <Adresse linie="2" knoten="52" port="7"/>
+      </LED>
+      <LED name="LED4">
+        <Adresse linie="2" knoten="53" port="7"/>
+      </LED>
+      <LED name="LED5">
+        <Adresse linie="2" knoten="54" port="7"/>
+      </LED>
+      <LED name="LED6">
+        <Adresse linie="2" knoten="55" port="7"/>
+      </LED>
+      <Makro name="LichtAn">
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED1:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED2:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED3:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED4:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED5:7" R="255" G="245" B="210" W="255" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED6:7" R="255" G="245" B="210" W="255" dauer="10"/>
+      </Makro>
+      <Makro name="Rot">
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED1:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED2:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED3:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED4:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED5:7" R="255" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED6:7" R="255" G="0" B="0" W="0" dauer="10"/>
+      </Makro>
+      <Makro name="Gruen">
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED1:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED2:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED3:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED4:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED5:7" R="0" G="255" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED6:7" R="0" G="255" B="0" W="0" dauer="10"/>
+      </Makro>
+      <Makro name="Blau">
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED1:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED2:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED3:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED4:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED5:7" R="0" G="0" B="255" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED6:7" R="0" G="0" B="255" W="0" dauer="10"/>
+      </Makro>
+      <Makro name="LichtMood">
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED1:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED1:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED2:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED2:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED3:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED3:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED4:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED4:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED5:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED5:0" R="50" G="30" B="10" W="100" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED6:7" R="255" G="220" B="180" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED6:0" R="50" G="30" B="10" W="100" dauer="10"/>
+      </Makro>
+      <Makro name="LichtAus">
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED1:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED2:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED3:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED4:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED5:7" R="0" G="0" B="0" W="0" dauer="10"/>
+	<Aktion kommando="DIMRGB" objekt="Erdgeschoss/Bibliothek/LED6:7" R="0" G="0" B="0" W="0" dauer="10"/>
+      </Makro>      
     </Zimmer>
     <Zimmer name="Esszimmer">
       <Schalter name="SteckdoseEcke">
@@ -1395,11 +1467,19 @@
   <Schalter name="Linie4">
     <Adresse linie="4" knoten="255"/>
   </Schalter>  
+  <Schalter name="Linie5">
+    <Adresse linie="5" knoten="255"/>
+  </Schalter>  
+  <Schalter name="Linie6">
+    <Adresse linie="6" knoten="255"/>
+  </Schalter>  
   <Makro name="Heartbeat">
     <Aktion kommando="Herzschlag" objekt="Linie1"/>
     <Aktion kommando="Herzschlag" objekt="Linie2"/>
     <Aktion kommando="Herzschlag" objekt="Linie3"/>
     <Aktion kommando="Herzschlag" objekt="Linie4"/>
+    <Aktion kommando="Herzschlag" objekt="Linie5"/>
+    <Aktion kommando="Herzschlag" objekt="Linie6"/>
     <Warte zeit="1000"/>
   </Makro>
   <Makro name="AbendLicht">

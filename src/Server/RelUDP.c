@@ -332,7 +332,6 @@ int relsendto (int Socket,unsigned char *Buffer, size_t Bufferlen, int flag, str
     }; 
   } ;
 
-
   Buf[1] = Relay ;
 
 #ifdef DEBUG
@@ -347,7 +346,6 @@ int relsendto (int Socket,unsigned char *Buffer, size_t Bufferlen, int flag, str
     perror("relsendto nicht erfolgreich");
     return(-1);
   }
-
 
   if ((Buf[7]>TIME)&&(Buf[7]<SUCCESSFULL_RESPONSE)) {    
     if (Relay!=99) {

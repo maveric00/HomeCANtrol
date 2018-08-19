@@ -44,7 +44,7 @@ EEProm-Belegung vom LED-Board:
 extern void InitBCM(void);
 
 extern volatile uint8_t LEDVal[PWM_CHANNELS] ;
-extern volatile uint8_t LEDTargetVal[PWM_CHANNELS] ;
+volatile uint8_t LEDTargetVal[PWM_CHANNELS] ;
 extern volatile uint8_t LEDPWM[56] ;
 extern volatile uint8_t MasterVal ;
 volatile uint16_t LEDV2[PWM_CHANNELS] ;
@@ -61,7 +61,7 @@ uint8_t LastTime[PWM_CHANNELS] ;
 
 volatile uint8_t  Heartbeat ;
 volatile uint16_t Timers ;
-uint8_t GlobalDimTimer = 1 ;
+uint8_t GlobalDimTimer = 3 ;
 
 const uint16_t LED_TO_R [] PROGMEM = { 0,9,1,18,12,4,7} ;
 const uint16_t LED_TO_G [] PROGMEM = { 8,10,2,19,13,5,15} ;
@@ -151,7 +151,7 @@ inline void StepLight (void)
       if (Delta[Channel]!=0x7FFF) {
 	LEDV2[Channel] += Delta[Channel] ;
 	Counter[Channel]-- ;
-	if (Counter[Channel]==0) LEDV2[Channel]=((unit16_t)LEDTargetVal[Channel]<<8) ;
+	if (Counter[Channel]==0) LEDV2[Channel]=((uint16_t)LEDTargetVal[Channel]<<8) ;
       } else {
 	if (Counter[Channel]==GlobalTime) Counter[Channel]=0 ;
       } ;
@@ -171,7 +171,7 @@ inline void StepLight (void)
       } else if (Command<221) { // JumpTo 
 	Step[Channel] = Command-201 ;
       } else if (Command==221) { // SetTo
-	LEDTargetVal[Channel]= GetProgram(Channel,Step[Channel]))<<8 ;
+	LEDTargetVal[Channel]= GetProgram(Channel,Step[Channel])<<8 ;
 	LEDV2[Channel] = ((uint16_t)LEDTargetVal[Channel])<<8 ;
 	Step[Channel]++ ;
       } else if (Command==222) { // Delay 
