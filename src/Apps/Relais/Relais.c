@@ -388,6 +388,8 @@ int main(void)
   TCNT1 = 0;              // Timer auf Null stellen
   OCR1A = 1000;           // Overflow auf 1000
   TIMSK1 |= (1 << OCIE1A);   // Interrupt freischalten
+
+  wdt_enable (WDTO_2S) ;
   
   sei();                  // Interrupts gloabl einschalten
 
@@ -396,6 +398,9 @@ int main(void)
   while(1) {
     // Warte auf die nächste CAN-Message
     while ((LastCommand=mcp2515_get_message(&Message)) == NO_MESSAGE) {
+
+      wdt_reset();
+      
       // Rollo-Zustandsmaschine
       if (BroadcastWaiting) {
 	BroadcastStatus(BoardLine,BoardAdd) ;
@@ -476,6 +481,8 @@ int main(void)
 	} ;
       } ;
     };
+
+    wdt_reset();
     
     // Kommando extrahieren
     r = Message.data[0] ;
@@ -488,12 +495,7 @@ int main(void)
     switch (r) {
 
     case SEND_STATUS:
-      for (i=0;i<10;i++) ChanStat[i]=(Channel[i]>0)?1:0 ;
-      Message.data[1] = (ChanStat[0])+(ChanStat[1]<<1)+(ChanStat[2]<<2)+(ChanStat[3]<<3)+(ChanStat[4]<<4) ;
-      Message.data[2] = (ChanStat[5])+(ChanStat[6]<<1)+(ChanStat[7]<<2)+(ChanStat[8]<<3)+(ChanStat[9]<<4) ;
-      for (i=0;i<5;i++) Message.data[i+3]=Position[i] ;
-      Message.length = 8 ;
-      mcp2515_send_message(&Message) ;				
+      BroadcastStatus (BoardLine,BoardAdd) ;
       break ;
 
     case READ_CONFIG:

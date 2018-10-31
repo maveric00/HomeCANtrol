@@ -139,28 +139,28 @@ void main(void)
       BoardType = eeprom_read_byte((uint8_t*)8) ;
 #if defined (__AVR_AT90PWM3B__)	  
       if (BoardType==0x10) { /* Relais, alle Ausgänge auf 0 setzen 
-			   (0: Ausgang von ULN geht auf 1 -> 
-			   Low side switch off */
-			RESET(CHAN0);
-			RESET(CHAN1);
-			RESET(CHAN2);
-			RESET(CHAN3);
-			RESET(CHAN4);
-			RESET(CHAN5);
-			RESET(CHAN6);
-			RESET(CHAN7);
-			RESET(CHAN8);
-			RESET(CHAN9);
-			SET_OUTPUT(CHAN0);
-			SET_OUTPUT(CHAN1);
-			SET_OUTPUT(CHAN2);
-			SET_OUTPUT(CHAN3);
-			SET_OUTPUT(CHAN4);
-			SET_OUTPUT(CHAN5);
-			SET_OUTPUT(CHAN6);
-			SET_OUTPUT(CHAN7);
-			SET_OUTPUT(CHAN8);
-			SET_OUTPUT(CHAN9);
+				(0: Ausgang von ULN geht auf 1 -> 
+				Low side switch off */
+	RESET(CHAN0);
+	RESET(CHAN1);
+	RESET(CHAN2);
+	RESET(CHAN3);
+	RESET(CHAN4);
+	RESET(CHAN5);
+	RESET(CHAN6);
+	RESET(CHAN7);
+	RESET(CHAN8);
+	RESET(CHAN9);
+	SET_OUTPUT(CHAN0);
+	SET_OUTPUT(CHAN1);
+	SET_OUTPUT(CHAN2);
+	SET_OUTPUT(CHAN3);
+	SET_OUTPUT(CHAN4);
+	SET_OUTPUT(CHAN5);
+	SET_OUTPUT(CHAN6);
+	SET_OUTPUT(CHAN7);
+	SET_OUTPUT(CHAN8);
+	SET_OUTPUT(CHAN9);
       } ;
 #endif
     } ;

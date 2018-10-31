@@ -583,6 +583,23 @@ void EveryDay(void)
     } ;
 }
 
+SendWebsocketValue (struct Node *This)
+{
+  unsigned char websocket_buf[LWS_SEND_BUFFER_PRE_PADDING + NAMELEN*4 + LWS_SEND_BUFFER_POST_PADDING];
+  char* p ;
+
+  p = (char*)&(websocket_buf[LWS_SEND_BUFFER_PRE_PADDING]) ;
+
+  strcpy (p,"Set ") ;
+  // Hier wird ein Nebeneffekt von FullObjectName ausgenutzt: der Objektname wird an den 
+  // vorhandenen String angehaengt.
+  FullObjectName(This,p) ;
+  sprintf (Temp," %d",This->Value) ;
+  strcat (p,Temp) ;
+  libwebsockets_broadcast(&web_protocols[PROTOCOL_CONTROL],(unsigned char*)p,strlen(p)) ;
+}
+
+    
 void HandleCANRequest(void)
 {
   ULONG CANID ;
@@ -595,9 +612,7 @@ void HandleCANRequest(void)
   USHORT FromAdd ;
   int Port ;
   int Mask,MaskIndex ;
-  unsigned char websocket_buf[LWS_SEND_BUFFER_PRE_PADDING + NAMELEN*4 + LWS_SEND_BUFFER_POST_PADDING];
   char Temp[NAMELEN]; 
-  char* p ;
   int i ;
   struct NodeList *NL ;
 
@@ -616,9 +631,6 @@ void HandleCANRequest(void)
     fprintf (logfd,"\n") ;
   } ;
 
-  p = (char*)&(websocket_buf[LWS_SEND_BUFFER_PRE_PADDING]) ;
-
-  
   // Nachsehen, ob auf diese Kommando eine Reaktion folgen soll
   for (NL=Reactions; NL!=NULL;NL=NL->Next) {
     if (((NL->Node->Data.Reaction.From.Linie&NL->Node->Data.Reaction.FromMask.Linie)==
@@ -657,6 +669,8 @@ void HandleCANRequest(void)
 	} else if (Data[0]==CHANNEL_TOGGLE) {
 	  This->Value = 1-This->Value ;
 	} ;
+      } else {
+	fprintf (stderr,"Configuration of element %d.%d is wrong (node %d.%d not found)\n",FromLine,FromAdd,ToLine,ToAdd) ;
       } ;
     } ;
   } else {
@@ -670,33 +684,36 @@ void HandleCANRequest(void)
       // Status-Informationen empfangen, hier auswerten
 
       This=FindNodeAdress(Haus,FromLine,FromAdd,255,NULL) ;
-      if ((This->Type==N_ONOFF)||(This->Type==N_SHADE)) {
-	// Es ist ein Relais-Knoten, also die Informationen eintragen...
+      if (This!=NULL) {
+	if ((This->Type==N_ONOFF)||(This->Type==N_SHADE)) {
+	  // Es ist ein Relais-Knoten, also die Informationen eintragen...
+	  
+	  Mask = 1 ;
+	  MaskIndex = 1 ;
+	  for (Port=1;Port<=10;Port++) {
+	    This=FindNodeAdress(Haus,FromLine,FromAdd,Port,NULL) ;
+	    if (This!=NULL) {
+	      if ((This->Type==N_SHADE)&&(Port<6)) {
+		This->Value = Data[Port+2] ;
+	      } else {
+		This->Value = ((Data[MaskIndex]&Mask)!=0)? 100:0 ;
+	      } ;
 
-	Mask = 1 ;
-	MaskIndex = 1 ;
-	for (Port=1;Port<=10;Port++) {
-	  This=FindNodeAdress(Haus,FromLine,FromAdd,Port,NULL) ;
-	  if (This!=NULL) {
-	    if ((This->Type==N_SHADE)&&(Port<6)) {
-	      This->Value = Data[Port+2] ;
-	    } else {
-	      This->Value = ((Data[MaskIndex]&Mask)!=0)? 100:0 ;
+	      // Datenwert an die Web-Oberflächen senden
+	      
+	      SendWebsocketValue(This) ;
+
+	      // Nächsten Wert bearbeiten
+	      Mask <<=1 ;
+	      if (Port==6) {
+		MaskIndex = 2 ;
+		Mask = 1 ;
+	      } ;
 	    } ;
-	    Mask <<=1 ;
-	    if (Port==6) {
-	      MaskIndex = 2 ;
-	      Mask = 1 ;
-	    } ;
-	    strcpy (p,"Set ") ;
-	    // Hier wird ein Nebeneffekt von FullObjectName ausgenutzt: der Objektname wird an den 
-	    // vorhandenen String angehaengt.
-	    FullObjectName(This,p) ;
-	    sprintf (Temp," %d",This->Value) ;
-	    strcat (p,Temp) ;
-	    libwebsockets_broadcast(&web_protocols[PROTOCOL_CONTROL],(unsigned char*)p,strlen(p)) ;
 	  } ;
 	} ;
+      } else {
+	fprintf (stderr,"Configuration of element %d.%d is wrong (node %d.%d not found)\n",FromLine,FromAdd,ToLine,ToAdd) ;
       } ;
     } else if (Data[0]==(SET_VAR|SUCCESSFULL_RESPONSE)) {
       // EEprom write handshake; send out next byte

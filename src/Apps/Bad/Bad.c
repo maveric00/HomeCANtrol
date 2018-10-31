@@ -367,6 +367,8 @@ int __attribute__((OS_main)) main(void)
   InitBCM () ;
   
   SET_INPUT_WITH_PULLUP(INPORT);
+
+  wdt_enable (WDTO_2S) ;
   
   sei();                  // Interrupts gloabl einschalten
   
@@ -376,6 +378,9 @@ int __attribute__((OS_main)) main(void)
     // Warte auf die nächste CAN-Message
     while ((LastCommand=mcp2515_get_message(&Message)) == NO_MESSAGE) {
       // Hier wird der Bewegungsmelder abgefragt
+
+      wdt_reset();
+      
       if (!IS_SET(INPORT)) {
 	if (Timers==0) {
 	  SendPinMessage(0,(Heartbeat>200)?1:0) ;
@@ -409,6 +414,8 @@ int __attribute__((OS_main)) main(void)
 	} ;
       } ;	 
     };
+
+    wdt_reset();
     
     // Kommando extrahieren
     r = Message.data[0] ;
