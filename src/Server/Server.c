@@ -1200,7 +1200,7 @@ static void *Handle_Webserver(enum mg_event event, struct mg_connection *conn)
       // User has submitted a form, show submitted data and a variable value 
       if (ri->query_string==NULL) return (NULL) ;
       
-      for (i=0,j=0;(ri->query_string[i]!='\0')&&(ri->query_string[i]!='.')&&(j<NAMELEN*4-1);i++,j++) {
+      for (i=0,j=0;(ri->query_string[i]!='\0')&&(ri->query_string[i]!='.')&&(ri->query_string[i]!='=')&&(j<NAMELEN*4-1);i++,j++) {
 	if (ri->query_string[i]=='+') {
 	  data[j]=' ' ;
 	} else if (ri->query_string[i]=='%') {
@@ -1233,7 +1233,7 @@ static void *Handle_Webserver(enum mg_event event, struct mg_connection *conn)
       
       
       sscanf(data,"%s %s",Com,Obj) ;
-      
+
       if ((strlen(Com)==0)||strlen(Obj)==0) return NULL ;
 
       This = FindNode(Haus->Child,Obj) ;  
