@@ -62,6 +62,7 @@ typedef enum {
   N_EXTENDED = 34,
   N_GROUP = 35,
   N_ELEMENT = 36,
+  N_DMX = 37,
   S_SIMPLE = 100,
   S_SHORTLONG = 101,
   S_SHADE_SHORTLONG = 102,
@@ -141,6 +142,22 @@ struct Werte {
   char Wert[NAMELEN*2] ;
 } ;
 
+struct DMX {
+  char ID[8] = {'A','r','t','-','N','e','t',0x00} ;
+  unsigned char OpOutputLow ;
+  unsigned char OpOutputHigh ;
+  unsigned char ProtVerHi = 0 ;
+  unsigned char ProtVerLow = 14 ;
+  unsigned char Sequence ;
+  unsigned char Physical ;
+  unsigned char SubUni ;
+  unsigned char Net ;
+  unsigned char LengthHi ;
+  unsigned char Length ;
+  unsigned char Data[512] ;
+} ;
+  
+
 struct Program {
   unsigned char Port ;
   unsigned char Data[50] ;
@@ -196,6 +213,7 @@ struct Node {
     struct Werte Wert ;
     struct Reaction Reaction ;
     struct GroupInfo Group ;
+    struct DMX DMX ;
   } Data ;
 } ;
 
@@ -272,6 +290,7 @@ struct Node *CreateNode (void);
 void FreeNode (struct Node *This) ;
 struct Node *NewChild (struct Node *This) ;
 struct Node *FindNode (struct Node *Root,const char *Unit);
+struct Node *FindGroup (struct Node *Root,const char *Unit);
 struct Node *FindGlobalNode (struct Node *Root, char *Unit);
 void FullObjectName(struct Node *Node, char *Name) ;
 int CollectAdress (struct Node *Root, int Linie, int Knoten, struct Node *Result[], int *ResultNumber ) ;
