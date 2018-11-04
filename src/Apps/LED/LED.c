@@ -460,20 +460,14 @@ int main(void)
       break ;
 
     case CHANNEL_OFF:
-      //for (g=1;g<7;g++) 
-      //SetLED (g,0,0,0,0,0) ;
       SetLED (7,0,0,0,0,0) ;	  
       mcp2515_send_message(&Message) ;
       break ;
     case CHANNEL_ON:
-      //for (g=1;g<7;g++) 	
-      //SetLED (g,255,255,255,255,0) ;
       SetLED (7,255,255,255,255,0) ;
       mcp2515_send_message(&Message) ;
       break ;
     case CHANNEL_TOGGLE:
-      //for (g=1;g<7;g++) 
-      //SetLED (g,255,255,255,255,1) ;
       SetLED (7,255,255,255,255,1) ;
       mcp2515_send_message(&Message) ;
       break ;
