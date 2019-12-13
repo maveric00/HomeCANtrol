@@ -200,6 +200,21 @@ void XMLCALL start(void *data, const char *el, const char **attr)
     } ;
   } ;
 
+  if (Current->Type==N_DMX) {
+    strcpy(Current->Data.DMX.ID,"Art-Net") ;
+    Current->Data.DMX.OpOutputLow=0 ;
+    Current->Data.DMX.OpOutputHigh=0 ;
+    Current->Data.DMX.ProtVerHi=0 ;
+    Current->Data.DMX.ProtVerLo=14 ;
+    Current->Data.DMX.Sequence=0 ;
+    Current->Data.DMX.Pyhsical=0 ;
+    Current->Data.DMX.SubUni=0 ;
+    Current->Data.DMX.Net=0 ;
+    Current->Data.DMX.LengthHi=0x1 ;
+    Current->Data.DMX.Length=0xFF ;
+    for (i=0;i<512;i++) Current->Data.DMX.Data[i]=0 ;
+  }
+
 
   for (i = 0; attr[i]; i += 2) {
     if (strcmp(attr[i],"name")==0) {
@@ -220,7 +235,8 @@ void XMLCALL start(void *data, const char *el, const char **attr)
 	sscanf(attr[i+1],"%d",&(Current->Data.Group.Number)) ;
       } ;
     case N_ADRESS:
-      if ((strcmp(attr[i],"linie")==0)||(strcmp(attr[i],"line")==0)) {
+      if ((strcmp(attr[i],"linie")==0)||(strcmp(attr[i],"line")==0)||
+	  (strcmp(attr[i],"universum")==0)||(strcmp(attr[i],"universe")==0)) {
 	sscanf(attr[i+1],"%d",&(Current->Data.Adresse.Linie)) ;
       } ;
       if ((strcmp(attr[i],"knoten")==0)||(strcmp(attr[i],"node")==0)) {
@@ -228,6 +244,12 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       } ;
       if (strcmp(attr[i],"port")==0) {
 	sscanf(attr[i+1],"%d",&(Current->Data.Adresse.Port)) ;
+      } ;
+      if (strcmp(attr[i],"dmx")==0) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Adresse.DMX)) ;
+      } ;
+      if (strcmp(attr[i],"offset")==0) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Adresse.Offset)) ;
       } ;
       break ;
     case N_ACTION:
@@ -620,6 +642,8 @@ int ReadConfig(void)
   ParseError = 0 ;
 
   FreeNode (Haus) ;
+  FreeNode (DMXData) ;
+  
 
   p = XML_ParserCreate(NULL);
   if (! p) {

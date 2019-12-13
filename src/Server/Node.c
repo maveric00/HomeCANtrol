@@ -163,6 +163,25 @@ struct Node *FindNodeAdress (struct Node *Root,int Linie, int Knoten, int Port,s
   return (NULL) ;
 }
 
+struct Node *FindDMXUniverse (struct Node *Root,int Universe)
+{
+  struct Node *This,*That ;
+  
+  if (Root==NULL) return (NULL) ;
+
+  // Knoten mit dem ersten Bezeichner finden
+  
+  for(This = Root ;This!=NULL;This=This->Next) {
+    if ((This->Type==N_ADRESS)&&(This->Data.Adresse.Linie ==Universe)&&
+	(This->Parent->Type==N_DMX)) { 
+      return (This->Parent) ;
+    } ;
+    That = FindDMXUniverse(This->Child,Universe) ;
+    if (That!=NULL) return (That) ;
+  } 
+  return (NULL) ;
+}
+
 // FullObjectName erzeugt den kompletten Pfadnamen des Knotens; Name muss ein Null-String sein) ;
 
 void FullObjectName(struct Node *Node, char *Name)

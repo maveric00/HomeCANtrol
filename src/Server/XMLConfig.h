@@ -116,6 +116,8 @@ struct AdInfo {
   int Linie ;
   int Knoten ;
   int Port ;
+  int DMX ;
+  int Offset ;
 } ;
 
 struct GroupInfo {
@@ -143,11 +145,11 @@ struct Werte {
 } ;
 
 struct DMX {
-  char ID[8] = {'A','r','t','-','N','e','t',0x00} ;
+  char ID[8];
   unsigned char OpOutputLow ;
   unsigned char OpOutputHigh ;
-  unsigned char ProtVerHi = 0 ;
-  unsigned char ProtVerLow = 14 ;
+  unsigned char ProtVerHi;
+  unsigned char ProtVerLow;
   unsigned char Sequence ;
   unsigned char Physical ;
   unsigned char SubUni ;
@@ -296,6 +298,7 @@ void FullObjectName(struct Node *Node, char *Name) ;
 int CollectAdress (struct Node *Root, int Linie, int Knoten, struct Node *Result[], int *ResultNumber ) ;
 int CollectType (struct Node *Root, NodeType Type, struct Node *Result[], int *ResultNumber ) ;
 struct Node *FindNodeAdress (struct Node *Root,int Linie, int Knoten, int Port,struct Node *Except);
+struct Node *FindDMXUniverse (struct Node *Root,int Universe);
 int GetNodeAdress (struct Node *Node, int *Line, int *Knoten, int *Port) ;
 void FreeItem (struct ListItem *This) ;
 struct ListItem *CreateItem (struct ListItem* Head) ;
