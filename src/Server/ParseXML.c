@@ -18,6 +18,8 @@
 
 //#define DEBUG 1
 
+
+// Global
 struct Node *Haus=NULL ;
 struct Node *DefaultFloor=NULL ;
 struct Node *Current=NULL ;
@@ -26,10 +28,11 @@ struct NodeList *Reactions=NULL ;
 double West,North ;
 struct tm SunSet ;
 struct tm SunRise ;
-
-
 int MakroNummer;
 int Depth;
+
+int ParseError ;
+
 
 struct TypSel Types[] = {
   {"Haus",N_STRUCTURE},
@@ -165,7 +168,6 @@ NodeType FillType(const char *This)
   return (Types[i].Type) ;
 }
 
-int ParseError ;
 
 void XMLCALL start(void *data, const char *el, const char **attr) 
 {
@@ -312,8 +314,20 @@ void XMLCALL start(void *data, const char *el, const char **attr)
       if ((strcmp(attr[i],"led")==0)||(strcmp(attr[i],"led")==0)) {
 	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.WSNum)) ;
       } ;
+      if ((strcmp(attr[i],"led2")==0)||(strcmp(attr[i],"led2")==0)) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.WSNum2)) ;
+      } ;
+      if ((strcmp(attr[i],"led3")==0)||(strcmp(attr[i],"led3")==0)) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.WSNum2)) ;
+      } ;
       if ((strcmp(attr[i],"virtled")==0)||(strcmp(attr[i],"virtled")==0)) {
 	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.VirtWSNum)) ;
+      } ;
+      if ((strcmp(attr[i],"virtled2")==0)||(strcmp(attr[i],"virtled2")==0)) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.VirtWSNum2)) ;
+      } ;
+      if ((strcmp(attr[i],"virtled3")==0)||(strcmp(attr[i],"virtled3")==0)) {
+	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.VirtWSNum3)) ;
       } ;
       if ((strcmp(attr[i],"power1")==0)||(strcmp(attr[i],"power1")==0)) {
 	sscanf(attr[i+1],"%d",&(Current->Data.Sensor.Power1)) ;
@@ -1003,6 +1017,8 @@ int ComparePrec (char *Expression, char *Token1, char *Token2)
   return (Operators[i].Prec-Operators[j].Prec) ;
 } 
 
+
+// Global
 char CalcStack [NAMELEN*8] ;
 char *CalcStackPointer ;
 char OutStack [NAMELEN*8] ;
@@ -1035,6 +1051,7 @@ char *CalcPeek (char *CS, char **CSP)
   return (a) ;
 }
 
+// Global
 int TokenPointer ;
 
 int iswhitespace(char a)

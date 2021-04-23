@@ -46,6 +46,8 @@
   Byte 9..15: Command data 
  */
 
+// Global
+
 struct RelUDPHost RelFirstSend ;
 struct RelUDPHost RelFirstRec ;
 struct RelUDPHost RelaySend ;

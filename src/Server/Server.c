@@ -25,6 +25,7 @@ char *strptime(const char *s, const char *format, struct tm *tm);
 /* Makro-Funktionen */
 #define MAX_ACTIVEMACROS 255
 
+// Global
 struct MacroList ActiveMacros[MAX_ACTIVEMACROS] ;
 struct SeqList *ActiveSeq[MAX_ACTIVEMACROS] ;
 
@@ -34,7 +35,7 @@ FILE *logfd ;
 int Verbose=0 ;
 int NoTime=0 ;
 
-char *CommandName[]={
+const char *CommandName[]={
   "Update request",
   "Identify",
   "Set Address",
@@ -742,6 +743,9 @@ void HandleCANRequest(void)
   } ;
 }
 
+// Global
+static struct Node *MenuCurrent = NULL ;
+
 int HandleCommand (char *Command,int Socket)
 {
   int Line,Add,Port ;
@@ -753,7 +757,7 @@ int HandleCommand (char *Command,int Socket)
   char Answer[NAMELEN] ;
   struct Node *This ;
   struct EEPROM EEprom ;
-  static struct Node *MenuCurrent = NULL ;
+
   
   if (MenuCurrent==NULL) MenuCurrent = Haus ;
 
@@ -1305,11 +1309,14 @@ static void *Handle_Webserver(enum mg_event event, struct mg_connection *conn)
 
 }
 
+
+// Global
 struct timeval Now ;
+struct Node *Ergebnis[MAX_ADD_PER_NODE] ;
 
 /* Hauptprogramm */
 
-struct Node *Ergebnis[MAX_ADD_PER_NODE] ;
+
 
 int main(int argc, char **argv) 
 {

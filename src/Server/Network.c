@@ -23,6 +23,8 @@
 #include "Network.h"
 #include "RelUDP.h"
 
+
+// Global
 char CAN_PORT[20] ;
 int CAN_PORT_NUM ;
 char WS_PORT[20] ;
@@ -352,7 +354,54 @@ int SendCANMessage (ULONG CANID, char Len, unsigned char *Data)
 
 // Wartet auf Empfang und oeffne ggf. neue Command-Channels
 
+// Global
+
 struct ListItem *Connections=NULL ;
+
+
+int EditLine (struct ListItem *Connect, char *buf)
+{
+  int i ;
+  int j ;
+
+  for (i=0;i<strlen(buf);i++) {
+    switch (Connect->State) {
+    case 0:
+      if (buf[i]==27) {
+	Connect->State = 1 ;
+      } else if (buf[i]==8) {
+	Connect->Counter-- ;
+	Connect->Data.Command[Connect->Counter] = '\0' ;
+      } else if (buf[i]=='\n') {
+	if ((Connect->Counter>0)&&(Connect->Data.Command[Connect->Counter]=='\r')) Connect->Data.Command[--(Connect->Counter)]='\0' ;
+	return (TRUE) ;
+      } else {
+	// Platz für den nächsten Buchstaben schaffen
+	for (j=strlen(Connect->Data.Command);(j>Connect->Counter)&&(j<(NAMELEN*4-1));j--) Connect->Data.Command[j]=Connect->Data.Command[j-1] ; 
+	Connect->Data.Command[Connect->Counter] = buf[i] ;
+	Connect->Counter++ ;
+      } ;
+      break ;
+    case 1:
+      if (buf[i]=='[') {
+	Connect->State = 2 ;
+      } else {
+	Connect->State = 0 ;
+      } ;
+      break ;
+    case 2:
+      if (buf[i]=='D') {
+	if (Connect->Counter>0) Connect->Counter-- ;
+      } else if (buf[i]=='C') {
+	if (Connect->Data[Connect->Counter]!='\0') Connect->Counter++ ;
+      } ;
+      Connect->State = 0  ;
+      break ;
+    } ;
+  } ;
+  return (FALSE) ;
+}
+	
 
 int CheckNetwork(int * error,int timeOut) // milliseconds
 {
@@ -415,6 +464,8 @@ int CheckNetwork(int * error,int timeOut) // milliseconds
 	  Connect = CreateItem(Connections) ;
 	  if (Connections==NULL) Connections = Connect ;
 	  Connect->Number = newfd ;
+	  Connect->State = 0 ; // Reception State
+	  Connect->Counter = 0 ; // Position within Command
 	  HandleCommand("",newfd) ;
 	  send(newfd,"Command (\"Help\" for list): ",strlen("Command (\"Help\" for list): "),0); 
 	}
@@ -443,6 +494,8 @@ int CheckNetwork(int * error,int timeOut) // milliseconds
 		ToBeClosed = i ;
 	      } ;
 	      Connect->Data.Command[0] = '\0' ;
+	      Connect->Counter = 0 ;
+	      Connect->State = 0 ;
 	    } ;
 	  } ;
 	} ;
@@ -859,6 +912,8 @@ struct libwebsocket_protocols web_protocols[] = {
 	}
 };
 
+
+// Global
 struct libwebsocket_context *web_context;
 
 int InitWebsocket(void)

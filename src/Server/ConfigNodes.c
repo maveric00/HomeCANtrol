@@ -548,6 +548,8 @@ int WriteConfig(struct EEPROM *EEprom)
   return (1) ;
 }
 
+
+// Global
 // Sendet das naechste Byte der Konfiguration an den Knoten, 
 struct ListItem *ConfigList ;
 struct ListItem *FirmwareList ;
